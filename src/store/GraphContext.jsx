@@ -41,11 +41,9 @@ export const GraphProvider = ({ children }) => {
         currentNodes.forEach(targetNode => {
           if (sourceNode.id === targetNode.id) return;
 
-          // استخراج الهوية الكاملة للعقدة (Category/Collection)
-          const sourcePath = sourceNode.data.fullPath; // "Category/Collection" or "Category"
+          const sourcePath = sourceNode.data.fullPath;
           const targetPath = targetNode.data.fullPath;
 
-          // التحقق من المطابقة: إما مطابقة كاملة للكيان أو مطابقة للفئة
           const isSourceMatch = edgeMeta.fromcol === sourcePath || edgeMeta.fromcol.startsWith(sourcePath + '/');
           const isTargetMatch = edgeMeta.tocol === targetPath || edgeMeta.tocol.startsWith(targetPath + '/');
 
@@ -124,6 +122,28 @@ export const GraphProvider = ({ children }) => {
     setQueryResult({ startnode: startNodes, targetnode: [], edges: resultEdges });
     setActiveResultType('query');
     setIsQueryLoading(false);
+  };
+
+  const executeShortestPath = async (fromId, toId) => {
+    setIsQueryLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    // محاكاة نتيجة أقصر مسار باستخدام البيانات الموجودة في النتائج الحالية
+    const pathNodes = queryResult.startnode.filter(n => n._id === fromId || n._id === toId);
+    const pathEdges = queryResult.edges.filter(e => 
+      (e._from === fromId && e._to === toId) || (e._from === toId && e._to === fromId)
+    );
+
+    setShortestPathResult({
+      startnode: pathNodes,
+      targetnode: [],
+      edges: pathEdges
+    });
+    
+    setActiveResultType('shortestPath');
+    setIsQueryLoading(false);
+    setIsResultPathMode(false);
+    setResultPathNodes([]);
   };
 
   const addEdgeManually = (edgeLabel) => {
@@ -225,8 +245,8 @@ export const GraphProvider = ({ children }) => {
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, 
       addNodeFromMetadata, addEdgeManually, updateFilters, updateEdgeOffset, deleteElement, clearCanvas,
-      executeStructuredQuery, queryResult, shortestPathResult,
-      activeResultType, setActiveResultType, isQueryLoading, setQueryResult,
+      executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult,
+      activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult,
       highlightedId, setHighlightedId, isResultPathMode, setIsResultPathMode,
       resultPathNodes, setResultPathNodes,
       isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect
