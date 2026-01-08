@@ -3,6 +3,12 @@ import { CollectionMetadata, EdgeMetadata, Filter } from '../types/arango';
 import { fetchMetadata } from '../services/mockApi';
 import { Node, Edge, Connection, addEdge } from 'reactflow';
 
+interface QueryResult {
+  startnode: any[];
+  targetnode: any[];
+  edges: any[];
+}
+
 interface GraphContextType {
   metadata: { collections: CollectionMetadata[]; edges: EdgeMetadata[] };
   nodes: Node[];
@@ -14,9 +20,13 @@ interface GraphContextType {
   addEdgeManually: (edgeName: string) => void;
   updateFilters: (id: string, isNode: boolean, filters: Filter[]) => void;
   deleteElement: (id: string, isNode: boolean) => void;
-  autoConnect: () => void;
   clearCanvas: () => void;
-  getStructuredQuery: () => any[];
+  executeStructuredQuery: () => Promise<void>;
+  queryResult: QueryResult | null;
+  isQueryLoading: boolean;
+  setQueryResult: (res: QueryResult | null) => void;
+  highlightedId: string | null;
+  setHighlightedId: (id: string | null) => void;
   edgeStyle: string;
   setEdgeStyle: (style: string) => void;
   isAnimated: boolean;
@@ -31,6 +41,9 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [metadata, setMetadata] = useState<{ collections: CollectionMetadata[]; edges: EdgeMetadata[] }>({ collections: [], edges: [] });
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
+  const [isQueryLoading, setIsQueryLoading] = useState(false);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [edgeStyle, _setEdgeStyle] = useState<string>('smoothstep');
   const [isAnimated, _setIsAnimated] = useState<boolean>(true);
   const [isAutoConnect, setIsAutoConnect] = useState<boolean>(false);
@@ -58,46 +71,59 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, eds));
   }, [edgeStyle, isAnimated]);
 
-  const getStructuredQuery = () => {
-    // Map edges to triples: [ {node, edge, node}, ... ]
-    return edges.map(edge => {
+  const executeStructuredQuery = async () => {
+    setIsQueryLoading(true);
+    // Simulate API Delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    const startNodes: any[] = [];
+    const targetNodes: any[] = [];
+    const queryEdges: any[] = [];
+
+    // Mock data generation based on actual nodes/edges on canvas
+    nodes.forEach((node, index) => {
+      const isStart = index === 0;
+      const mockRecord = {
+        _id: `${node.data.label}/${index + 100}`,
+        _key: `${index + 100}`,
+        label: node.data.label,
+        type: node.data.type,
+        ...(node.data.metadata?.attributes || []).reduce((acc: any, attr: string) => {
+          acc[attr] = "Mock Value";
+          return acc;
+        }, {})
+      };
+      
+      if (isStart) startNodes.push(mockRecord);
+      else targetNodes.push(mockRecord);
+    });
+
+    edges.forEach((edge, index) => {
       const sourceNode = nodes.find(n => n.id === edge.source);
       const targetNode = nodes.find(n => n.id === edge.target);
-      return {
-        sourceNode: { id: sourceNode?.id, label: sourceNode?.data.label, filters: sourceNode?.data.filters },
-        relationship: { id: edge.id, label: edge.label || edge.data?.metadata?.name, filters: edge.data?.filters },
-        targetNode: { id: targetNode?.id, label: targetNode?.data.label, filters: targetNode?.data.filters }
-      };
-    });
-  };
+      const sourceIdx = nodes.indexOf(sourceNode!);
+      const targetIdx = nodes.indexOf(targetNode!);
 
-  const autoConnect = useCallback(() => {
-    const newEdges: Edge[] = [];
-    nodes.forEach(sourceNode => {
-      nodes.forEach(targetNode => {
-        if (sourceNode.id === targetNode.id) return;
-        const sourceColls = sourceNode.data.type === 'collection' ? [sourceNode.data.label] : sourceNode.data.metadata?.collections || [];
-        const targetColls = targetNode.data.type === 'collection' ? [targetNode.data.label] : targetNode.data.metadata?.collections || [];
-        metadata.edges.forEach(edgeMeta => {
-          if (sourceColls.includes(edgeMeta.from) && targetColls.includes(edgeMeta.to)) {
-            const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.name}`;
-            if (!edges.find(e => e.id === edgeId)) {
-              newEdges.push({
-                id: edgeId,
-                source: sourceNode.id,
-                target: targetNode.id,
-                label: edgeMeta.name,
-                type: edgeStyle,
-                animated: isAnimated,
-                data: { metadata: edgeMeta, filters: [] }
-              });
-            }
-          }
-        });
+      queryEdges.push({
+        _id: `${edge.label || 'edge'}/${index + 500}`,
+        _key: `${index + 500}`,
+        _from: `${sourceNode?.data.label}/${sourceIdx + 100}`,
+        _to: `${targetNode?.data.label}/${targetIdx + 100}`,
+        label: edge.label || 'Connection',
+        ...(edge.data?.metadata?.attributes || []).reduce((acc: any, attr: string) => {
+          acc[attr] = "Edge Value";
+          return acc;
+        }, {})
       });
     });
-    if (newEdges.length > 0) setEdges((eds) => [...eds, ...newEdges]);
-  }, [nodes, edges, metadata.edges, edgeStyle, isAnimated]);
+
+    setQueryResult({
+      startnode: startNodes,
+      targetnode: targetNodes,
+      edges: queryEdges
+    });
+    setIsQueryLoading(false);
+  };
 
   const addEdgeManually = (edgeName: string) => {
     const edgeMeta = metadata.edges.find(e => e.name === edgeName);
@@ -128,10 +154,6 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
     if (newEdges.length > 0) setEdges((eds) => [...eds, ...newEdges]);
   };
-
-  useEffect(() => {
-    if (isAutoConnect && nodes.length > 0) autoConnect();
-  }, [nodes.length, isAutoConnect]);
 
   const addNodeFromMetadata = (type: 'collection' | 'category', name: string, position: { x: number; y: number }) => {
     const id = `${type}-${name}-${Date.now()}`;
@@ -176,8 +198,9 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, 
-      addNodeFromMetadata, addEdgeManually, updateFilters, deleteElement, autoConnect, clearCanvas,
-      getStructuredQuery,
+      addNodeFromMetadata, addEdgeManually, updateFilters, deleteElement, clearCanvas,
+      executeStructuredQuery, queryResult, isQueryLoading, setQueryResult,
+      highlightedId, setHighlightedId,
       edgeStyle, setEdgeStyle, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect
     }}>
       {children}

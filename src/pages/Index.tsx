@@ -2,25 +2,19 @@ import React, { useState } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { GraphCanvas } from '../components/GraphCanvas';
 import { DetailsPanel } from '../components/DetailsPanel';
+import { ResultView } from '../components/ResultView';
 import { GraphProvider, useGraph } from '../store/GraphContext';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Bell as BellIcon, User as UserIcon, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { showSuccess } from '@/utils/toast';
 
 const HeaderActions = () => {
-  const { getStructuredQuery } = useGraph();
-
-  const handleRunQuery = () => {
-    const structure = getStructuredQuery();
-    console.log("Structured Query Output:", structure);
-    showSuccess(`تم استخراج ${structure.length} علاقة. تحقق من وحدة التحكم (Console)`);
-  };
+  const { executeStructuredQuery } = useGraph();
 
   return (
     <div className="flex items-center gap-4">
       <Button 
-        onClick={handleRunQuery}
+        onClick={executeStructuredQuery}
         className="gap-2 bg-emerald-600 hover:bg-emerald-700 h-9 font-bold"
       >
         <PlayCircle size={18} />
@@ -72,6 +66,9 @@ const IndexContent = () => {
           </div>
         )}
       </div>
+
+      {/* Overlays */}
+      <ResultView />
 
       <div className="bg-slate-50 border-t">
         <MadeWithDyad />
