@@ -14,7 +14,7 @@ import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { RadialMenu } from './RadialMenu';
-import { Settings2, Play, LayoutGrid, Maximize2 } from 'lucide-react';
+import { Settings2, Play, LayoutGrid, Maximize2, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
@@ -26,10 +26,10 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { 
     nodes, edges, onConnect, setNodes, setEdges, 
-    addNodeFromMetadata, autoConnect, deleteElement,
+    addNodeFromMetadata, autoConnect, deleteElement, clearCanvas,
     edgeStyle, setEdgeStyle 
   } = useGraph();
-  const { project } = useReactFlow();
+  const { project, fitView } = useReactFlow();
   
   const [menu, setMenu] = useState<{ x: number, y: number, id: string, isNode: boolean } | null>(null);
 
@@ -64,30 +64,19 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
     });
 
     addNodeFromMetadata(data.nodeType, data.nodeName, position);
-    // Trigger auto-connect after drop
     setTimeout(autoConnect, 100);
   }, [project, addNodeFromMetadata, autoConnect]);
 
-  const onNodeContextMenu = useCallback((event: React.MouseEvent, node: any) => {
-    event.preventDefault();
-    setMenu({ x: event.clientX, y: event.clientY, id: node.id, isNode: true });
-  }, []);
-
-  const onEdgeContextMenu = useCallback((event: React.MouseEvent, edge: any) => {
-    event.preventDefault();
-    setMenu({ x: event.clientX, y: event.clientY, id: edge.id, isNode: false });
-  }, []);
-
-  const onNodeDoubleClick = useCallback((event: React.MouseEvent, node: any) => {
-    onSelectElement(node.id, true);
-  }, [onSelectElement]);
-
-  const onEdgeDoubleClick = useCallback((event: React.MouseEvent, edge: any) => {
-    onSelectElement(edge.id, false);
-  }, [onSelectElement]);
+  const onLayoutGrid = () => {
+    setNodes((nds) => nds.map((node, index) => ({
+      ...node,
+      position: { x: (index % 3) * 200, y: Math.floor(index / 3) * 200 }
+    })));
+    setTimeout(() => fitView({ duration: 800 }), 100);
+  };
 
   return (
-    <div className="w-full h-full relative" ref={reactFlowWrapper}>
+    <div className="w-full h-full relative" ref={reactFlowWrapper} dir="ltr">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -97,10 +86,10 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
         nodeTypes={nodeTypes}
         onDragOver={onDragOver}
         onDrop={onDrop}
-        onNodeContextMenu={onNodeContextMenu}
-        onEdgeContextMenu={onEdgeContextMenu}
-        onNodeDoubleClick={onNodeDoubleClick}
-        onEdgeDoubleClick={onEdgeDoubleClick}
+        onNodeContextMenu={(e, n) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, id: n.id, isNode: true }); }}
+        onEdgeContextMenu={(e, edge) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, id: edge.id, isNode: false }); }}
+        onNodeDoubleClick={(e, n) => onSelectElement(n.id, true)}
+        onEdgeDoubleClick={(e, edge) => onSelectElement(edge.id, false)}
         fitView
       >
         <Background color="#cbd5e1" gap={20} />
@@ -111,24 +100,28 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
             <Settings2 size={16} className="text-slate-500" />
             <Select value={edgeStyle} onValueChange={setEdgeStyle}>
               <SelectTrigger className="w-32 h-8 text-xs">
-                <SelectValue placeholder="Edge Style" />
+                <SelectValue placeholder="نمط الحافة" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="default">Smooth</SelectItem>
-                <SelectItem value="straight">Straight</SelectItem>
-                <SelectItem value="step">Step</SelectItem>
-                <SelectItem value="smoothstep">Smooth Step</SelectItem>
+                <SelectItem value="default">انسيابي</SelectItem>
+                <SelectItem value="straight">مستقيم</SelectItem>
+                <SelectItem value="step">متدرج</SelectItem>
+                <SelectItem value="smoothstep">متدرج ناعم</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
           <Button variant="ghost" size="sm" onClick={autoConnect} className="h-8 text-xs gap-1">
-            <Play size={14} /> Auto-Connect
+            <Play size={14} /> ربط تلقائي
+          </Button>
+
+          <Button variant="ghost" size="sm" onClick={clearCanvas} className="h-8 text-xs gap-1 text-destructive hover:text-destructive">
+            <Trash2 size={14} /> مسح
           </Button>
           
           <div className="flex items-center gap-1 border-l pl-2">
-             <Button variant="ghost" size="icon" className="h-8 w-8"><LayoutGrid size={14} /></Button>
-             <Button variant="ghost" size="icon" className="h-8 w-8"><Maximize2 size={14} /></Button>
+             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onLayoutGrid} title="ترتيب شبكي"><LayoutGrid size={14} /></Button>
+             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => fitView({ duration: 800 })} title="تكبير للكل"><Maximize2 size={14} /></Button>
           </div>
         </Panel>
       </ReactFlow>
@@ -137,14 +130,8 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
         <RadialMenu 
           x={menu.x}
           y={menu.y}
-          onDelete={() => {
-            deleteElement(menu.id, menu.isNode);
-            setMenu(null);
-          }}
-          onDetails={() => {
-            onSelectElement(menu.id, menu.isNode);
-            setMenu(null);
-          }}
+          onDelete={() => { deleteElement(menu.id, menu.isNode); setMenu(null); }}
+          onDetails={() => { onSelectElement(menu.id, menu.isNode); setMenu(null); }}
           onClose={() => setMenu(null)}
         />
       )}

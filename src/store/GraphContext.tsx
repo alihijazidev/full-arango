@@ -14,6 +14,7 @@ interface GraphContextType {
   updateFilters: (id: string, isNode: boolean, filters: Filter[]) => void;
   deleteElement: (id: string, isNode: boolean) => void;
   autoConnect: () => void;
+  clearCanvas: () => void;
   edgeStyle: 'default' | 'straight' | 'step' | 'smoothstep';
   setEdgeStyle: (style: any) => void;
 }
@@ -24,7 +25,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [metadata, setMetadata] = useState<{ collections: CollectionMetadata[]; edges: EdgeMetadata[] }>({ collections: [], edges: [] });
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [edgeStyle, setEdgeStyle] = useState<'default' | 'straight' | 'step' | 'smoothstep'>('default');
+  const [edgeStyle, setEdgeStyle] = useState<'smoothstep' | 'straight' | 'step' | 'default'>('smoothstep');
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
@@ -35,7 +36,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ...params, 
       animated: true, 
       type: edgeStyle,
-      data: { filters: [] } // Initialize data to prevent crashes
+      data: { filters: [] }
     }, eds));
   }, [edgeStyle]);
 
@@ -72,6 +73,11 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } else {
       setEdges((eds) => eds.filter((e) => e.id !== id));
     }
+  };
+
+  const clearCanvas = () => {
+    setNodes([]);
+    setEdges([]);
   };
 
   const autoConnect = useCallback(() => {
@@ -111,7 +117,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, 
-      addNodeFromMetadata, updateFilters, deleteElement, autoConnect,
+      addNodeFromMetadata, updateFilters, deleteElement, autoConnect, clearCanvas,
       edgeStyle, setEdgeStyle 
     }}>
       {children}
