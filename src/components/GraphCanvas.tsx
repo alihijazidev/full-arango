@@ -4,7 +4,11 @@ import ReactFlow, {
   Controls, 
   Panel,
   ReactFlowProvider,
-  useReactFlow
+  useReactFlow,
+  applyNodeChanges,
+  applyEdgeChanges,
+  NodeChange,
+  EdgeChange
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
@@ -29,6 +33,16 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
   
   const [menu, setMenu] = useState<{ x: number, y: number, id: string, isNode: boolean } | null>(null);
 
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    [setNodes]
+  );
+
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    [setEdges]
+  );
+
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
@@ -39,7 +53,10 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
     if (!reactFlowWrapper.current) return;
 
     const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-    const data = JSON.parse(event.dataTransfer.getData('application/reactflow'));
+    const dropData = event.dataTransfer.getData('application/reactflow');
+    if (!dropData) return;
+
+    const data = JSON.parse(dropData);
 
     const position = project({
       x: event.clientX - reactFlowBounds.left,
@@ -74,10 +91,8 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={(changes) => setNodes((nds) => {
-           // Handle node position changes manually or via helper
-           return nds; 
-        })} // Note: In production we'd use applyNodeChanges
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         onDragOver={onDragOver}

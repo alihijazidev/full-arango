@@ -20,31 +20,37 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedId, isNode, 
     ? nodes.find(n => n.id === selectedId) 
     : edges.find(e => e.id === selectedId);
 
-  if (!target) return null;
+  // If the target or its data is missing, we shouldn't render anything
+  if (!target || !target.data) return null;
 
   const data = target.data;
+  
+  // Safe attribute extraction
   const attributes = isNode 
-    ? (data.type === 'collection' ? data.metadata.attributes : [])
-    : data.metadata.attributes;
+    ? (data.type === 'collection' ? data.metadata?.attributes || [] : [])
+    : (data.metadata?.attributes || []);
 
   const filters = data.filters || [];
 
   const addFilter = () => {
+    if (!selectedId) return;
     const newFilter = {
       id: Math.random().toString(36).substr(2, 9),
       attribute: attributes[0] || '',
       operator: '=',
       value: ''
     };
-    updateFilters(selectedId!, isNode, [...filters, newFilter]);
+    updateFilters(selectedId, isNode, [...filters, newFilter]);
   };
 
   const removeFilter = (fid: string) => {
-    updateFilters(selectedId!, isNode, filters.filter((f: any) => f.id !== fid));
+    if (!selectedId) return;
+    updateFilters(selectedId, isNode, filters.filter((f: any) => f.id !== fid));
   };
 
   const updateFilterField = (fid: string, field: string, value: string) => {
-    updateFilters(selectedId!, isNode, filters.map((f: any) => f.id === fid ? { ...f, [field]: value } : f));
+    if (!selectedId) return;
+    updateFilters(selectedId, isNode, filters.map((f: any) => f.id === fid ? { ...f, [field]: value } : f));
   };
 
   return (
@@ -65,11 +71,11 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedId, isNode, 
         <section>
           <Label className="text-muted-foreground uppercase text-[10px] font-bold tracking-widest mb-2 block">Identity</Label>
           <div className="bg-slate-100 p-3 rounded-md">
-            <p className="font-bold text-xl">{data.label || data.metadata.name}</p>
+            <p className="font-bold text-xl">{data.label || data.metadata?.name || 'Manual Connection'}</p>
             {isNode && data.type === 'collection' && (
-              <p className="text-sm text-muted-foreground mt-1">Category: {data.metadata.category}</p>
+              <p className="text-sm text-muted-foreground mt-1">Category: {data.metadata?.category || 'N/A'}</p>
             )}
-            {!isNode && (
+            {!isNode && data.metadata && (
               <div className="flex items-center gap-2 mt-2 text-xs">
                 <span className="bg-white px-2 py-1 rounded border">{data.metadata.from}</span>
                 <span className="text-muted-foreground">→</span>
@@ -85,15 +91,17 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedId, isNode, 
               <FilterIcon size={12} />
               Composable Filters
             </Label>
-            <Button variant="outline" size="sm" onClick={addFilter} className="h-7 text-xs">
-              <Plus size={12} className="mr-1" /> Add
-            </Button>
+            {attributes.length > 0 && (
+              <Button variant="outline" size="sm" onClick={addFilter} className="h-7 text-xs">
+                <Plus size={12} className="mr-1" /> Add
+              </Button>
+            )}
           </div>
 
           <div className="space-y-3">
             {filters.length === 0 && (
               <div className="text-center py-8 border-2 border-dashed rounded-lg text-muted-foreground">
-                <p className="text-xs">No filters defined</p>
+                <p className="text-xs">{attributes.length > 0 ? 'No filters defined' : 'No attributes available for filters'}</p>
               </div>
             )}
             {filters.map((filter: any) => (

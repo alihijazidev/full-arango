@@ -31,7 +31,12 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const onConnect = useCallback((params: Connection) => {
-    setEdges((eds) => addEdge({ ...params, animated: true, type: edgeStyle }, eds));
+    setEdges((eds) => addEdge({ 
+      ...params, 
+      animated: true, 
+      type: edgeStyle,
+      data: { filters: [] } // Initialize data to prevent crashes
+    }, eds));
   }, [edgeStyle]);
 
   const addNodeFromMetadata = (type: 'collection' | 'category', name: string, position: { x: number; y: number }) => {
@@ -76,8 +81,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       nodes.forEach(targetNode => {
         if (sourceNode.id === targetNode.id) return;
 
-        const sourceColls = sourceNode.data.type === 'collection' ? [sourceNode.data.label] : sourceNode.data.metadata.collections;
-        const targetColls = targetNode.data.type === 'collection' ? [targetNode.data.label] : targetNode.data.metadata.collections;
+        const sourceColls = sourceNode.data.type === 'collection' ? [sourceNode.data.label] : sourceNode.data.metadata?.collections || [];
+        const targetColls = targetNode.data.type === 'collection' ? [targetNode.data.label] : targetNode.data.metadata?.collections || [];
 
         metadata.edges.forEach(edgeMeta => {
           if (sourceColls.includes(edgeMeta.from) && targetColls.includes(edgeMeta.to)) {
