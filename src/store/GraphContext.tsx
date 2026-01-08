@@ -67,13 +67,10 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchMetadata().then(setMetadata);
   }, []);
 
-  // Helper to calculate offset for parallel edges
   const getParallelEdgeOffset = (source: string, target: string, existingEdges: Edge[]) => {
     const parallelEdges = existingEdges.filter(
       (e) => (e.source === source && e.target === target) || (e.source === target && e.target === source)
     );
-    
-    // Calculate offset based on count: 0, 30, -30, 60, -60...
     const count = parallelEdges.length;
     if (count === 0) return 0;
     const step = 40;
@@ -151,8 +148,35 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const executeStructuredQuery = async () => {
     setIsQueryLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
-    const startNodes = nodes.map((n) => ({ _id: `node/${n.id}`, label: n.data.label }));
-    setQueryResult({ startnode: startNodes, targetnode: [], edges: [] });
+    
+    // Simulate finding actual data matching the schema
+    const startNodes = nodes.map((n) => ({ 
+      _id: `${n.data.label}/mock-${Math.floor(Math.random() * 1000)}`, 
+      label: n.data.label,
+      designedNodeId: n.id
+    }));
+
+    // Create simulated edges between the resulting mock nodes if an edge exists in design
+    const resultEdges: any[] = [];
+    edges.forEach(edge => {
+      const sourceInResults = startNodes.find(n => n.designedNodeId === edge.source);
+      const targetInResults = startNodes.find(n => n.designedNodeId === edge.target);
+      
+      if (sourceInResults && targetInResults) {
+        resultEdges.push({
+          _id: `edge/${edge.label}-${Math.floor(Math.random() * 1000)}`,
+          _from: sourceInResults._id,
+          _to: targetInResults._id,
+          label: edge.label
+        });
+      }
+    });
+
+    setQueryResult({ 
+      startnode: startNodes, 
+      targetnode: [], 
+      edges: resultEdges 
+    });
     setActiveResultType('query');
     setIsQueryLoading(false);
   };
@@ -162,8 +186,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await new Promise(resolve => setTimeout(resolve, 1200));
 
     const result = {
-      startnode: [{ _id: fromId, label: fromId.split('/')[1] || 'Start' }],
-      targetnode: [{ _id: toId, label: toId.split('/')[1] || 'End' }],
+      startnode: [{ _id: fromId, label: fromId.split('/')[0] || 'Start' }],
+      targetnode: [{ _id: toId, label: toId.split('/')[0] || 'End' }],
       edges: [{ _id: 'edge/shortest', _from: fromId, _to: toId, label: 'أقصر مسار' }]
     };
 
