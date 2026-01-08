@@ -44,7 +44,6 @@ export const GraphProvider = ({ children }) => {
           const sourcePath = sourceNode.data.fullPath;
           const targetPath = targetNode.data.fullPath;
 
-          // تحويل المصفوفة إلى نص للمقارنة
           const edgeFromStr = Array.isArray(edgeMeta.fromcol) ? edgeMeta.fromcol.join('/') : edgeMeta.fromcol;
           const edgeToStr = Array.isArray(edgeMeta.tocol) ? edgeMeta.tocol.join('/') : edgeMeta.tocol;
 
@@ -127,20 +126,54 @@ export const GraphProvider = ({ children }) => {
 
   const executeStructuredQuery = async () => {
     setIsQueryLoading(true);
+
+    // بناء هيكل الاستعلام المطلوب: [{node, edge, node}] لكل رابط
+    const structuredQuery = edges.map(edge => {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+
+      return {
+        sourceNode: {
+          id: sourceNode.id,
+          label: sourceNode.data.label,
+          type: sourceNode.data.type,
+          path: sourceNode.data.fullPath,
+          filters: sourceNode.data.filters
+        },
+        edge: {
+          id: edge.id,
+          label: edge.label || edge.data?.metadata?.label || "manual",
+          depth: edge.data?.depth || 1,
+          filters: edge.data?.filters || []
+        },
+        targetNode: {
+          id: targetNode.id,
+          label: targetNode.data.label,
+          type: targetNode.data.type,
+          path: targetNode.data.fullPath,
+          filters: targetNode.data.filters
+        }
+      };
+    });
+
+    console.log("Structured Query Request:", structuredQuery);
+    
+    // محاكاة طلب API
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const startNodes = nodes.map((n) => ({ 
+    // محاكاة النتائج بناءً على العقد المصممة
+    const mockResultNodes = nodes.map((n) => ({ 
       _id: `${n.data.label}/mock-${Math.floor(Math.random() * 1000)}`, 
       label: n.data.label,
       designedNodeId: n.id
     }));
 
-    const resultEdges = [];
+    const mockResultEdges = [];
     edges.forEach(edge => {
-      const sourceInResults = startNodes.find(n => n.designedNodeId === edge.source);
-      const targetInResults = startNodes.find(n => n.designedNodeId === edge.target);
+      const sourceInResults = mockResultNodes.find(n => n.designedNodeId === edge.source);
+      const targetInResults = mockResultNodes.find(n => n.designedNodeId === edge.target);
       if (sourceInResults && targetInResults) {
-        resultEdges.push({
+        mockResultEdges.push({
           _id: `edge/${edge.label || 'manual'}-${Math.floor(Math.random() * 1000)}`,
           _from: sourceInResults._id,
           _to: targetInResults._id,
@@ -149,7 +182,7 @@ export const GraphProvider = ({ children }) => {
       }
     });
 
-    setQueryResult({ startnode: startNodes, targetnode: [], edges: resultEdges });
+    setQueryResult({ startnode: mockResultNodes, targetnode: [], edges: mockResultEdges });
     setActiveResultType('query');
     setIsQueryLoading(false);
   };
