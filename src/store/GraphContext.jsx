@@ -85,15 +85,34 @@ export const GraphProvider = ({ children }) => {
 
   const onConnect = useCallback((params) => {
     setEdges((eds) => {
+      // البحث عن بيانات العقد المتصلة
+      const sourceNode = nodes.find(n => n.id === params.source);
+      const targetNode = nodes.find(n => n.id === params.target);
+      
+      const sourcePath = sourceNode?.data?.fullPath || '';
+      const targetPath = targetNode?.data?.fullPath || '';
+
+      // محاولة مطابقة الرابط مع البيانات الوصفية
+      const edgeMeta = metadata.edges.find(e => 
+        (e.fromcol === sourcePath || e.fromcol.startsWith(sourcePath + '/')) && 
+        (e.tocol === targetPath || e.tocol.startsWith(targetPath + '/'))
+      );
+
       const offset = getParallelEdgeOffset(params.source, params.target, eds);
+      
       return addEdge({ 
         ...params, 
+        label: edgeMeta?.label || null,
         animated: isAnimated, 
         type: 'parallel',
-        data: { filters: [], offset }
+        data: { 
+          metadata: edgeMeta || { fromcol: sourcePath, tocol: targetPath, label: 'رابط يدوي', attributes: [] },
+          filters: [], 
+          offset 
+        }
       }, eds);
     });
-  }, [isAnimated]);
+  }, [isAnimated, nodes, metadata.edges]);
 
   const executeStructuredQuery = async () => {
     setIsQueryLoading(true);
@@ -111,10 +130,10 @@ export const GraphProvider = ({ children }) => {
       const targetInResults = startNodes.find(n => n.designedNodeId === edge.target);
       if (sourceInResults && targetInResults) {
         resultEdges.push({
-          _id: `edge/${edge.label}-${Math.floor(Math.random() * 1000)}`,
+          _id: `edge/${edge.label || 'manual'}-${Math.floor(Math.random() * 1000)}`,
           _from: sourceInResults._id,
           _to: targetInResults._id,
-          label: edge.label
+          label: edge.label || 'manual'
         });
       }
     });
@@ -128,7 +147,6 @@ export const GraphProvider = ({ children }) => {
     setIsQueryLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1200));
 
-    // محاكاة نتيجة أقصر مسار باستخدام البيانات الموجودة في النتائج الحالية
     const pathNodes = queryResult.startnode.filter(n => n._id === fromId || n._id === toId);
     const pathEdges = queryResult.edges.filter(e => 
       (e._from === fromId && e._to === toId) || (e._from === toId && e._to === fromId)
