@@ -17,7 +17,7 @@ export const ParallelEdge = ({
   data
 }) => {
   const { updateEdgeOffset } = useGraph();
-  const { project } = useReactFlow();
+  const { screenToFlowPosition } = useReactFlow();
   
   const offset = data?.offset ?? 0;
   
@@ -36,18 +36,14 @@ export const ParallelEdge = ({
   const path = `M ${sourceX},${sourceY} Q ${cx},${cy} ${targetX},${targetY}`;
 
   const onHandleMouseDown = (event) => {
-    // منع الحدث من الوصول للوحة (التي تسبب تحريك المخطط بالكامل)
     event.stopPropagation();
     event.preventDefault();
-    
-    const svg = document.querySelector('.react-flow__svg');
-    if (!svg) return;
-    const bounds = svg.getBoundingClientRect();
 
     const onMouseMove = (moveEvent) => {
-      const flowPos = project({
-        x: moveEvent.clientX - bounds.left,
-        y: moveEvent.clientY - bounds.top
+      // تحويل إحداثيات الشاشة إلى إحداثيات المخطط بدقة
+      const flowPos = screenToFlowPosition({
+        x: moveEvent.clientX,
+        y: moveEvent.clientY,
       });
       
       const vx = flowPos.x - midX;
@@ -99,18 +95,16 @@ export const ParallelEdge = ({
           }}
           className="flex flex-col items-center gap-1"
         >
-          {/* مقبض التحكم - وضعناه في الأعلى ليكون قابلاً للضغط دائماً */}
           {selected && (
             <div 
               onMouseDown={onHandleMouseDown}
-              className="w-5 h-5 bg-white border-2 border-primary rounded-full shadow-md cursor-grab active:cursor-grabbing flex items-center justify-center hover:scale-125 transition-transform z-50"
-              title="اسحب لتعديل الانحناء"
+              className="w-6 h-6 bg-white border-2 border-primary rounded-full shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center hover:scale-110 transition-transform z-[100]"
+              style={{ touchAction: 'none' }}
             >
-              <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+              <div className="w-2 h-2 bg-primary rounded-full" />
             </div>
           )}
 
-          {/* التسمية */}
           {label && (
             <div
               className={cn(
