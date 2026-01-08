@@ -37,7 +37,6 @@ export const GraphProvider = ({ children }) => {
   };
 
   const performAutoConnect = useCallback((currentNodes, currentEdges) => {
-    let updatedEdges = [...currentEdges];
     const newEdges = [];
     
     metadata.edges.forEach(edgeMeta => {
@@ -50,10 +49,10 @@ export const GraphProvider = ({ children }) => {
 
           if (sourceColls.includes(edgeMeta.from) && targetColls.includes(edgeMeta.to)) {
             const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.name}`;
-            const alreadyExists = updatedEdges.some(e => e.id === edgeId) || newEdges.some(e => e.id === edgeId);
+            const alreadyExists = currentEdges.some(e => e.id === edgeId) || newEdges.some(e => e.id === edgeId);
             
             if (!alreadyExists) {
-              const offset = getParallelEdgeOffset(sourceNode.id, targetNode.id, [...updatedEdges, ...newEdges]);
+              const offset = getParallelEdgeOffset(sourceNode.id, targetNode.id, [...currentEdges, ...newEdges]);
               newEdges.push({
                 id: edgeId,
                 source: sourceNode.id,
@@ -219,7 +218,18 @@ export const GraphProvider = ({ children }) => {
   };
 
   const updateEdgeOffset = (id, offset) => {
-    setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset } } : e));
+    setEdges((eds) => eds.map((e) => {
+      if (e.id === id) {
+        return {
+          ...e,
+          data: {
+            ...e.data,
+            offset: offset
+          }
+        };
+      }
+      return e;
+    }));
   };
 
   const deleteElement = (id, isNode) => {

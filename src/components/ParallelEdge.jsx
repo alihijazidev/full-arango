@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { getBezierPath, EdgeLabelRenderer, useReactFlow } from 'reactflow';
+import React from 'react';
+import { EdgeLabelRenderer, useReactFlow } from 'reactflow';
 import { cn } from '@/lib/utils';
 import { useGraph } from '../store/GraphContext';
 
@@ -9,8 +9,6 @@ export const ParallelEdge = ({
   sourceY,
   targetX,
   targetY,
-  sourcePosition,
-  targetPosition,
   style = {},
   markerEnd,
   label,
@@ -20,52 +18,61 @@ export const ParallelEdge = ({
 }) => {
   const { updateEdgeOffset } = useGraph();
   const { project } = useReactFlow();
-  const offset = data?.offset || 0;
   
+  // Use the offset from data, default to 0
+  const offset = data?.offset ?? 0;
+  
+  // Calculate midpoint
   const midX = (sourceX + targetX) / 2;
   const midY = (sourceY + targetY) / 2;
   
+  // Calculate normal vector for the offset direction
   const dx = targetX - sourceX;
   const dy = targetY - sourceY;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
   const nx = -dy / len;
   const ny = dx / len;
   
+  // Control point for the Quadratic Bezier curve
   const cx = midX + nx * offset;
   const cy = midY + ny * offset;
 
+  // Q path: Move to source, curve through control point to target
   const path = `M ${sourceX},${sourceY} Q ${cx},${cy} ${targetX},${targetY}`;
 
   const onHandleMouseDown = (event) => {
     event.stopPropagation();
+    event.preventDefault();
     
+    const svg = document.querySelector('.react-flow__svg');
+    if (!svg) return;
+    const bounds = svg.getBoundingClientRect();
+
     const onMouseMove = (moveEvent) => {
-      const mouseX = moveEvent.clientX;
-      const mouseY = moveEvent.clientY;
-      
-      // Calculate projection onto the normal vector to find new offset
-      const svg = document.querySelector('.react-flow__svg');
-      if (!svg) return;
-      
-      const bounds = svg.getBoundingClientRect();
-      const currentPos = project({
-        x: mouseX - bounds.left,
-        y: mouseY - bounds.top
+      // Get flow coordinates from mouse position
+      const flowPos = project({
+        x: moveEvent.clientX - bounds.left,
+        y: moveEvent.clientY - bounds.top
       });
       
-      const vectorToMouseX = currentPos.x - midX;
-      const vectorToMouseY = currentPos.y - midY;
+      // Calculate the vector from midpoint to current mouse position
+      const vx = flowPos.x - midX;
+      const vy = flowPos.y - midY;
       
-      // dot product with normal vector gives the distance along normal (offset)
-      const newOffset = vectorToMouseX * nx + vectorToMouseY * ny;
+      // The offset is the projection of this vector onto the normal vector (nx, ny)
+      // offset = dot product of (vx, vy) and (nx, ny)
+      const newOffset = vx * nx + vy * ny;
+      
       updateEdgeOffset(id, newOffset);
     };
 
     const onMouseUp = () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = 'default';
     };
 
+    document.body.style.cursor = 'grabbing';
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
   };
@@ -77,21 +84,40 @@ export const ParallelEdge = ({
         style={style}
         className={cn(
           "react-flow__edge-path stroke-2 fill-none transition-all cursor-pointer",
-          selected ? "stroke-primary" : "stroke-slate-300",
-          animated && "stroke-dash-array-4 animate-dash"
+          selected ? "stroke-primary stroke-[3px]" : "stroke-slate-400",
+          animated && "animate-dash"
         )}
         d={path}
         markerEnd={markerEnd}
       />
       
+      {/* Invisible wider path for easier clicking/selection */}
+      <path
+        d={path}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={20}
+        className="cursor-pointer"
+      />
+      
       {selected && (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={5}
-          className="fill-primary cursor-move hover:r-7 transition-all"
+        <g 
+          className="cursor-grab active:cursor-grabbing"
           onMouseDown={onHandleMouseDown}
-        />
+        >
+          <circle
+            cx={cx}
+            cy={cy}
+            r={8}
+            className="fill-white stroke-primary stroke-2 shadow-sm"
+          />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={3}
+            className="fill-primary"
+          />
+        </g>
       )}
 
       {label && (
