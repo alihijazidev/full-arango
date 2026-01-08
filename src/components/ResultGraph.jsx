@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import ReactFlow, { Background, Controls, useNodesState, useEdgesState, Panel } from 'reactflow';
+import ReactFlow, { Background, useNodesState, useEdgesState, Panel } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
@@ -87,7 +87,6 @@ export const ResultGraph = ({ data }) => {
         fitView
       >
         <Background color="#f1f5f9" gap={20} />
-        <Controls />
         
         {isResultPathMode && (
           <Panel position="top-center" className="bg-amber-500 text-white px-4 py-1.5 rounded-full shadow-lg animate-pulse">

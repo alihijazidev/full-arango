@@ -1,7 +1,6 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import ReactFlow, { 
   Background, 
-  Controls, 
   Panel,
   ReactFlowProvider,
   useReactFlow,
@@ -60,7 +59,6 @@ const GraphInner = ({ onSelectElement }) => {
       x: event.clientX - reactFlowBounds.left,
       y: event.clientY - reactFlowBounds.top,
     });
-    // تم تحديث تمرير اسم الفئة هنا
     addNodeFromMetadata(data.nodeType, data.nodeName, position, data.categoryName);
   }, [project, addNodeFromMetadata]);
 
@@ -84,7 +82,6 @@ const GraphInner = ({ onSelectElement }) => {
         deleteKeyCode={null}
       >
         <Background color="#cbd5e1" gap={20} />
-        <Controls />
         <Panel position="top-right" className="flex items-center gap-4 bg-white/90 backdrop-blur-md p-3 rounded-xl border shadow-lg">
           <div className="flex items-center gap-3 border-r pr-3">
             <div className="flex items-center gap-2">
