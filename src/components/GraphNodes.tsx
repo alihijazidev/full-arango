@@ -8,31 +8,57 @@ export const CustomNode = memo(({ data, selected }: NodeProps) => {
 
   return (
     <div className={cn(
-      "flex flex-col items-center gap-2 transition-all",
-      selected ? "scale-110" : "scale-100"
+      "group relative flex flex-col items-center transition-all duration-300",
+      selected ? "scale-105" : "scale-100"
     )}>
-      <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-primary" />
+      {/* Target Handle */}
+      <Handle 
+        type="target" 
+        position={Position.Top} 
+        className="!w-3 !h-3 !bg-slate-300 !border-2 !border-white hover:!bg-primary transition-colors" 
+      />
       
+      {/* Main Node Body */}
       <div className={cn(
-        "w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg border-2 transition-colors",
-        selected ? "border-primary bg-primary/10" : "border-white bg-white",
-        isCategory ? "border-dashed border-orange-200" : "border-blue-100"
+        "min-w-[120px] p-3 rounded-xl bg-white shadow-md border-2 transition-all flex flex-col items-center gap-2",
+        selected 
+          ? "border-primary shadow-primary/20 ring-4 ring-primary/10" 
+          : "border-slate-100 hover:border-slate-300 hover:shadow-lg",
+        isCategory ? "border-dashed" : "border-solid"
       )}>
-        {isCategory ? (
-          <FolderTree size={32} className="text-orange-500" />
-        ) : (
-          <Database size={32} className="text-blue-500" />
-        )}
+        {/* Icon Header */}
+        <div className={cn(
+          "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
+          isCategory ? "bg-orange-50 text-orange-500" : "bg-blue-50 text-blue-500",
+          selected && (isCategory ? "bg-orange-500 text-white" : "bg-blue-500 text-white")
+        )}>
+          {isCategory ? (
+            <FolderTree size={20} />
+          ) : (
+            <Database size={20} />
+          )}
+        </div>
+
+        {/* Info Area */}
+        <div className="flex flex-col items-center text-center">
+          <span className={cn(
+            "text-[9px] font-bold uppercase tracking-widest mb-0.5",
+            isCategory ? "text-orange-400" : "text-blue-400"
+          )}>
+            {isCategory ? 'فئة' : 'مجموعة'}
+          </span>
+          <span className="text-sm font-bold text-slate-700 truncate max-w-[100px]">
+            {data.label}
+          </span>
+        </div>
       </div>
 
-      <div className="bg-white/80 backdrop-blur px-3 py-1 rounded-full border shadow-sm flex flex-col items-center">
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-          {isCategory ? 'فئة' : 'مجموعة'}
-        </span>
-        <span className="text-xs font-bold text-gray-900">{data.label}</span>
-      </div>
-
-      <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-primary" />
+      {/* Source Handle */}
+      <Handle 
+        type="source" 
+        position={Position.Bottom} 
+        className="!w-3 !h-3 !bg-slate-300 !border-2 !border-white hover:!bg-primary transition-colors" 
+      />
     </div>
   );
 });
