@@ -1,16 +1,28 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useGraph } from '../store/GraphContext';
-import { Database, FolderTree, ChevronLeft, Share2, Plus } from 'lucide-react';
+import { Database, FolderTree, ChevronLeft, Share2, Plus, Search } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { ScrollArea } from './ui/scroll-area';
+import { Input } from './ui/input';
 import { cn } from '@/lib/utils';
 
 export const Sidebar = () => {
   const { metadata, nodes, addEdgeManually } = useGraph();
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const categories = useMemo(() => 
-    Array.from(new Set(metadata.collections.map(c => c.category))), 
-  [metadata.collections]);
+  const filteredCollections = useMemo(() => {
+    if (!searchTerm) return metadata.collections;
+    return metadata.collections.filter(c => 
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      c.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [metadata.collections, searchTerm]);
+
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(filteredCollections.map(c => c.category)));
+    // If we are searching, we might want to include categories that match even if their collections don't (though usually filteredCollections handles this)
+    return cats;
+  }, [filteredCollections]);
 
   const activeCollectionNames = useMemo(() => {
     return nodes.flatMap(n => {
@@ -32,12 +44,20 @@ export const Sidebar = () => {
 
   return (
     <div className="w-80 border-l bg-slate-50 flex flex-col h-full" dir="rtl">
-      <div className="p-4 border-b bg-white">
+      <div className="p-4 border-b bg-white space-y-3">
         <h2 className="font-bold text-lg flex items-center gap-2">
           <Database className="text-primary" size={20} />
           البيانات الوصفية
         </h2>
-        <p className="text-xs text-muted-foreground mt-1">اسحب العناصر إلى منطقة الرسم</p>
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+          <Input 
+            placeholder="بحث في المجموعات..." 
+            className="pr-9 h-8 bg-slate-50 border-none text-xs text-right" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
 
       <ScrollArea className="flex-1">
@@ -47,7 +67,10 @@ export const Sidebar = () => {
               <FolderTree size={16} />
               الفئات والمجموعات
             </h3>
-            <Accordion type="multiple" className="w-full">
+            {categories.length === 0 && (
+              <p className="text-[10px] text-center text-muted-foreground py-4">لا توجد نتائج مطابقة</p>
+            )}
+            <Accordion type="multiple" className="w-full" defaultValue={searchTerm ? categories : []}>
               {categories.map(cat => (
                 <AccordionItem value={cat} key={cat} className="border-none">
                   <div 
@@ -63,7 +86,7 @@ export const Sidebar = () => {
                     </AccordionTrigger>
                   </div>
                   <AccordionContent className="pr-6 pl-2 pt-1 pb-2 space-y-1">
-                    {metadata.collections
+                    {filteredCollections
                       .filter(c => c.category === cat)
                       .map(coll => (
                         <div

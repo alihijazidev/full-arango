@@ -16,6 +16,7 @@ interface GraphContextType {
   deleteElement: (id: string, isNode: boolean) => void;
   autoConnect: () => void;
   clearCanvas: () => void;
+  getStructuredQuery: () => any[];
   edgeStyle: string;
   setEdgeStyle: (style: string) => void;
   isAnimated: boolean;
@@ -56,6 +57,19 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       data: { filters: [] }
     }, eds));
   }, [edgeStyle, isAnimated]);
+
+  const getStructuredQuery = () => {
+    // Map edges to triples: [ {node, edge, node}, ... ]
+    return edges.map(edge => {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+      return {
+        sourceNode: { id: sourceNode?.id, label: sourceNode?.data.label, filters: sourceNode?.data.filters },
+        relationship: { id: edge.id, label: edge.label || edge.data?.metadata?.name, filters: edge.data?.filters },
+        targetNode: { id: targetNode?.id, label: targetNode?.data.label, filters: targetNode?.data.filters }
+      };
+    });
+  };
 
   const autoConnect = useCallback(() => {
     const newEdges: Edge[] = [];
@@ -163,6 +177,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, 
       addNodeFromMetadata, addEdgeManually, updateFilters, deleteElement, autoConnect, clearCanvas,
+      getStructuredQuery,
       edgeStyle, setEdgeStyle, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect
     }}>
       {children}
