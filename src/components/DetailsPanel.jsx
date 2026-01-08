@@ -149,12 +149,6 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
           </div>
         </section>
       </div>
-
-      <div className="p-4 border-t bg-slate-50">
-        <Button className="w-full font-bold">
-          Execute Live Query
-        </Button>
-      </div>
     </div>
   );
 };
