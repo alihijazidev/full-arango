@@ -61,11 +61,54 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [edgeStyle, _setEdgeStyle] = useState<string>('smoothstep');
   const [isAnimated, _setIsAnimated] = useState<boolean>(true);
-  const [isAutoConnect, setIsAutoConnect] = useState<boolean>(false);
+  const [isAutoConnect, _setIsAutoConnect] = useState<boolean>(false);
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
   }, []);
+
+  const performAutoConnect = useCallback((currentNodes: Node[], currentEdges: Edge[]) => {
+    const newEdges: Edge[] = [];
+    
+    metadata.edges.forEach(edgeMeta => {
+      currentNodes.forEach(sourceNode => {
+        currentNodes.forEach(targetNode => {
+          if (sourceNode.id === targetNode.id) return;
+
+          const sourceColls = sourceNode.data.type === 'collection' ? [sourceNode.data.label] : sourceNode.data.metadata?.collections || [];
+          const targetColls = targetNode.data.type === 'collection' ? [targetNode.data.label] : targetNode.data.metadata?.collections || [];
+
+          if (sourceColls.includes(edgeMeta.from) && targetColls.includes(edgeMeta.to)) {
+            const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.name}`;
+            const alreadyExists = currentEdges.some(e => e.id === edgeId) || newEdges.some(e => e.id === edgeId);
+            
+            if (!alreadyExists) {
+              newEdges.push({
+                id: edgeId,
+                source: sourceNode.id,
+                target: targetNode.id,
+                label: edgeMeta.name,
+                type: edgeStyle,
+                animated: isAnimated,
+                data: { metadata: edgeMeta, filters: [] }
+              });
+            }
+          }
+        });
+      });
+    });
+
+    if (newEdges.length > 0) {
+      setEdges((eds) => [...eds, ...newEdges]);
+    }
+  }, [metadata.edges, edgeStyle, isAnimated]);
+
+  const setIsAutoConnect = (val: boolean) => {
+    _setIsAutoConnect(val);
+    if (val) {
+      performAutoConnect(nodes, edges);
+    }
+  };
 
   const setEdgeStyle = (newStyle: string) => {
     _setEdgeStyle(newStyle);
@@ -89,7 +132,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const executeStructuredQuery = async () => {
     setIsQueryLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
-    const startNodes = nodes.map((n, i) => ({ _id: `node/${n.id}`, label: n.data.label }));
+    const startNodes = nodes.map((n) => ({ _id: `node/${n.id}`, label: n.data.label }));
     setQueryResult({ startnode: startNodes, targetnode: [], edges: [] });
     setActiveResultType('query');
     setIsQueryLoading(false);
@@ -157,7 +200,15 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         filters: []
       }
     };
-    setNodes((nds) => [...nds, newNode]);
+    
+    setNodes((nds) => {
+      const updatedNodes = [...nds, newNode];
+      if (isAutoConnect) {
+        // We use a small timeout to ensure state has settled or just pass the future nodes list
+        setTimeout(() => performAutoConnect(updatedNodes, edges), 0);
+      }
+      return updatedNodes;
+    });
   };
 
   const updateFilters = (id: string, isNode: boolean, filters: Filter[]) => {
