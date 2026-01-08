@@ -8,13 +8,14 @@ import ReactFlow, {
   applyNodeChanges,
   applyEdgeChanges,
   NodeChange,
-  EdgeChange
+  EdgeChange,
+  Node
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { RadialMenu } from './RadialMenu';
-import { Settings2, Play, LayoutGrid, Maximize2, Trash2, Zap, ZapOff, Activity } from 'lucide-react';
+import { Settings2, Play, LayoutGrid, Maximize2, Trash2, Zap, ZapOff, Activity, MapPinned } from 'lucide-react';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Switch } from './ui/switch';
@@ -30,11 +31,26 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
     nodes, edges, onConnect, setNodes, setEdges, 
     addNodeFromMetadata, deleteElement, clearCanvas,
     edgeStyle, setEdgeStyle, isAnimated, setIsAnimated,
-    isAutoConnect, setIsAutoConnect
+    isAutoConnect, setIsAutoConnect,
+    isShortestPathMode, shortestPathNodes, setShortestPathNodes, executeShortestPath
   } = useGraph();
   const { project, fitView } = useReactFlow();
   
   const [menu, setMenu] = useState<{ x: number, y: number, id: string, isNode: boolean } | null>(null);
+
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    if (isShortestPathMode) {
+      setShortestPathNodes(prev => {
+        const next = [...prev, node.id];
+        if (next.length === 2) {
+          executeShortestPath(next[0], next[1]);
+          return [];
+        }
+        return next;
+      });
+      return;
+    }
+  }, [isShortestPathMode, setShortestPathNodes, executeShortestPath]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -78,22 +94,18 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
     addNodeFromMetadata(data.nodeType, data.nodeName, position);
   }, [project, addNodeFromMetadata]);
 
-  const onLayoutGrid = () => {
-    setNodes((nds) => nds.map((node, index) => ({
-      ...node,
-      position: { x: (index % 3) * 250, y: Math.floor(index / 3) * 250 }
-    })));
-    setTimeout(() => fitView({ duration: 800 }), 100);
-  };
-
   return (
     <div className="w-full h-full relative" ref={reactFlowWrapper} dir="ltr">
       <ReactFlow
-        nodes={nodes}
+        nodes={nodes.map(n => ({
+          ...n,
+          selected: n.selected || shortestPathNodes.includes(n.id)
+        }))}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         onDragOver={onDragOver}
         onDrop={onDrop}
@@ -112,45 +124,30 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
             <div className="flex items-center gap-2">
               <Activity size={14} className={isAnimated ? "text-primary animate-pulse" : "text-slate-400"} />
               <Label htmlFor="animate-mode" className="text-[10px] font-bold uppercase tracking-wider text-slate-500">تحريك</Label>
-              <Switch 
-                id="animate-mode" 
-                checked={isAnimated} 
-                onCheckedChange={setIsAnimated} 
-              />
+              <Switch id="animate-mode" checked={isAnimated} onCheckedChange={setIsAnimated} />
             </div>
             
             <div className="flex items-center gap-2 ml-2">
               {isAutoConnect ? <Zap size={14} className="text-amber-500" /> : <ZapOff size={14} className="text-slate-400" />}
               <Label htmlFor="auto-mode" className="text-[10px] font-bold uppercase tracking-wider text-slate-500">ربط ذكي</Label>
-              <Switch 
-                id="auto-mode" 
-                checked={isAutoConnect} 
-                onCheckedChange={setIsAutoConnect} 
-              />
+              <Switch id="auto-mode" checked={isAutoConnect} onCheckedChange={setIsAutoConnect} />
             </div>
           </div>
 
-          <div className="flex items-center gap-2 border-r pr-3">
-            <Settings2 size={16} className="text-slate-500" />
-            <Select value={edgeStyle} onValueChange={setEdgeStyle}>
-              <SelectTrigger className="w-28 h-8 text-[10px] font-bold uppercase border-none bg-slate-100 hover:bg-slate-200 transition-colors">
-                <SelectValue placeholder="النمط" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default" className="text-xs">انسيابي</SelectItem>
-                <SelectItem value="straight" className="text-xs">مستقيم</SelectItem>
-                <SelectItem value="step" className="text-xs">متدرج</SelectItem>
-                <SelectItem value="smoothstep" className="text-xs">ناعم</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="flex items-center gap-1">
-             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100" onClick={onLayoutGrid} title="ترتيب"><LayoutGrid size={14} /></Button>
              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100" onClick={() => fitView({ duration: 800 })} title="تكبير"><Maximize2 size={14} /></Button>
              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={clearCanvas} title="مسح"><Trash2 size={14} /></Button>
           </div>
         </Panel>
+
+        {isShortestPathMode && (
+          <Panel position="top-center" className="bg-primary text-white px-6 py-2 rounded-full shadow-2xl animate-bounce">
+            <p className="text-xs font-bold flex items-center gap-2">
+              <MapPinned size={14} />
+              {shortestPathNodes.length === 0 ? 'اختر نقطة البداية' : 'اختر نقطة النهاية'}
+            </p>
+          </Panel>
+        )}
       </ReactFlow>
 
       {menu && (

@@ -5,14 +5,28 @@ import { DetailsPanel } from '../components/DetailsPanel';
 import { ResultView } from '../components/ResultView';
 import { GraphProvider, useGraph } from '../store/GraphContext';
 import { MadeWithDyad } from '@/components/made-with-dyad';
-import { Bell as BellIcon, User as UserIcon, PlayCircle } from 'lucide-react';
+import { Bell as BellIcon, User as UserIcon, PlayCircle, MapPinned } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Toggle } from '@/components/ui/toggle';
+import { cn } from '@/lib/utils';
 
 const HeaderActions = () => {
-  const { executeStructuredQuery } = useGraph();
+  const { executeStructuredQuery, isShortestPathMode, setIsShortestPathMode } = useGraph();
 
   return (
     <div className="flex items-center gap-4">
+      <Toggle 
+        pressed={isShortestPathMode} 
+        onPressedChange={setIsShortestPathMode}
+        className={cn(
+          "gap-2 border-2 h-9 px-4 font-bold transition-all",
+          isShortestPathMode ? "bg-amber-100 border-amber-500 text-amber-700 hover:bg-amber-200" : "bg-white border-slate-200"
+        )}
+      >
+        <MapPinned size={18} />
+        أقصر مسار
+      </Toggle>
+
       <Button 
         onClick={executeStructuredQuery}
         className="gap-2 bg-emerald-600 hover:bg-emerald-700 h-9 font-bold"
@@ -67,7 +81,6 @@ const IndexContent = () => {
         )}
       </div>
 
-      {/* Overlays */}
       <ResultView />
 
       <div className="bg-slate-50 border-t">

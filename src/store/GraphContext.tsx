@@ -22,11 +22,20 @@ interface GraphContextType {
   deleteElement: (id: string, isNode: boolean) => void;
   clearCanvas: () => void;
   executeStructuredQuery: () => Promise<void>;
+  executeShortestPath: (fromId: string, toId: string) => Promise<void>;
   queryResult: QueryResult | null;
+  shortestPathResult: QueryResult | null;
+  activeResultType: 'query' | 'shortestPath';
+  setActiveResultType: (type: 'query' | 'shortestPath') => void;
   isQueryLoading: boolean;
   setQueryResult: (res: QueryResult | null) => void;
+  setShortestPathResult: (res: QueryResult | null) => void;
   highlightedId: string | null;
   setHighlightedId: (id: string | null) => void;
+  isShortestPathMode: boolean;
+  setIsShortestPathMode: (val: boolean) => void;
+  shortestPathNodes: string[];
+  setShortestPathNodes: React.Dispatch<React.SetStateAction<string[]>>;
   edgeStyle: string;
   setEdgeStyle: (style: string) => void;
   isAnimated: boolean;
@@ -42,8 +51,14 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
+  const [shortestPathResult, setShortestPathResult] = useState<QueryResult | null>(null);
+  const [activeResultType, setActiveResultType] = useState<'query' | 'shortestPath'>('query');
   const [isQueryLoading, setIsQueryLoading] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  
+  const [isShortestPathMode, setIsShortestPathMode] = useState(false);
+  const [shortestPathNodes, setShortestPathNodes] = useState<string[]>([]);
+
   const [edgeStyle, _setEdgeStyle] = useState<string>('smoothstep');
   const [isAnimated, _setIsAnimated] = useState<boolean>(true);
   const [isAutoConnect, setIsAutoConnect] = useState<boolean>(false);
@@ -73,55 +88,55 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const executeStructuredQuery = async () => {
     setIsQueryLoading(true);
-    // Simulate API Delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const startNodes: any[] = [];
     const targetNodes: any[] = [];
     const queryEdges: any[] = [];
 
-    // Mock data generation based on actual nodes/edges on canvas
     nodes.forEach((node, index) => {
-      const isStart = index === 0;
       const mockRecord = {
         _id: `${node.data.label}/${index + 100}`,
         _key: `${index + 100}`,
         label: node.data.label,
         type: node.data.type,
-        ...(node.data.metadata?.attributes || []).reduce((acc: any, attr: string) => {
-          acc[attr] = "Mock Value";
-          return acc;
-        }, {})
       };
-      
-      if (isStart) startNodes.push(mockRecord);
+      if (index === 0) startNodes.push(mockRecord);
       else targetNodes.push(mockRecord);
     });
 
     edges.forEach((edge, index) => {
-      const sourceNode = nodes.find(n => n.id === edge.source);
-      const targetNode = nodes.find(n => n.id === edge.target);
-      const sourceIdx = nodes.indexOf(sourceNode!);
-      const targetIdx = nodes.indexOf(targetNode!);
-
       queryEdges.push({
-        _id: `${edge.label || 'edge'}/${index + 500}`,
+        _id: `edge/${index + 500}`,
         _key: `${index + 500}`,
-        _from: `${sourceNode?.data.label}/${sourceIdx + 100}`,
-        _to: `${targetNode?.data.label}/${targetIdx + 100}`,
+        _from: `node/${edge.source}`,
+        _to: `node/${edge.target}`,
         label: edge.label || 'Connection',
-        ...(edge.data?.metadata?.attributes || []).reduce((acc: any, attr: string) => {
-          acc[attr] = "Edge Value";
-          return acc;
-        }, {})
       });
     });
 
-    setQueryResult({
-      startnode: startNodes,
-      targetnode: targetNodes,
-      edges: queryEdges
-    });
+    setQueryResult({ startnode: startNodes, targetnode: targetNodes, edges: queryEdges });
+    setActiveResultType('query');
+    setIsQueryLoading(false);
+  };
+
+  const executeShortestPath = async (fromId: string, toId: string) => {
+    setIsQueryLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    const fromNode = nodes.find(n => n.id === fromId);
+    const toNode = nodes.find(n => n.id === toId);
+
+    const result = {
+      startnode: [{ _id: `node/${fromId}`, _key: fromId, label: fromNode?.data.label }],
+      targetnode: [{ _id: `node/${toId}`, _key: toId, label: toNode?.data.label }],
+      edges: [{ _id: 'edge/shortest', _key: 'shortest', _from: `node/${fromId}`, _to: `node/${toId}`, label: 'Shortest Path' }]
+    };
+
+    setShortestPathResult(result);
+    setActiveResultType('shortestPath');
+    setIsShortestPathMode(false);
+    setShortestPathNodes([]);
     setIsQueryLoading(false);
   };
 
@@ -199,8 +214,10 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, 
       addNodeFromMetadata, addEdgeManually, updateFilters, deleteElement, clearCanvas,
-      executeStructuredQuery, queryResult, isQueryLoading, setQueryResult,
-      highlightedId, setHighlightedId,
+      executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult,
+      activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult,
+      highlightedId, setHighlightedId, isShortestPathMode, setIsShortestPathMode,
+      shortestPathNodes, setShortestPathNodes,
       edgeStyle, setEdgeStyle, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect
     }}>
       {children}
