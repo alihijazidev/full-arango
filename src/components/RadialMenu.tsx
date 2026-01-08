@@ -13,64 +13,71 @@ interface RadialMenuProps {
 export const RadialMenu: React.FC<RadialMenuProps> = ({ x, y, onDelete, onDetails, onClose }) => {
   return (
     <div 
-      className="fixed z-50 pointer-events-auto"
+      className="fixed z-[100] pointer-events-auto"
       style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}
     >
-      <div className="relative w-40 h-40 flex items-center justify-center animate-in zoom-in duration-200">
-        {/* The Disk Container */}
-        <div className="absolute inset-0 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl overflow-hidden" />
+      <div className="relative w-48 h-48 flex items-center justify-center animate-in zoom-in-75 duration-200">
+        {/* Main Disk Base */}
+        <div className="absolute inset-0 rounded-full bg-slate-100 border-4 border-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] overflow-hidden" />
         
-        {/* Inner Hole */}
-        <div className="absolute w-16 h-16 rounded-full bg-slate-900/10 border border-white/20 z-10 pointer-events-none flex items-center justify-center">
-           <div className="w-12 h-12 rounded-full bg-white/20 blur-xl" />
-        </div>
-
-        {/* Action: Delete Segment (Top-Left) */}
+        {/* Segment 1: Delete (Top-Left) */}
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           className={cn(
-            "absolute inset-0 group transition-all duration-300",
-            "hover:bg-destructive/20 active:bg-destructive/40"
+            "absolute inset-0 transition-all duration-200",
+            "bg-white hover:bg-destructive hover:text-white text-destructive border-r border-b border-slate-100"
           )}
-          style={{ clipPath: 'polygon(50% 50%, 0 0, 100% 0, 100% 50%, 50% 50%)' }}
+          style={{ clipPath: 'polygon(50% 50%, 0 0, 50% 0)' }}
           title="حذف"
         >
-          <div className="absolute top-[20%] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 group-hover:scale-110 transition-transform">
-            <Trash2 size={20} className="text-destructive" />
-            <span className="text-[8px] font-bold uppercase text-destructive opacity-0 group-hover:opacity-100 transition-opacity">حذف</span>
+          <div className="absolute top-[18%] left-[28%] -translate-x-1/2 flex flex-col items-center">
+            <Trash2 size={20} />
+            <span className="text-[10px] font-bold mt-1">حذف</span>
           </div>
         </button>
 
-        {/* Action: Details Segment (Bottom) */}
+        {/* Segment 2: Details (Bottom) */}
         <button
           onClick={(e) => { e.stopPropagation(); onDetails(); }}
           className={cn(
-            "absolute inset-0 group transition-all duration-300",
-            "hover:bg-primary/20 active:bg-primary/40"
+            "absolute inset-0 transition-all duration-200",
+            "bg-white hover:bg-primary hover:text-white text-primary border-t border-slate-100"
           )}
-          style={{ clipPath: 'polygon(50% 50%, 0 100%, 100% 100%, 100% 50%, 0% 50%, 50% 50%)' }}
+          style={{ clipPath: 'polygon(50% 50%, 0 100%, 100% 100%)' }}
           title="تفاصيل"
         >
-          <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 group-hover:scale-110 transition-transform">
-            <Info size={20} className="text-primary" />
-            <span className="text-[8px] font-bold uppercase text-primary opacity-0 group-hover:opacity-100 transition-opacity">تفاصيل</span>
+          <div className="absolute bottom-[12%] left-1/2 -translate-x-1/2 flex flex-col items-center">
+            <Info size={22} />
+            <span className="text-[10px] font-bold mt-1">تفاصيل</span>
           </div>
         </button>
 
-        {/* Action: Close Segment (Top-Right-ish / Rest) */}
+        {/* Segment 3: Close (Top-Right) */}
         <button
           onClick={(e) => { e.stopPropagation(); onClose(); }}
           className={cn(
-            "absolute inset-0 group transition-all duration-300",
-            "hover:bg-slate-200/50 active:bg-slate-300/50"
+            "absolute inset-0 transition-all duration-200",
+            "bg-white hover:bg-slate-800 hover:text-white text-slate-500 border-l border-b border-slate-100"
           )}
-          style={{ clipPath: 'polygon(50% 50%, 0 0, 0 50%, 50% 50%)' }}
+          style={{ clipPath: 'polygon(50% 50%, 50% 0, 100% 0)' }}
           title="إغلاق"
         >
-          <div className="absolute top-[35%] left-[20%] flex flex-col items-center gap-1 group-hover:scale-110 transition-transform">
-            <X size={18} className="text-slate-500" />
+          <div className="absolute top-[18%] right-[28%] translate-x-1/2 flex flex-col items-center">
+            <X size={20} />
+            <span className="text-[10px] font-bold mt-1">إغلاق</span>
           </div>
         </button>
+
+        {/* The Open Center (The Hole) */}
+        <div className="absolute w-16 h-16 rounded-full bg-slate-50 border-4 border-white shadow-inner z-10 pointer-events-none flex items-center justify-center">
+           <div className="w-10 h-10 rounded-full bg-white shadow-sm" />
+        </div>
+
+        {/* Decorative Separators */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[1px] bg-slate-100/50 rotate-[45deg]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[1px] bg-slate-100/50 -rotate-[45deg]" />
+        </div>
       </div>
     </div>
   );
