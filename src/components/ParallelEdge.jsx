@@ -19,6 +19,7 @@ export const ParallelEdge = ({
   const { updateEdgeOffset } = useGraph();
   const { screenToFlowPosition } = useReactFlow();
   
+  // المسافة المطلوبة للمقبض والتسمية عن الخط المستقيم
   const offset = data?.offset ?? 0;
   
   const midX = (sourceX + targetX) / 2;
@@ -27,11 +28,19 @@ export const ParallelEdge = ({
   const dx = targetX - sourceX;
   const dy = targetY - sourceY;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  
+  // متجه الوحدة العمودي
   const nx = -dy / len;
   const ny = dx / len;
   
-  const cx = midX + nx * offset;
-  const cy = midY + ny * offset;
+  // لجعل المنحنى يمر عبر النقطة (offset)، يجب أن تكون نقطة التحكم عند (2 * offset)
+  const controlOffset = offset * 2;
+  const cx = midX + nx * controlOffset;
+  const cy = midY + ny * controlOffset;
+
+  // إحداثيات التسمية والمقبض (المكان الذي يمر فيه الخيط فعلياً)
+  const labelX = midX + nx * offset;
+  const labelY = midY + ny * offset;
 
   const path = `M ${sourceX},${sourceY} Q ${cx},${cy} ${targetX},${targetY}`;
 
@@ -40,7 +49,6 @@ export const ParallelEdge = ({
     event.preventDefault();
 
     const onMouseMove = (moveEvent) => {
-      // تحويل إحداثيات الشاشة إلى إحداثيات المخطط بدقة
       const flowPos = screenToFlowPosition({
         x: moveEvent.clientX,
         y: moveEvent.clientY,
@@ -48,6 +56,8 @@ export const ParallelEdge = ({
       
       const vx = flowPos.x - midX;
       const vy = flowPos.y - midY;
+      
+      // حساب المسافة العمودية الجديدة للماوس عن الخط المستقيم
       const newOffset = vx * nx + vy * ny;
       
       updateEdgeOffset(id, newOffset);
@@ -90,7 +100,7 @@ export const ParallelEdge = ({
         <div
           style={{
             position: 'absolute',
-            transform: `translate(-50%, -50%) translate(${cx}px,${cy}px)`,
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             pointerEvents: 'all',
           }}
           className="flex flex-col items-center gap-1"
