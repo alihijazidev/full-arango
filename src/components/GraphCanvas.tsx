@@ -14,9 +14,11 @@ import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { RadialMenu } from './RadialMenu';
-import { Settings2, Play, LayoutGrid, Maximize2, Trash2 } from 'lucide-react';
+import { Settings2, Play, LayoutGrid, Maximize2, Trash2, Zap, ZapOff, Activity } from 'lucide-react';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Switch } from './ui/switch';
+import { Label } from './ui/label';
 
 const nodeTypes = {
   customNode: CustomNode,
@@ -26,25 +28,23 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { 
     nodes, edges, onConnect, setNodes, setEdges, 
-    addNodeFromMetadata, autoConnect, deleteElement, clearCanvas,
-    edgeStyle, setEdgeStyle 
+    addNodeFromMetadata, deleteElement, clearCanvas,
+    edgeStyle, setEdgeStyle, isAnimated, setIsAnimated,
+    isAutoConnect, setIsAutoConnect
   } = useGraph();
   const { project, fitView } = useReactFlow();
   
   const [menu, setMenu] = useState<{ x: number, y: number, id: string, isNode: boolean } | null>(null);
 
-  // Keyboard handler for deletion
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Delete' || event.key === 'Backspace') {
         const selectedNodes = nodes.filter(n => n.selected);
         const selectedEdges = edges.filter(e => e.selected);
-
         selectedNodes.forEach(n => deleteElement(n.id, true));
         selectedEdges.forEach(e => deleteElement(e.id, false));
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nodes, edges, deleteElement]);
@@ -67,21 +67,16 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     if (!reactFlowWrapper.current) return;
-
     const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
     const dropData = event.dataTransfer.getData('application/reactflow');
     if (!dropData) return;
-
     const data = JSON.parse(dropData);
-
     const position = project({
       x: event.clientX - reactFlowBounds.left,
       y: event.clientY - reactFlowBounds.top,
     });
-
     addNodeFromMetadata(data.nodeType, data.nodeName, position);
-    setTimeout(autoConnect, 100);
-  }, [project, addNodeFromMetadata, autoConnect]);
+  }, [project, addNodeFromMetadata]);
 
   const onLayoutGrid = () => {
     setNodes((nds) => nds.map((node, index) => ({
@@ -107,38 +102,53 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
         onNodeDoubleClick={(e, n) => onSelectElement(n.id, true)}
         onEdgeDoubleClick={(e, edge) => onSelectElement(edge.id, false)}
         fitView
-        deleteKeyCode={null} // We handle this manually for more control
+        deleteKeyCode={null}
       >
         <Background color="#cbd5e1" gap={20} />
         <Controls />
         
-        <Panel position="top-right" className="flex items-center gap-2 bg-white/80 backdrop-blur p-2 rounded-lg border shadow-sm">
-          <div className="flex items-center gap-2 border-r pr-2">
+        <Panel position="top-right" className="flex items-center gap-4 bg-white/90 backdrop-blur-md p-3 rounded-xl border shadow-lg">
+          <div className="flex items-center gap-3 border-r pr-3">
+            <div className="flex items-center gap-2">
+              <Activity size={14} className={isAnimated ? "text-primary animate-pulse" : "text-slate-400"} />
+              <Label htmlFor="animate-mode" className="text-[10px] font-bold uppercase tracking-wider text-slate-500">تحريك</Label>
+              <Switch 
+                id="animate-mode" 
+                checked={isAnimated} 
+                onCheckedChange={setIsAnimated} 
+              />
+            </div>
+            
+            <div className="flex items-center gap-2 ml-2">
+              {isAutoConnect ? <Zap size={14} className="text-amber-500" /> : <ZapOff size={14} className="text-slate-400" />}
+              <Label htmlFor="auto-mode" className="text-[10px] font-bold uppercase tracking-wider text-slate-500">ربط ذكي</Label>
+              <Switch 
+                id="auto-mode" 
+                checked={isAutoConnect} 
+                onCheckedChange={setIsAutoConnect} 
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 border-r pr-3">
             <Settings2 size={16} className="text-slate-500" />
             <Select value={edgeStyle} onValueChange={setEdgeStyle}>
-              <SelectTrigger className="w-32 h-8 text-xs">
-                <SelectValue placeholder="نمط الحافة" />
+              <SelectTrigger className="w-28 h-8 text-[10px] font-bold uppercase border-none bg-slate-100 hover:bg-slate-200 transition-colors">
+                <SelectValue placeholder="النمط" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="default">انسيابي</SelectItem>
-                <SelectItem value="straight">مستقيم</SelectItem>
-                <SelectItem value="step">متدرج</SelectItem>
-                <SelectItem value="smoothstep">متدرج ناعم</SelectItem>
+                <SelectItem value="default" className="text-xs">انسيابي</SelectItem>
+                <SelectItem value="straight" className="text-xs">مستقيم</SelectItem>
+                <SelectItem value="step" className="text-xs">متدرج</SelectItem>
+                <SelectItem value="smoothstep" className="text-xs">ناعم</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          
-          <Button variant="ghost" size="sm" onClick={autoConnect} className="h-8 text-xs gap-1">
-            <Play size={14} /> ربط تلقائي
-          </Button>
 
-          <Button variant="ghost" size="sm" onClick={clearCanvas} className="h-8 text-xs gap-1 text-destructive hover:text-destructive">
-            <Trash2 size={14} /> مسح
-          </Button>
-          
-          <div className="flex items-center gap-1 border-l pl-2">
-             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onLayoutGrid} title="ترتيب شبكي"><LayoutGrid size={14} /></Button>
-             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => fitView({ duration: 800 })} title="تكبير للكل"><Maximize2 size={14} /></Button>
+          <div className="flex items-center gap-1">
+             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100" onClick={onLayoutGrid} title="ترتيب"><LayoutGrid size={14} /></Button>
+             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100" onClick={() => fitView({ duration: 800 })} title="تكبير"><Maximize2 size={14} /></Button>
+             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={clearCanvas} title="مسح"><Trash2 size={14} /></Button>
           </div>
         </Panel>
       </ReactFlow>
