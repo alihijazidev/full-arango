@@ -23,6 +23,10 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
   const depth = data.depth || 1;
   const isManualEdge = !isNode && (data.metadata?.isManual || data.metadata?.label === 'رابط يدوي');
 
+  // تحويل المصفوفات لنصوص للعرض
+  const fromPathStr = Array.isArray(data.metadata?.fromcol) ? data.metadata.fromcol.join('/') : (data.metadata?.fromcol || 'مصدر يدوي');
+  const toPathStr = Array.isArray(data.metadata?.tocol) ? data.metadata.tocol.join('/') : (data.metadata?.tocol || 'هدف يدوي');
+
   const addFilter = () => {
     if (!selectedId) return;
     const newFilter = {
@@ -73,9 +77,9 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
             ) : (
               <div className="mt-3 space-y-2">
                 <div className="flex items-center gap-2 text-xs">
-                  <Badge variant="secondary" className="font-mono text-[9px]">{data.metadata?.fromcol || 'مصدر يدوي'}</Badge>
+                  <Badge variant="secondary" className="font-mono text-[9px]">{fromPathStr}</Badge>
                   <ArrowLeftRight size={12} className="text-slate-400" />
-                  <Badge variant="secondary" className="font-mono text-[9px]">{data.metadata?.tocol || 'هدف يدوي'}</Badge>
+                  <Badge variant="secondary" className="font-mono text-[9px]">{toPathStr}</Badge>
                 </div>
               </div>
             )}

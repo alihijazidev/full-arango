@@ -24,8 +24,11 @@ export const Sidebar = () => {
 
   const filteredEdges = useMemo(() => {
     return metadata.edges.filter(edge => {
-      const isFromActive = activePaths.some(path => edge.fromcol === path || edge.fromcol.startsWith(path + '/'));
-      const isToActive = activePaths.some(path => edge.tocol === path || edge.tocol.startsWith(path + '/'));
+      const fromStr = Array.isArray(edge.fromcol) ? edge.fromcol.join('/') : edge.fromcol;
+      const toStr = Array.isArray(edge.tocol) ? edge.tocol.join('/') : edge.tocol;
+      
+      const isFromActive = activePaths.some(path => fromStr === path || fromStr.startsWith(path + '/'));
+      const isToActive = activePaths.some(path => toStr === path || toStr.startsWith(path + '/'));
       return isFromActive && isToActive;
     });
   }, [metadata.edges, activePaths]);
@@ -102,26 +105,31 @@ export const Sidebar = () => {
               علاقات نشطة ({filteredEdges.length})
             </h3>
             <div className="space-y-2">
-              {filteredEdges.map(edge => (
-                <button
-                  key={edge.label}
-                  onClick={() => addEdgeManually(edge.label)}
-                  className="w-full text-right flex flex-col p-2 rounded-md bg-white border border-slate-200 shadow-sm hover:border-primary group transition-all"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <Share2 size={14} className="text-emerald-500" />
-                      <span className="text-sm font-medium">{edge.label}</span>
+              {filteredEdges.map(edge => {
+                const fromStr = Array.isArray(edge.fromcol) ? edge.fromcol.join('/') : edge.fromcol;
+                const toStr = Array.isArray(edge.tocol) ? edge.tocol.join('/') : edge.tocol;
+                
+                return (
+                  <button
+                    key={`${edge.label}-${fromStr}-${toStr}`}
+                    onClick={() => addEdgeManually(edge.label)}
+                    className="w-full text-right flex flex-col p-2 rounded-md bg-white border border-slate-200 shadow-sm hover:border-primary group transition-all"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Share2 size={14} className="text-emerald-500" />
+                        <span className="text-sm font-medium">{edge.label}</span>
+                      </div>
+                      <Plus size={12} className="text-slate-300 group-hover:text-primary" />
                     </div>
-                    <Plus size={12} className="text-slate-300 group-hover:text-primary" />
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <span className="bg-slate-100 px-1 rounded">{edge.fromcol}</span>
-                    <span>←</span>
-                    <span className="bg-slate-100 px-1 rounded">{edge.tocol}</span>
-                  </div>
-                </button>
-              ))}
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <span className="bg-slate-100 px-1 rounded">{fromStr}</span>
+                      <span>←</span>
+                      <span className="bg-slate-100 px-1 rounded">{toStr}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </section>
         </div>

@@ -44,8 +44,12 @@ export const GraphProvider = ({ children }) => {
           const sourcePath = sourceNode.data.fullPath;
           const targetPath = targetNode.data.fullPath;
 
-          const isSourceMatch = edgeMeta.fromcol === sourcePath || edgeMeta.fromcol.startsWith(sourcePath + '/');
-          const isTargetMatch = edgeMeta.tocol === targetPath || edgeMeta.tocol.startsWith(targetPath + '/');
+          // تحويل المصفوفة إلى نص للمقارنة
+          const edgeFromStr = Array.isArray(edgeMeta.fromcol) ? edgeMeta.fromcol.join('/') : edgeMeta.fromcol;
+          const edgeToStr = Array.isArray(edgeMeta.tocol) ? edgeMeta.tocol.join('/') : edgeMeta.tocol;
+
+          const isSourceMatch = edgeFromStr === sourcePath || edgeFromStr.startsWith(sourcePath + '/');
+          const isTargetMatch = edgeToStr === targetPath || edgeToStr.startsWith(targetPath + '/');
 
           if (isSourceMatch && isTargetMatch) {
             const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.label}`;
@@ -91,10 +95,12 @@ export const GraphProvider = ({ children }) => {
       const sourcePath = sourceNode?.data?.fullPath || '';
       const targetPath = targetNode?.data?.fullPath || '';
 
-      const edgeMeta = metadata.edges.find(e => 
-        (e.fromcol === sourcePath || e.fromcol.startsWith(sourcePath + '/')) && 
-        (e.tocol === targetPath || e.tocol.startsWith(targetPath + '/'))
-      );
+      const edgeMeta = metadata.edges.find(e => {
+        const fromStr = Array.isArray(e.fromcol) ? e.fromcol.join('/') : e.fromcol;
+        const toStr = Array.isArray(e.tocol) ? e.tocol.join('/') : e.tocol;
+        return (fromStr === sourcePath || fromStr.startsWith(sourcePath + '/')) && 
+               (toStr === targetPath || toStr.startsWith(targetPath + '/'));
+      });
 
       const offset = getParallelEdgeOffset(params.source, params.target, eds);
       
@@ -104,7 +110,13 @@ export const GraphProvider = ({ children }) => {
         animated: isAnimated, 
         type: 'parallel',
         data: { 
-          metadata: edgeMeta || { fromcol: sourcePath, tocol: targetPath, label: 'رابط يدوي', attributes: [], isManual: true },
+          metadata: edgeMeta || { 
+            fromcol: sourcePath.split('/'), 
+            tocol: targetPath.split('/'), 
+            label: 'رابط يدوي', 
+            attributes: [], 
+            isManual: true 
+          },
           filters: [], 
           offset,
           depth: 1 
@@ -174,8 +186,11 @@ export const GraphProvider = ({ children }) => {
         const sourcePath = sourceNode.data.fullPath;
         const targetPath = targetNode.data.fullPath;
 
-        const isSourceMatch = edgeMeta.fromcol === sourcePath || edgeMeta.fromcol.startsWith(sourcePath + '/');
-        const isTargetMatch = edgeMeta.tocol === targetPath || edgeMeta.tocol.startsWith(targetPath + '/');
+        const fromStr = Array.isArray(edgeMeta.fromcol) ? edgeMeta.fromcol.join('/') : edgeMeta.fromcol;
+        const toStr = Array.isArray(edgeMeta.tocol) ? edgeMeta.tocol.join('/') : edgeMeta.tocol;
+
+        const isSourceMatch = fromStr === sourcePath || fromStr.startsWith(sourcePath + '/');
+        const isTargetMatch = toStr === targetPath || toStr.startsWith(targetPath + '/');
 
         if (isSourceMatch && isTargetMatch) {
           const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.label}`;

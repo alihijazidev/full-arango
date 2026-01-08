@@ -30,12 +30,12 @@ export const fetchMetadata = async () => {
       }
     ],
     edges: [
-      { label: "has_profile", fromcol: "Identity/Users", tocol: "Identity/Profiles", attributes: ["since"] },
-      { label: "authored", fromcol: "Identity/Users", tocol: "Content/Posts", attributes: ["role"] },
-      { label: "commented_on", fromcol: "Identity/Users", tocol: "Content/Comments", attributes: ["isFlagged"] },
-      { label: "belongs_to", fromcol: "Content/Comments", tocol: "Content/Posts", attributes: [] },
-      { label: "purchased", fromcol: "Identity/Users", tocol: "Commerce/Orders", attributes: ["paymentMethod"] },
-      { label: "contains", fromcol: "Commerce/Orders", tocol: "Commerce/Products", attributes: ["quantity"] }
+      { label: "has_profile", fromcol: ["Identity", "Users"], tocol: ["Identity", "Profiles"], attributes: ["since"] },
+      { label: "authored", fromcol: ["Identity", "Users"], tocol: ["Content", "Posts"], attributes: ["role"] },
+      { label: "commented_on", fromcol: ["Identity", "Users"], tocol: ["Content", "Comments"], attributes: ["isFlagged"] },
+      { label: "belongs_to", fromcol: ["Content", "Comments"], tocol: ["Content", "Posts"], attributes: [] },
+      { label: "purchased", fromcol: ["Identity", "Users"], tocol: ["Commerce", "Orders"], attributes: ["paymentMethod"] },
+      { label: "contains", fromcol: ["Commerce", "Orders"], tocol: ["Commerce", "Products"], attributes: ["quantity"] }
     ]
   };
 };
