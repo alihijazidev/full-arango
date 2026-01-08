@@ -1,21 +1,20 @@
 import React, { useMemo } from 'react';
 import { useGraph } from '../store/GraphContext';
-import { Database, FolderTree, ChevronLeft, Share2 } from 'lucide-react';
+import { Database, FolderTree, ChevronLeft, Share2, Plus } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { ScrollArea } from './ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 export const Sidebar = () => {
-  const { metadata, nodes } = useGraph();
+  const { metadata, nodes, addEdgeManually } = useGraph();
 
   const categories = useMemo(() => 
     Array.from(new Set(metadata.collections.map(c => c.category))), 
   [metadata.collections]);
 
-  // Logic to filter edges based on what's currently on the canvas
   const activeCollectionNames = useMemo(() => {
     return nodes.flatMap(n => {
       if (n.data.type === 'collection') return [n.data.label];
-      // For category nodes, include all collections within that category
       return n.data.metadata?.collections || [];
     });
   }, [nodes]);
@@ -99,20 +98,27 @@ export const Sidebar = () => {
                 </div>
               ) : (
                 filteredEdges.map(edge => (
-                  <div
+                  <button
                     key={edge.name}
-                    className="flex flex-col p-2 rounded-md bg-white border border-slate-200 shadow-sm animate-in fade-in"
+                    onClick={() => addEdgeManually(edge.name)}
+                    className={cn(
+                      "w-full text-right flex flex-col p-2 rounded-md bg-white border border-slate-200 shadow-sm transition-all",
+                      "hover:border-primary hover:shadow-md group active:scale-[0.98]"
+                    )}
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Share2 size={14} className="text-emerald-500" />
-                      <span className="text-sm font-medium">{edge.name}</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Share2 size={14} className="text-emerald-500" />
+                        <span className="text-sm font-medium">{edge.name}</span>
+                      </div>
+                      <Plus size={12} className="text-slate-300 group-hover:text-primary transition-colors" />
                     </div>
                     <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                       <span className="bg-slate-100 px-1 rounded">{edge.from}</span>
                       <span>←</span>
                       <span className="bg-slate-100 px-1 rounded">{edge.to}</span>
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>

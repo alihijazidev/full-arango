@@ -11,6 +11,7 @@ interface GraphContextType {
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
   onConnect: (params: Connection) => void;
   addNodeFromMetadata: (type: 'collection' | 'category', name: string, position: { x: number; y: number }) => void;
+  addEdgeManually: (edgeName: string) => void;
   updateFilters: (id: string, isNode: boolean, filters: Filter[]) => void;
   deleteElement: (id: string, isNode: boolean) => void;
   autoConnect: () => void;
@@ -58,14 +59,11 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const autoConnect = useCallback(() => {
     const newEdges: Edge[] = [];
-    
     nodes.forEach(sourceNode => {
       nodes.forEach(targetNode => {
         if (sourceNode.id === targetNode.id) return;
-
         const sourceColls = sourceNode.data.type === 'collection' ? [sourceNode.data.label] : sourceNode.data.metadata?.collections || [];
         const targetColls = targetNode.data.type === 'collection' ? [targetNode.data.label] : targetNode.data.metadata?.collections || [];
-
         metadata.edges.forEach(edgeMeta => {
           if (sourceColls.includes(edgeMeta.from) && targetColls.includes(edgeMeta.to)) {
             const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.name}`;
@@ -84,18 +82,42 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
       });
     });
-
-    if (newEdges.length > 0) {
-      setEdges((eds) => [...eds, ...newEdges]);
-    }
+    if (newEdges.length > 0) setEdges((eds) => [...eds, ...newEdges]);
   }, [nodes, edges, metadata.edges, edgeStyle, isAnimated]);
 
-  // Effect to handle auto-connect when nodes change and mode is enabled
+  const addEdgeManually = (edgeName: string) => {
+    const edgeMeta = metadata.edges.find(e => e.name === edgeName);
+    if (!edgeMeta) return;
+
+    const newEdges: Edge[] = [];
+    nodes.forEach(sourceNode => {
+      nodes.forEach(targetNode => {
+        if (sourceNode.id === targetNode.id) return;
+        const sourceColls = sourceNode.data.type === 'collection' ? [sourceNode.data.label] : sourceNode.data.metadata?.collections || [];
+        const targetColls = targetNode.data.type === 'collection' ? [targetNode.data.label] : targetNode.data.metadata?.collections || [];
+
+        if (sourceColls.includes(edgeMeta.from) && targetColls.includes(edgeMeta.to)) {
+          const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.name}`;
+          if (!edges.find(e => e.id === edgeId)) {
+            newEdges.push({
+              id: edgeId,
+              source: sourceNode.id,
+              target: targetNode.id,
+              label: edgeMeta.name,
+              type: edgeStyle,
+              animated: isAnimated,
+              data: { metadata: edgeMeta, filters: [] }
+            });
+          }
+        }
+      });
+    });
+    if (newEdges.length > 0) setEdges((eds) => [...eds, ...newEdges]);
+  };
+
   useEffect(() => {
-    if (isAutoConnect && nodes.length > 0) {
-      autoConnect();
-    }
-  }, [nodes.length, isAutoConnect]); // Only trigger on count changes to prevent infinite loops
+    if (isAutoConnect && nodes.length > 0) autoConnect();
+  }, [nodes.length, isAutoConnect]);
 
   const addNodeFromMetadata = (type: 'collection' | 'category', name: string, position: { x: number; y: number }) => {
     const id = `${type}-${name}-${Date.now()}`;
@@ -140,7 +162,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, 
-      addNodeFromMetadata, updateFilters, deleteElement, autoConnect, clearCanvas,
+      addNodeFromMetadata, addEdgeManually, updateFilters, deleteElement, autoConnect, clearCanvas,
       edgeStyle, setEdgeStyle, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect
     }}>
       {children}
