@@ -17,11 +17,7 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
   if (!target || !target.data) return null;
 
   const data = target.data;
-  
-  const attributes = isNode 
-    ? (data.type === 'collection' ? data.metadata?.attributes || [] : [])
-    : (data.metadata?.attributes || []);
-
+  const attributes = data.metadata?.attributes || [];
   const filters = data.filters || [];
 
   const addFilter = () => {
@@ -49,9 +45,9 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
     <div className="w-96 border-l bg-white flex flex-col h-full shadow-2xl animate-in slide-in-from-right duration-300">
       <div className="p-4 border-b flex items-center justify-between bg-slate-50">
         <div>
-          <h2 className="font-bold text-lg">{isNode ? 'Node Details' : 'Edge Details'}</h2>
+          <h2 className="font-bold text-lg">{isNode ? 'تفاصيل العقدة' : 'تفاصيل الرابط'}</h2>
           <Badge variant="outline" className="mt-1">
-            {isNode ? data.type : 'edge'}
+            {isNode ? (data.type === 'category' ? 'فئة' : 'مجموعة') : 'علاقة'}
           </Badge>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
@@ -59,21 +55,15 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
         </Button>
       </div>
 
-      <div className="p-6 flex-1 overflow-auto space-y-8">
+      <div className="p-6 flex-1 overflow-auto space-y-8" dir="rtl">
         <section>
-          <Label className="text-muted-foreground uppercase text-[10px] font-bold tracking-widest mb-2 block">Identity</Label>
+          <Label className="text-muted-foreground uppercase text-[10px] font-bold tracking-widest mb-2 block">الهوية</Label>
           <div className="bg-slate-100 p-3 rounded-md">
-            <p className="font-bold text-xl">{data.label || data.metadata?.name || 'Manual Connection'}</p>
+            <p className="font-bold text-xl">{data.label}</p>
             {isNode && data.type === 'collection' && (
-              <p className="text-sm text-muted-foreground mt-1">Category: {data.metadata?.category || 'N/A'}</p>
+              <p className="text-sm text-muted-foreground mt-1">الفئة الأب: {data.categoryName}</p>
             )}
-            {!isNode && data.metadata && (
-              <div className="flex items-center gap-2 mt-2 text-xs">
-                <span className="bg-white px-2 py-1 rounded border">{data.metadata.from}</span>
-                <span className="text-muted-foreground">→</span>
-                <span className="bg-white px-2 py-1 rounded border">{data.metadata.to}</span>
-              </div>
-            )}
+            <p className="text-[10px] font-mono text-slate-500 mt-2">المسار: {data.fullPath || 'رابط يدوي'}</p>
           </div>
         </section>
 
@@ -81,11 +71,11 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
           <div className="flex items-center justify-between mb-4">
             <Label className="text-muted-foreground uppercase text-[10px] font-bold tracking-widest flex items-center gap-2">
               <FilterIcon size={12} />
-              Composable Filters
+              الفلاتر المتاحة
             </Label>
             {attributes.length > 0 && (
               <Button variant="outline" size="sm" onClick={addFilter} className="h-7 text-xs">
-                <Plus size={12} className="mr-1" /> Add
+                <Plus size={12} className="ml-1" /> إضافة
               </Button>
             )}
           </div>
@@ -93,7 +83,7 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
           <div className="space-y-3">
             {filters.length === 0 && (
               <div className="text-center py-8 border-2 border-dashed rounded-lg text-muted-foreground">
-                <p className="text-xs">{attributes.length > 0 ? 'No filters defined' : 'No attributes available for filters'}</p>
+                <p className="text-xs">{attributes.length > 0 ? 'لا توجد فلاتر محددة' : 'لا توجد سمات متاحة للفصّ'}</p>
               </div>
             )}
             {filters.map((filter) => (
@@ -101,7 +91,7 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-white border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-2 -left-2 h-6 w-6 rounded-full bg-white border shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={() => removeFilter(filter.id)}
                 >
                   <Trash2 size={12} className="text-destructive" />
@@ -113,7 +103,7 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
                     onValueChange={(v) => updateFilterField(filter.id, 'attribute', v)}
                   >
                     <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Attribute" />
+                      <SelectValue placeholder="السمة" />
                     </SelectTrigger>
                     <SelectContent>
                       {attributes.map((attr) => (
@@ -128,7 +118,7 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
                       onValueChange={(v) => updateFilterField(filter.id, 'operator', v)}
                     >
                       <SelectTrigger className="h-8 w-24 text-xs">
-                        <SelectValue placeholder="Op" />
+                        <SelectValue placeholder="العملية" />
                       </SelectTrigger>
                       <SelectContent>
                         {['=', '!=', '>', '<', '>=', '<=', 'LIKE', 'IN'].map(op => (
@@ -137,8 +127,8 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
                       </SelectContent>
                     </Select>
                     <Input 
-                      className="h-8 text-xs" 
-                      placeholder="Value" 
+                      className="h-8 text-xs text-right" 
+                      placeholder="القيمة" 
                       value={filter.value}
                       onChange={(e) => updateFilterField(filter.id, 'value', e.target.value)}
                     />

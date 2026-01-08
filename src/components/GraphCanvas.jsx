@@ -18,13 +18,8 @@ import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 
-const nodeTypes = {
-  customNode: CustomNode,
-};
-
-const edgeTypes = {
-  parallel: ParallelEdge,
-};
+const nodeTypes = { customNode: CustomNode };
+const edgeTypes = { parallel: ParallelEdge };
 
 const GraphInner = ({ onSelectElement }) => {
   const reactFlowWrapper = useRef(null);
@@ -35,7 +30,6 @@ const GraphInner = ({ onSelectElement }) => {
     isAutoConnect, setIsAutoConnect
   } = useGraph();
   const { project, fitView } = useReactFlow();
-  
   const [menu, setMenu] = useState(null);
 
   useEffect(() => {
@@ -51,20 +45,9 @@ const GraphInner = ({ onSelectElement }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nodes, edges, deleteElement]);
 
-  const onNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    [setNodes]
-  );
-
-  const onEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [setEdges]
-  );
-
-  const onDragOver = useCallback((event) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-  }, []);
+  const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), [setNodes]);
+  const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), [setEdges]);
+  const onDragOver = useCallback((event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; }, []);
 
   const onDrop = useCallback((event) => {
     event.preventDefault();
@@ -77,7 +60,8 @@ const GraphInner = ({ onSelectElement }) => {
       x: event.clientX - reactFlowBounds.left,
       y: event.clientY - reactFlowBounds.top,
     });
-    addNodeFromMetadata(data.nodeType, data.nodeName, position);
+    // تم تحديث تمرير اسم الفئة هنا
+    addNodeFromMetadata(data.nodeType, data.nodeName, position, data.categoryName);
   }, [project, addNodeFromMetadata]);
 
   return (
@@ -101,7 +85,6 @@ const GraphInner = ({ onSelectElement }) => {
       >
         <Background color="#cbd5e1" gap={20} />
         <Controls />
-        
         <Panel position="top-right" className="flex items-center gap-4 bg-white/90 backdrop-blur-md p-3 rounded-xl border shadow-lg">
           <div className="flex items-center gap-3 border-r pr-3">
             <div className="flex items-center gap-2">
@@ -109,25 +92,21 @@ const GraphInner = ({ onSelectElement }) => {
               <Label htmlFor="animate-mode" className="text-[10px] font-bold uppercase tracking-wider text-slate-500">تحريك</Label>
               <Switch id="animate-mode" checked={isAnimated} onCheckedChange={setIsAnimated} />
             </div>
-            
             <div className="flex items-center gap-2 ml-2">
               {isAutoConnect ? <Zap size={14} className="text-amber-500" /> : <ZapOff size={14} className="text-slate-400" />}
               <Label htmlFor="auto-mode" className="text-[10px] font-bold uppercase tracking-wider text-slate-500">ربط ذكي</Label>
               <Switch id="auto-mode" checked={isAutoConnect} onCheckedChange={setIsAutoConnect} />
             </div>
           </div>
-
           <div className="flex items-center gap-1">
              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100" onClick={() => fitView({ duration: 800 })} title="تكبير"><Maximize2 size={14} /></Button>
              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={clearCanvas} title="مسح"><Trash2 size={14} /></Button>
           </div>
         </Panel>
       </ReactFlow>
-
       {menu && (
         <RadialMenu 
-          x={menu.x}
-          y={menu.y}
+          x={menu.x} y={menu.y}
           onDelete={() => { deleteElement(menu.id, menu.isNode); setMenu(null); }}
           onDetails={() => { onSelectElement(menu.id, menu.isNode); setMenu(null); }}
           onClose={() => setMenu(null)}

@@ -1,23 +1,41 @@
 export const fetchMetadata = async () => {
-  // Simulating network delay
+  // محاكاة تأخير الشبكة
   await new Promise((resolve) => setTimeout(resolve, 800));
 
   return {
-    collections: [
-      { name: "Users", category: "Identity", attributes: ["id", "name", "email", "age", "status"] },
-      { name: "Profiles", category: "Identity", attributes: ["bio", "avatar", "lastLogin"] },
-      { name: "Posts", category: "Content", attributes: ["title", "body", "createdAt", "views"] },
-      { name: "Comments", category: "Content", attributes: ["text", "rating"] },
-      { name: "Orders", category: "Commerce", attributes: ["orderId", "total", "currency", "status"] },
-      { name: "Products", category: "Commerce", attributes: ["sku", "price", "stock"] },
+    collections: [ // هذه تمثل الفئات (Categories)
+      {
+        name: "Identity",
+        attributes: ["created_at", "source_system"],
+        entities: [ // هذه تمثل المجموعات (Collections)
+          { name: "Users", attributes: ["id", "name", "email", "age", "status"] },
+          { name: "Profiles", attributes: ["bio", "avatar", "lastLogin"] }
+        ]
+      },
+      {
+        name: "Content",
+        attributes: ["app_version"],
+        entities: [
+          { name: "Posts", attributes: ["title", "body", "createdAt", "views"] },
+          { name: "Comments", attributes: ["text", "rating"] }
+        ]
+      },
+      {
+        name: "Commerce",
+        attributes: ["region"],
+        entities: [
+          { name: "Orders", attributes: ["orderId", "total", "currency", "status"] },
+          { name: "Products", attributes: ["sku", "price", "stock"] }
+        ]
+      }
     ],
     edges: [
-      { name: "has_profile", from: "Users", to: "Profiles", attributes: ["since"] },
-      { name: "authored", from: "Users", to: "Posts", attributes: ["role"] },
-      { name: "commented_on", from: "Users", to: "Comments", attributes: ["isFlagged"] },
-      { name: "belongs_to", from: "Comments", to: "Posts", attributes: [] },
-      { name: "purchased", from: "Users", to: "Orders", attributes: ["paymentMethod"] },
-      { name: "contains", from: "Orders", to: "Products", attributes: ["quantity"] },
-    ],
+      { label: "has_profile", fromcol: "Identity/Users", tocol: "Identity/Profiles", attributes: ["since"] },
+      { label: "authored", fromcol: "Identity/Users", tocol: "Content/Posts", attributes: ["role"] },
+      { label: "commented_on", fromcol: "Identity/Users", tocol: "Content/Comments", attributes: ["isFlagged"] },
+      { label: "belongs_to", fromcol: "Content/Comments", tocol: "Content/Posts", attributes: [] },
+      { label: "purchased", fromcol: "Identity/Users", tocol: "Commerce/Orders", attributes: ["paymentMethod"] },
+      { label: "contains", fromcol: "Commerce/Orders", tocol: "Commerce/Products", attributes: ["quantity"] }
+    ]
   };
 };

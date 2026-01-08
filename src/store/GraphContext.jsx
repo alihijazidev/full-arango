@@ -13,11 +13,8 @@ export const GraphProvider = ({ children }) => {
   const [activeResultType, setActiveResultType] = useState('query');
   const [isQueryLoading, setIsQueryLoading] = useState(false);
   const [highlightedId, setHighlightedId] = useState(null);
-  
   const [isResultPathMode, setIsResultPathMode] = useState(false);
   const [resultPathNodes, setResultPathNodes] = useState([]);
-
-  const [edgeStyle, _setEdgeStyle] = useState('parallel');
   const [isAnimated, _setIsAnimated] = useState(true);
   const [isAutoConnect, _setIsAutoConnect] = useState(false);
 
@@ -44,11 +41,16 @@ export const GraphProvider = ({ children }) => {
         currentNodes.forEach(targetNode => {
           if (sourceNode.id === targetNode.id) return;
 
-          const sourceColls = sourceNode.data.type === 'collection' ? [sourceNode.data.label] : sourceNode.data.metadata?.collections || [];
-          const targetColls = targetNode.data.type === 'collection' ? [targetNode.data.label] : targetNode.data.metadata?.collections || [];
+          // استخراج الهوية الكاملة للعقدة (Category/Collection)
+          const sourcePath = sourceNode.data.fullPath; // "Category/Collection" or "Category"
+          const targetPath = targetNode.data.fullPath;
 
-          if (sourceColls.includes(edgeMeta.from) && targetColls.includes(edgeMeta.to)) {
-            const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.name}`;
+          // التحقق من المطابقة: إما مطابقة كاملة للكيان أو مطابقة للفئة
+          const isSourceMatch = edgeMeta.fromcol === sourcePath || edgeMeta.fromcol.startsWith(sourcePath + '/');
+          const isTargetMatch = edgeMeta.tocol === targetPath || edgeMeta.tocol.startsWith(targetPath + '/');
+
+          if (isSourceMatch && isTargetMatch) {
+            const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.label}`;
             const alreadyExists = currentEdges.some(e => e.id === edgeId) || newEdges.some(e => e.id === edgeId);
             
             if (!alreadyExists) {
@@ -57,7 +59,7 @@ export const GraphProvider = ({ children }) => {
                 id: edgeId,
                 source: sourceNode.id,
                 target: targetNode.id,
-                label: edgeMeta.name,
+                label: edgeMeta.label,
                 type: 'parallel',
                 animated: isAnimated,
                 data: { metadata: edgeMeta, filters: [], offset }
@@ -75,14 +77,7 @@ export const GraphProvider = ({ children }) => {
 
   const setIsAutoConnect = (val) => {
     _setIsAutoConnect(val);
-    if (val) {
-      performAutoConnect(nodes, edges);
-    }
-  };
-
-  const setEdgeStyle = (newStyle) => {
-    _setEdgeStyle(newStyle);
-    setEdges((eds) => eds.map((e) => ({ ...e, type: newStyle })));
+    if (val) performAutoConnect(nodes, edges);
   };
 
   const setIsAnimated = (val) => {
@@ -116,7 +111,6 @@ export const GraphProvider = ({ children }) => {
     edges.forEach(edge => {
       const sourceInResults = startNodes.find(n => n.designedNodeId === edge.source);
       const targetInResults = startNodes.find(n => n.designedNodeId === edge.target);
-      
       if (sourceInResults && targetInResults) {
         resultEdges.push({
           _id: `edge/${edge.label}-${Math.floor(Math.random() * 1000)}`,
@@ -127,52 +121,34 @@ export const GraphProvider = ({ children }) => {
       }
     });
 
-    setQueryResult({ 
-      startnode: startNodes, 
-      targetnode: [], 
-      edges: resultEdges 
-    });
+    setQueryResult({ startnode: startNodes, targetnode: [], edges: resultEdges });
     setActiveResultType('query');
     setIsQueryLoading(false);
   };
 
-  const executeShortestPath = async (fromId, toId) => {
-    setIsQueryLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1200));
-
-    const result = {
-      startnode: [{ _id: fromId, label: fromId.split('/')[0] || 'Start' }],
-      targetnode: [{ _id: toId, label: toId.split('/')[0] || 'End' }],
-      edges: [{ _id: 'edge/shortest', _from: fromId, _to: toId, label: 'أقصر مسار' }]
-    };
-
-    setShortestPathResult(result);
-    setActiveResultType('shortestPath');
-    setIsResultPathMode(false);
-    setResultPathNodes([]);
-    setIsQueryLoading(false);
-  };
-
-  const addEdgeManually = (edgeName) => {
-    const edgeMeta = metadata.edges.find(e => e.name === edgeName);
+  const addEdgeManually = (edgeLabel) => {
+    const edgeMeta = metadata.edges.find(e => e.label === edgeLabel);
     if (!edgeMeta) return;
 
     const newEdges = [];
     nodes.forEach(sourceNode => {
       nodes.forEach(targetNode => {
         if (sourceNode.id === targetNode.id) return;
-        const sourceColls = sourceNode.data.type === 'collection' ? [sourceNode.data.label] : sourceNode.data.metadata?.collections || [];
-        const targetColls = targetNode.data.type === 'collection' ? [targetNode.data.label] : targetNode.data.metadata?.collections || [];
+        const sourcePath = sourceNode.data.fullPath;
+        const targetPath = targetNode.data.fullPath;
 
-        if (sourceColls.includes(edgeMeta.from) && targetColls.includes(edgeMeta.to)) {
-          const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.name}`;
+        const isSourceMatch = edgeMeta.fromcol === sourcePath || edgeMeta.fromcol.startsWith(sourcePath + '/');
+        const isTargetMatch = edgeMeta.tocol === targetPath || edgeMeta.tocol.startsWith(targetPath + '/');
+
+        if (isSourceMatch && isTargetMatch) {
+          const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.label}`;
           if (!edges.find(e => e.id === edgeId)) {
             const offset = getParallelEdgeOffset(sourceNode.id, targetNode.id, [...edges, ...newEdges]);
             newEdges.push({
               id: edgeId,
               source: sourceNode.id,
               target: targetNode.id,
-              label: edgeMeta.name,
+              label: edgeMeta.label,
               type: 'parallel',
               animated: isAnimated,
               data: { metadata: edgeMeta, filters: [], offset }
@@ -184,8 +160,18 @@ export const GraphProvider = ({ children }) => {
     if (newEdges.length > 0) setEdges((eds) => [...eds, ...newEdges]);
   };
 
-  const addNodeFromMetadata = (type, name, position) => {
+  const addNodeFromMetadata = (type, name, position, categoryName = null) => {
     const id = `${type}-${name}-${Date.now()}`;
+    const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
+    
+    let nodeMetadata = null;
+    if (type === 'category') {
+      nodeMetadata = metadata.collections.find(c => c.name === name);
+    } else {
+      const cat = metadata.collections.find(c => c.name === categoryName);
+      nodeMetadata = cat?.entities.find(e => e.name === name);
+    }
+
     const newNode = {
       id,
       type: 'customNode',
@@ -193,9 +179,9 @@ export const GraphProvider = ({ children }) => {
       data: {
         label: name,
         type,
-        metadata: type === 'collection' 
-          ? metadata.collections.find(c => c.name === name)
-          : { category: name, collections: metadata.collections.filter(c => c.category === name).map(c => c.name) },
+        fullPath,
+        categoryName,
+        metadata: nodeMetadata,
         filters: []
       }
     };
@@ -218,18 +204,7 @@ export const GraphProvider = ({ children }) => {
   };
 
   const updateEdgeOffset = (id, offset) => {
-    setEdges((eds) => eds.map((e) => {
-      if (e.id === id) {
-        return {
-          ...e,
-          data: {
-            ...e.data,
-            offset: offset
-          }
-        };
-      }
-      return e;
-    }));
+    setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset } } : e));
   };
 
   const deleteElement = (id, isNode) => {
@@ -250,11 +225,11 @@ export const GraphProvider = ({ children }) => {
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, 
       addNodeFromMetadata, addEdgeManually, updateFilters, updateEdgeOffset, deleteElement, clearCanvas,
-      executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult,
-      activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult,
+      executeStructuredQuery, queryResult, shortestPathResult,
+      activeResultType, setActiveResultType, isQueryLoading, setQueryResult,
       highlightedId, setHighlightedId, isResultPathMode, setIsResultPathMode,
       resultPathNodes, setResultPathNodes,
-      edgeStyle, setEdgeStyle, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect
+      isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect
     }}>
       {children}
     </GraphContext.Provider>

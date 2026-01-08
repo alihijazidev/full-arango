@@ -10,34 +10,28 @@ export const Sidebar = () => {
   const { metadata, nodes, addEdgeManually } = useGraph();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredCollections = useMemo(() => {
+  const filteredCategories = useMemo(() => {
     if (!searchTerm) return metadata.collections;
-    return metadata.collections.filter(c => 
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      c.category.toLowerCase().includes(searchTerm.toLowerCase())
+    return metadata.collections.filter(cat => 
+      cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cat.entities.some(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [metadata.collections, searchTerm]);
 
-  const categories = useMemo(() => {
-    const cats = Array.from(new Set(filteredCollections.map(c => c.category)));
-    return cats;
-  }, [filteredCollections]);
-
-  const activeCollectionNames = useMemo(() => {
-    return nodes.flatMap(n => {
-      if (n.data.type === 'collection') return [n.data.label];
-      return n.data.metadata?.collections || [];
-    });
+  const activePaths = useMemo(() => {
+    return nodes.map(n => n.data.fullPath);
   }, [nodes]);
 
   const filteredEdges = useMemo(() => {
-    return metadata.edges.filter(edge => 
-      activeCollectionNames.includes(edge.from) && activeCollectionNames.includes(edge.to)
-    );
-  }, [metadata.edges, activeCollectionNames]);
+    return metadata.edges.filter(edge => {
+      const isFromActive = activePaths.some(path => edge.fromcol === path || edge.fromcol.startsWith(path + '/'));
+      const isToActive = activePaths.some(path => edge.tocol === path || edge.tocol.startsWith(path + '/'));
+      return isFromActive && isToActive;
+    });
+  }, [metadata.edges, activePaths]);
 
-  const onDragStart = (event, nodeType, nodeName) => {
-    event.dataTransfer.setData('application/reactflow', JSON.stringify({ nodeType, nodeName }));
+  const onDragStart = (event, nodeType, nodeName, categoryName = null) => {
+    event.dataTransfer.setData('application/reactflow', JSON.stringify({ nodeType, nodeName, categoryName }));
     event.dataTransfer.effectAllowed = 'move';
   };
 
@@ -66,36 +60,33 @@ export const Sidebar = () => {
               <FolderTree size={16} />
               الفئات والمجموعات
             </h3>
-            {categories.length === 0 && (
-              <p className="text-[10px] text-center text-muted-foreground py-4">لا توجد نتائج مطابقة</p>
-            )}
-            <Accordion type="multiple" className="w-full" defaultValue={searchTerm ? categories : []}>
-              {categories.map(cat => (
-                <AccordionItem value={cat} key={cat} className="border-none">
+            <Accordion type="multiple" className="w-full">
+              {filteredCategories.map(cat => (
+                <AccordionItem value={cat.name} key={cat.name} className="border-none">
                   <div 
                     draggable 
-                    onDragStart={(e) => onDragStart(e, 'category', cat)}
+                    onDragStart={(e) => onDragStart(e, 'category', cat.name)}
                     className="flex items-center"
                   >
                     <AccordionTrigger className="hover:no-underline py-2 px-3 rounded-md hover:bg-slate-200 transition-colors cursor-grab active:cursor-grabbing">
                       <div className="flex items-center gap-2">
                         <FolderTree size={14} className="text-orange-500" />
-                        <span className="text-sm font-medium">{cat}</span>
+                        <span className="text-sm font-medium">{cat.name}</span>
                       </div>
                     </AccordionTrigger>
                   </div>
                   <AccordionContent className="pr-6 pl-2 pt-1 pb-2 space-y-1">
-                    {filteredCollections
-                      .filter(c => c.category === cat)
-                      .map(coll => (
+                    {cat.entities
+                      .filter(e => !searchTerm || e.name.toLowerCase().includes(searchTerm.toLowerCase()) || cat.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map(entity => (
                         <div
-                          key={coll.name}
+                          key={entity.name}
                           draggable
-                          onDragStart={(e) => onDragStart(e, 'collection', coll.name)}
+                          onDragStart={(e) => onDragStart(e, 'collection', entity.name, cat.name)}
                           className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-200 cursor-grab active:cursor-grabbing group transition-all"
                         >
                           <Database size={14} className="text-blue-500" />
-                          <span className="text-sm">{coll.name}</span>
+                          <span className="text-sm">{entity.name}</span>
                           <ChevronLeft size={12} className="mr-auto opacity-0 group-hover:opacity-50" />
                         </div>
                       ))}
@@ -106,43 +97,31 @@ export const Sidebar = () => {
           </section>
 
           <section>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold flex items-center gap-2 text-slate-600">
-                <Share2 size={16} />
-                علاقات نشطة ({filteredEdges.length})
-              </h3>
-            </div>
-            
+            <h3 className="text-sm font-semibold flex items-center gap-2 text-slate-600 mb-3">
+              <Share2 size={16} />
+              علاقات نشطة ({filteredEdges.length})
+            </h3>
             <div className="space-y-2">
-              {filteredEdges.length === 0 ? (
-                <div className="text-[10px] text-center p-4 border border-dashed rounded text-muted-foreground">
-                  أضف مجموعات مرتبطة لعرض العلاقات
-                </div>
-              ) : (
-                filteredEdges.map(edge => (
-                  <button
-                    key={edge.name}
-                    onClick={() => addEdgeManually(edge.name)}
-                    className={cn(
-                      "w-full text-right flex flex-col p-2 rounded-md bg-white border border-slate-200 shadow-sm transition-all",
-                      "hover:border-primary hover:shadow-md group active:scale-[0.98]"
-                    )}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <Share2 size={14} className="text-emerald-500" />
-                        <span className="text-sm font-medium">{edge.name}</span>
-                      </div>
-                      <Plus size={12} className="text-slate-300 group-hover:text-primary transition-colors" />
+              {filteredEdges.map(edge => (
+                <button
+                  key={edge.label}
+                  onClick={() => addEdgeManually(edge.label)}
+                  className="w-full text-right flex flex-col p-2 rounded-md bg-white border border-slate-200 shadow-sm hover:border-primary group transition-all"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <Share2 size={14} className="text-emerald-500" />
+                      <span className="text-sm font-medium">{edge.label}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <span className="bg-slate-100 px-1 rounded">{edge.from}</span>
-                      <span>←</span>
-                      <span className="bg-slate-100 px-1 rounded">{edge.to}</span>
-                    </div>
-                  </button>
-                ))
-              )}
+                    <Plus size={12} className="text-slate-300 group-hover:text-primary" />
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="bg-slate-100 px-1 rounded">{edge.fromcol}</span>
+                    <span>←</span>
+                    <span className="bg-slate-100 px-1 rounded">{edge.tocol}</span>
+                  </div>
+                </button>
+              ))}
             </div>
           </section>
         </div>
