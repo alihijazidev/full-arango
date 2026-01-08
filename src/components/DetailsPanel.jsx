@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGraph } from '../store/GraphContext';
-import { X, Plus, Trash2, Filter as FilterIcon } from 'lucide-react';
+import { X, Plus, Trash2, Filter as FilterIcon, ArrowLeftRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -14,9 +14,10 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
     ? nodes.find(n => n.id === selectedId) 
     : edges.find(e => e.id === selectedId);
 
-  if (!target || !target.data) return null;
+  if (!target) return null;
 
-  const data = target.data;
+  const data = target.data || {};
+  const label = isNode ? data.label : (target.label || data.metadata?.label || "رابط يدوي");
   const attributes = data.metadata?.attributes || [];
   const filters = data.filters || [];
 
@@ -59,11 +60,23 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
         <section>
           <Label className="text-muted-foreground uppercase text-[10px] font-bold tracking-widest mb-2 block">الهوية</Label>
           <div className="bg-slate-100 p-3 rounded-md">
-            <p className="font-bold text-xl">{data.label}</p>
-            {isNode && data.type === 'collection' && (
-              <p className="text-sm text-muted-foreground mt-1">الفئة الأب: {data.categoryName}</p>
+            <p className="font-bold text-xl">{label}</p>
+            {isNode ? (
+              <>
+                {data.type === 'collection' && (
+                  <p className="text-sm text-muted-foreground mt-1">الفئة الأب: {data.categoryName}</p>
+                )}
+                <p className="text-[10px] font-mono text-slate-500 mt-2">المسار: {data.fullPath}</p>
+              </>
+            ) : (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <Badge variant="secondary" className="font-mono text-[9px]">{data.metadata?.fromcol || 'مصدر يدوي'}</Badge>
+                  <ArrowLeftRight size={12} className="text-slate-400" />
+                  <Badge variant="secondary" className="font-mono text-[9px]">{data.metadata?.tocol || 'هدف يدوي'}</Badge>
+                </div>
+              </div>
             )}
-            <p className="text-[10px] font-mono text-slate-500 mt-2">المسار: {data.fullPath || 'رابط يدوي'}</p>
           </div>
         </section>
 
@@ -83,7 +96,7 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
           <div className="space-y-3">
             {filters.length === 0 && (
               <div className="text-center py-8 border-2 border-dashed rounded-lg text-muted-foreground">
-                <p className="text-xs">{attributes.length > 0 ? 'لا توجد فلاتر محددة' : 'لا توجد سمات متاحة للفصّ'}</p>
+                <p className="text-xs">{attributes.length > 0 ? 'لا توجد فلاتر محددة' : 'لا توجد سمات متاحة للفلترة'}</p>
               </div>
             )}
             {filters.map((filter) => (
