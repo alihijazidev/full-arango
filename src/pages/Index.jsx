@@ -15,7 +15,7 @@ const HeaderActions = () => {
     <div className="flex items-center gap-4">
       <Button 
         onClick={executeStructuredQuery}
-        className="gap-2 bg-emerald-600 hover:bg-emerald-700 h-9 font-bold"
+        className="gap-2 bg-emerald-600 hover:bg-emerald-700 h-9 font-bold text-white"
       >
         <PlayCircle size={18} />
         تنفيذ الاستعلام
@@ -35,11 +35,11 @@ const IndexContent = () => {
   const [selectedElement, setSelectedElement] = useState(null);
 
   return (
-    <div className="flex flex-col h-screen w-full bg-white overflow-hidden text-slate-900" dir="rtl">
-      <header className="h-14 border-b flex items-center justify-between px-6 bg-white z-20">
+    <div className="flex flex-col h-screen w-screen bg-white overflow-hidden text-slate-900" dir="rtl">
+      <header className="h-14 border-b flex items-center justify-between px-6 bg-white z-20 shrink-0">
         <div className="flex items-center gap-4">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">أ</span>
+            <span className="text-primary-foreground font-bold text-lg">أ</span>
           </div>
           <h1 className="font-bold text-lg tracking-tight">مخطط أرانجو <span className="text-primary font-medium text-sm border px-2 py-0.5 rounded-full mr-2">إصدار 1.0</span></h1>
         </div>
@@ -47,7 +47,7 @@ const IndexContent = () => {
         <HeaderActions />
       </header>
 
-      <div className="flex flex-1 relative">
+      <div className="flex flex-1 overflow-hidden relative">
         <Sidebar />
         
         <main className="flex-1 relative bg-slate-100 overflow-hidden">
@@ -67,9 +67,9 @@ const IndexContent = () => {
 
       <ResultView />
 
-      <div className="bg-slate-50 border-t">
+      <footer className="shrink-0 bg-slate-50 border-t py-1">
         <MadeWithDyad />
-      </div>
+      </footer>
     </div>
   );
 };

@@ -25,7 +25,7 @@ export const ResultView = () => {
 
   if (isQueryLoading) {
     return (
-      <div className="fixed inset-0 z-[100] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
+      <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center animate-in fade-in duration-300">
         <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
         <h2 className="text-xl font-bold text-slate-700">جاري معالجة البيانات...</h2>
         <p className="text-slate-500 mt-2">نحن نجمع النتائج من قاعدة بيانات أرانجو</p>
@@ -38,8 +38,8 @@ export const ResultView = () => {
   const currentResult = activeResultType === 'query' ? queryResult : shortestPathResult;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-50 flex flex-col animate-in slide-in-from-bottom duration-500" dir="rtl">
-      <header className="h-16 border-b bg-white flex items-center justify-between px-6 shrink-0 shadow-sm">
+    <div className="fixed inset-0 z-50 bg-slate-50 flex flex-col animate-in slide-in-from-bottom duration-500 overflow-hidden" dir="rtl">
+      <header className="h-16 border-b bg-white flex items-center justify-between px-6 shrink-0 shadow-sm z-10">
         <div className="flex items-center gap-6">
           <Button variant="outline" className="gap-2 border-primary text-primary hover:bg-primary/5" onClick={closeResults}>
             <ArrowRight size={18} />
@@ -86,22 +86,22 @@ export const ResultView = () => {
         </div>
       </header>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden bg-slate-50 relative">
         {currentResult ? (
           <div className="flex h-full overflow-hidden">
             {(viewMode === 'table' || viewMode === 'both') && (
-              <div className={cn("h-full border-l overflow-hidden flex flex-col", viewMode === 'both' ? 'w-1/2' : 'w-full')}>
+              <div className={cn("h-full border-l overflow-hidden flex flex-col bg-white", viewMode === 'both' ? 'w-1/2' : 'w-full')}>
                 <ResultTable data={currentResult} />
               </div>
             )}
             {(viewMode === 'graph' || viewMode === 'both') && (
-              <div className={cn("h-full relative", viewMode === 'both' ? 'w-1/2' : 'w-full')}>
+              <div className={cn("h-full relative bg-slate-50", viewMode === 'both' ? 'w-1/2' : 'w-full')}>
                 <ResultGraph data={currentResult} />
               </div>
             )}
           </div>
         ) : (
-          <div className="flex-1 h-full flex items-center justify-center text-slate-400 flex-col gap-4">
+          <div className="flex-1 h-full flex items-center justify-center text-slate-400 flex-col gap-4 bg-white">
             <Search size={48} className="opacity-20" />
             <p>لا توجد نتائج لهذا النوع من الاستعلام</p>
           </div>
