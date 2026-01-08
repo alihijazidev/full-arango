@@ -1,5 +1,3 @@
-"use client";
-
 import React from 'react';
 import { useGraph } from '../store/GraphContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -7,11 +5,7 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { cn } from '@/lib/utils';
 
-interface ResultTableProps {
-  data: any;
-}
-
-export const ResultTable: React.FC<ResultTableProps> = ({ data }) => {
+export const ResultTable = ({ data }) => {
   const { highlightedId, setHighlightedId } = useGraph();
 
   const allNodes = [...data.startnode, ...data.targetnode];
@@ -19,7 +13,6 @@ export const ResultTable: React.FC<ResultTableProps> = ({ data }) => {
   return (
     <ScrollArea className="h-full">
       <div className="p-6 space-y-8">
-        {/* Nodes Section */}
         <section>
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 px-2">العناصر المسترجعة ({allNodes.length})</h3>
           <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
@@ -60,7 +53,6 @@ export const ResultTable: React.FC<ResultTableProps> = ({ data }) => {
           </div>
         </section>
 
-        {/* Edges Section */}
         <section>
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 px-2">العلاقات ({data.edges.length})</h3>
           <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
@@ -73,7 +65,7 @@ export const ResultTable: React.FC<ResultTableProps> = ({ data }) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.edges.map((edge: any) => (
+                {data.edges.map((edge) => (
                   <TableRow 
                     key={edge._id}
                     className={cn(

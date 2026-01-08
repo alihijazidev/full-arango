@@ -7,25 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 
-interface DetailsPanelProps {
-  selectedId: string | null;
-  isNode: boolean;
-  onClose: () => void;
-}
-
-export const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedId, isNode, onClose }) => {
+export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
   const { nodes, edges, updateFilters } = useGraph();
   
   const target = isNode 
     ? nodes.find(n => n.id === selectedId) 
     : edges.find(e => e.id === selectedId);
 
-  // If the target or its data is missing, we shouldn't render anything
   if (!target || !target.data) return null;
 
   const data = target.data;
   
-  // Safe attribute extraction
   const attributes = isNode 
     ? (data.type === 'collection' ? data.metadata?.attributes || [] : [])
     : (data.metadata?.attributes || []);
@@ -43,14 +35,14 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedId, isNode, 
     updateFilters(selectedId, isNode, [...filters, newFilter]);
   };
 
-  const removeFilter = (fid: string) => {
+  const removeFilter = (fid) => {
     if (!selectedId) return;
-    updateFilters(selectedId, isNode, filters.filter((f: any) => f.id !== fid));
+    updateFilters(selectedId, isNode, filters.filter((f) => f.id !== fid));
   };
 
-  const updateFilterField = (fid: string, field: string, value: string) => {
+  const updateFilterField = (fid, field, value) => {
     if (!selectedId) return;
-    updateFilters(selectedId, isNode, filters.map((f: any) => f.id === fid ? { ...f, [field]: value } : f));
+    updateFilters(selectedId, isNode, filters.map((f) => f.id === fid ? { ...f, [field]: value } : f));
   };
 
   return (
@@ -104,7 +96,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedId, isNode, 
                 <p className="text-xs">{attributes.length > 0 ? 'No filters defined' : 'No attributes available for filters'}</p>
               </div>
             )}
-            {filters.map((filter: any) => (
+            {filters.map((filter) => (
               <div key={filter.id} className="p-3 bg-slate-50 border rounded-md relative group">
                 <Button 
                   variant="ghost" 
@@ -124,7 +116,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({ selectedId, isNode, 
                       <SelectValue placeholder="Attribute" />
                     </SelectTrigger>
                     <SelectContent>
-                      {attributes.map((attr: string) => (
+                      {attributes.map((attr) => (
                         <SelectItem key={attr} value={attr}>{attr}</SelectItem>
                       ))}
                     </SelectContent>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { EdgeProps, getBezierPath, EdgeLabelRenderer } from 'reactflow';
+import { getBezierPath, EdgeLabelRenderer } from 'reactflow';
 import { cn } from '@/lib/utils';
 
 export const ParallelEdge = ({
@@ -16,13 +16,9 @@ export const ParallelEdge = ({
   selected,
   animated,
   data
-}: EdgeProps) => {
-  // We use the offset from data to curve the edge
-  // Offset of 0 is a straightish line, others curve more
+}) => {
   const offset = data?.offset || 0;
   
-  // Calculate a control point offset for the bezier curve
-  // This creates the "bow" effect for parallel edges
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -32,16 +28,9 @@ export const ParallelEdge = ({
     targetPosition,
   });
 
-  // For parallel edges, we actually want to modify the path if offset != 0
-  // But for simplicity in this React Flow version, we'll use the bezier curve
-  // and let the offset influence the 'curvature' if we were using a more complex path.
-  // Instead, we can adjust the label position or use a different edge type.
-  
-  // To really fix overlap, we calculate a mid-point shift
   const midX = (sourceX + targetX) / 2;
   const midY = (sourceY + targetY) / 2;
   
-  // Perpendicular vector for the offset
   const dx = targetX - sourceX;
   const dy = targetY - sourceY;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;

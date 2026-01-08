@@ -1,9 +1,4 @@
-import { CollectionMetadata, EdgeMetadata } from "../types/arango";
-
-export const fetchMetadata = async (): Promise<{
-  collections: CollectionMetadata[];
-  edges: EdgeMetadata[];
-}> => {
+export const fetchMetadata = async () => {
   // Simulating network delay
   await new Promise((resolve) => setTimeout(resolve, 800));
 

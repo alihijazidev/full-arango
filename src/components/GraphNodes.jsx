@@ -1,9 +1,9 @@
 import React, { memo } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position } from 'reactflow';
 import { Database, FolderTree } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export const CustomNode = memo(({ data, selected }: NodeProps) => {
+export const CustomNode = memo(({ data, selected }) => {
   const isCategory = data.type === 'category';
 
   return (
@@ -11,14 +11,12 @@ export const CustomNode = memo(({ data, selected }: NodeProps) => {
       "group relative flex flex-col items-center transition-all duration-300",
       selected ? "scale-105" : "scale-100"
     )}>
-      {/* Target Handle */}
       <Handle 
         type="target" 
         position={Position.Top} 
         className="!w-3 !h-3 !bg-slate-300 !border-2 !border-white hover:!bg-primary transition-colors" 
       />
       
-      {/* Main Node Body */}
       <div className={cn(
         "min-w-[120px] p-3 rounded-xl bg-white shadow-md border-2 transition-all flex flex-col items-center gap-2",
         selected 
@@ -26,7 +24,6 @@ export const CustomNode = memo(({ data, selected }: NodeProps) => {
           : "border-slate-100 hover:border-slate-300 hover:shadow-lg",
         isCategory ? "border-dashed" : "border-solid"
       )}>
-        {/* Icon Header */}
         <div className={cn(
           "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
           isCategory ? "bg-orange-50 text-orange-500" : "bg-blue-50 text-blue-500",
@@ -39,7 +36,6 @@ export const CustomNode = memo(({ data, selected }: NodeProps) => {
           )}
         </div>
 
-        {/* Info Area */}
         <div className="flex flex-col items-center text-center">
           <span className={cn(
             "text-[9px] font-bold uppercase tracking-widest mb-0.5",
@@ -53,7 +49,6 @@ export const CustomNode = memo(({ data, selected }: NodeProps) => {
         </div>
       </div>
 
-      {/* Source Handle */}
       <Handle 
         type="source" 
         position={Position.Bottom} 

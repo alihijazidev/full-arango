@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState } from 'react';
 import { useGraph } from '../store/GraphContext';
 import { X, Table as TableIcon, Network, Columns, Loader2, Search, ArrowRight, MapPinned, PlayCircle } from 'lucide-react';
@@ -17,7 +15,7 @@ export const ResultView = () => {
     isResultPathMode, setIsResultPathMode 
   } = useGraph();
   
-  const [viewMode, setViewMode] = useState<'table' | 'graph' | 'both'>('both');
+  const [viewMode, setViewMode] = useState('both');
 
   const closeResults = () => {
     setQueryResult(null);
@@ -41,7 +39,6 @@ export const ResultView = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-50 flex flex-col animate-in slide-in-from-bottom duration-500" dir="rtl">
-      {/* Header */}
       <header className="h-16 border-b bg-white flex items-center justify-between px-6 shrink-0 shadow-sm">
         <div className="flex items-center gap-6">
           <Button variant="outline" className="gap-2 border-primary text-primary hover:bg-primary/5" onClick={closeResults}>
@@ -51,7 +48,7 @@ export const ResultView = () => {
 
           <div className="h-8 w-px bg-slate-200" />
 
-          <Tabs value={activeResultType} onValueChange={(v: any) => setActiveResultType(v)}>
+          <Tabs value={activeResultType} onValueChange={(v) => setActiveResultType(v)}>
             <TabsList className="bg-slate-100">
               <TabsTrigger value="query" disabled={!queryResult} className="gap-2">
                 <PlayCircle size={14} /> الاستعلام العام
@@ -64,7 +61,6 @@ export const ResultView = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Only show Path Finding toggle if we are looking at General Query results */}
           {activeResultType === 'query' && (
             <Toggle
               pressed={isResultPathMode}
@@ -79,7 +75,7 @@ export const ResultView = () => {
             </Toggle>
           )}
 
-          <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)}>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v)}>
             <TabsList>
               <TabsTrigger value="table" className="gap-2"><TableIcon size={14} /> جدول</TabsTrigger>
               <TabsTrigger value="graph" className="gap-2"><Network size={14} /> مخطط</TabsTrigger>
@@ -90,7 +86,6 @@ export const ResultView = () => {
         </div>
       </header>
 
-      {/* Content */}
       <div className="flex-1 overflow-hidden">
         {currentResult ? (
           <div className="flex h-full overflow-hidden">

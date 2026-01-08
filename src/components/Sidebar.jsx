@@ -20,7 +20,6 @@ export const Sidebar = () => {
 
   const categories = useMemo(() => {
     const cats = Array.from(new Set(filteredCollections.map(c => c.category)));
-    // If we are searching, we might want to include categories that match even if their collections don't (though usually filteredCollections handles this)
     return cats;
   }, [filteredCollections]);
 
@@ -37,7 +36,7 @@ export const Sidebar = () => {
     );
   }, [metadata.edges, activeCollectionNames]);
 
-  const onDragStart = (event: React.DragEvent, nodeType: string, nodeName: string) => {
+  const onDragStart = (event, nodeType, nodeName) => {
     event.dataTransfer.setData('application/reactflow', JSON.stringify({ nodeType, nodeName }));
     event.dataTransfer.effectAllowed = 'move';
   };

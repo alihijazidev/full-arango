@@ -1,73 +1,31 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { CollectionMetadata, EdgeMetadata, Filter } from '../types/arango';
 import { fetchMetadata } from '../services/mockApi';
-import { Node, Edge, Connection, addEdge } from 'reactflow';
+import { addEdge } from 'reactflow';
 
-interface QueryResult {
-  startnode: any[];
-  targetnode: any[];
-  edges: any[];
-}
+const GraphContext = createContext(undefined);
 
-interface GraphContextType {
-  metadata: { collections: CollectionMetadata[]; edges: EdgeMetadata[] };
-  nodes: Node[];
-  edges: Edge[];
-  setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
-  setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
-  onConnect: (params: Connection) => void;
-  addNodeFromMetadata: (type: 'collection' | 'category', name: string, position: { x: number; y: number }) => void;
-  addEdgeManually: (edgeName: string) => void;
-  updateFilters: (id: string, isNode: boolean, filters: Filter[]) => void;
-  deleteElement: (id: string, isNode: boolean) => void;
-  clearCanvas: () => void;
-  executeStructuredQuery: () => Promise<void>;
-  executeShortestPath: (fromId: string, toId: string) => Promise<void>;
-  queryResult: QueryResult | null;
-  shortestPathResult: QueryResult | null;
-  activeResultType: 'query' | 'shortestPath';
-  setActiveResultType: (type: 'query' | 'shortestPath') => void;
-  isQueryLoading: boolean;
-  setQueryResult: (res: QueryResult | null) => void;
-  setShortestPathResult: (res: QueryResult | null) => void;
-  highlightedId: string | null;
-  setHighlightedId: (id: string | null) => void;
-  isResultPathMode: boolean;
-  setIsResultPathMode: (val: boolean) => void;
-  resultPathNodes: string[];
-  setResultPathNodes: React.Dispatch<React.SetStateAction<string[]>>;
-  edgeStyle: string;
-  setEdgeStyle: (style: string) => void;
-  isAnimated: boolean;
-  setIsAnimated: (val: boolean) => void;
-  isAutoConnect: boolean;
-  setIsAutoConnect: (val: boolean) => void;
-}
-
-const GraphContext = createContext<GraphContextType | undefined>(undefined);
-
-export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [metadata, setMetadata] = useState<{ collections: CollectionMetadata[]; edges: EdgeMetadata[] }>({ collections: [], edges: [] });
-  const [nodes, setNodes] = useState<Node[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
-  const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
-  const [shortestPathResult, setShortestPathResult] = useState<QueryResult | null>(null);
-  const [activeResultType, setActiveResultType] = useState<'query' | 'shortestPath'>('query');
+export const GraphProvider = ({ children }) => {
+  const [metadata, setMetadata] = useState({ collections: [], edges: [] });
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const [queryResult, setQueryResult] = useState(null);
+  const [shortestPathResult, setShortestPathResult] = useState(null);
+  const [activeResultType, setActiveResultType] = useState('query');
   const [isQueryLoading, setIsQueryLoading] = useState(false);
-  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [highlightedId, setHighlightedId] = useState(null);
   
   const [isResultPathMode, setIsResultPathMode] = useState(false);
-  const [resultPathNodes, setResultPathNodes] = useState<string[]>([]);
+  const [resultPathNodes, setResultPathNodes] = useState([]);
 
-  const [edgeStyle, _setEdgeStyle] = useState<string>('parallel');
-  const [isAnimated, _setIsAnimated] = useState<boolean>(true);
-  const [isAutoConnect, _setIsAutoConnect] = useState<boolean>(false);
+  const [edgeStyle, _setEdgeStyle] = useState('parallel');
+  const [isAnimated, _setIsAnimated] = useState(true);
+  const [isAutoConnect, _setIsAutoConnect] = useState(false);
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
   }, []);
 
-  const getParallelEdgeOffset = (source: string, target: string, existingEdges: Edge[]) => {
+  const getParallelEdgeOffset = (source, target, existingEdges) => {
     const parallelEdges = existingEdges.filter(
       (e) => (e.source === source && e.target === target) || (e.source === target && e.target === source)
     );
@@ -78,9 +36,9 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return direction * Math.ceil(count / 2) * step;
   };
 
-  const performAutoConnect = useCallback((currentNodes: Node[], currentEdges: Edge[]) => {
+  const performAutoConnect = useCallback((currentNodes, currentEdges) => {
     let updatedEdges = [...currentEdges];
-    const newEdges: Edge[] = [];
+    const newEdges = [];
     
     metadata.edges.forEach(edgeMeta => {
       currentNodes.forEach(sourceNode => {
@@ -116,26 +74,26 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [metadata.edges, isAnimated]);
 
-  const setIsAutoConnect = (val: boolean) => {
+  const setIsAutoConnect = (val) => {
     _setIsAutoConnect(val);
     if (val) {
       performAutoConnect(nodes, edges);
     }
   };
 
-  const setEdgeStyle = (newStyle: string) => {
+  const setEdgeStyle = (newStyle) => {
     _setEdgeStyle(newStyle);
     setEdges((eds) => eds.map((e) => ({ ...e, type: newStyle })));
   };
 
-  const setIsAnimated = (val: boolean) => {
+  const setIsAnimated = (val) => {
     _setIsAnimated(val);
     setEdges((eds) => eds.map((e) => ({ ...e, animated: val })));
   };
 
-  const onConnect = useCallback((params: Connection) => {
+  const onConnect = useCallback((params) => {
     setEdges((eds) => {
-      const offset = getParallelEdgeOffset(params.source!, params.target!, eds);
+      const offset = getParallelEdgeOffset(params.source, params.target, eds);
       return addEdge({ 
         ...params, 
         animated: isAnimated, 
@@ -149,15 +107,13 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsQueryLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Simulate finding actual data matching the schema
     const startNodes = nodes.map((n) => ({ 
       _id: `${n.data.label}/mock-${Math.floor(Math.random() * 1000)}`, 
       label: n.data.label,
       designedNodeId: n.id
     }));
 
-    // Create simulated edges between the resulting mock nodes if an edge exists in design
-    const resultEdges: any[] = [];
+    const resultEdges = [];
     edges.forEach(edge => {
       const sourceInResults = startNodes.find(n => n.designedNodeId === edge.source);
       const targetInResults = startNodes.find(n => n.designedNodeId === edge.target);
@@ -181,7 +137,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsQueryLoading(false);
   };
 
-  const executeShortestPath = async (fromId: string, toId: string) => {
+  const executeShortestPath = async (fromId, toId) => {
     setIsQueryLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1200));
 
@@ -198,11 +154,11 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsQueryLoading(false);
   };
 
-  const addEdgeManually = (edgeName: string) => {
+  const addEdgeManually = (edgeName) => {
     const edgeMeta = metadata.edges.find(e => e.name === edgeName);
     if (!edgeMeta) return;
 
-    const newEdges: Edge[] = [];
+    const newEdges = [];
     nodes.forEach(sourceNode => {
       nodes.forEach(targetNode => {
         if (sourceNode.id === targetNode.id) return;
@@ -229,9 +185,9 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (newEdges.length > 0) setEdges((eds) => [...eds, ...newEdges]);
   };
 
-  const addNodeFromMetadata = (type: 'collection' | 'category', name: string, position: { x: number; y: number }) => {
+  const addNodeFromMetadata = (type, name, position) => {
     const id = `${type}-${name}-${Date.now()}`;
-    const newNode: Node = {
+    const newNode = {
       id,
       type: 'customNode',
       position,
@@ -254,7 +210,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
-  const updateFilters = (id: string, isNode: boolean, filters: Filter[]) => {
+  const updateFilters = (id, isNode, filters) => {
     if (isNode) {
       setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, filters } } : n));
     } else {
@@ -262,7 +218,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const deleteElement = (id: string, isNode: boolean) => {
+  const deleteElement = (id, isNode) => {
     if (isNode) {
       setNodes((nds) => nds.filter((n) => n.id !== id));
       setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));

@@ -32,11 +32,10 @@ const HeaderActions = () => {
 };
 
 const IndexContent = () => {
-  const [selectedElement, setSelectedElement] = useState<{ id: string, isNode: boolean } | null>(null);
+  const [selectedElement, setSelectedElement] = useState(null);
 
   return (
     <div className="flex flex-col h-screen w-full bg-white overflow-hidden text-slate-900" dir="rtl">
-      {/* Top Header */}
       <header className="h-14 border-b flex items-center justify-between px-6 bg-white z-20">
         <div className="flex items-center gap-4">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -48,7 +47,6 @@ const IndexContent = () => {
         <HeaderActions />
       </header>
 
-      {/* Main Content Area */}
       <div className="flex flex-1 relative">
         <Sidebar />
         

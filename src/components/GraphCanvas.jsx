@@ -7,9 +7,6 @@ import ReactFlow, {
   useReactFlow,
   applyNodeChanges,
   applyEdgeChanges,
-  NodeChange,
-  EdgeChange,
-  Node
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
@@ -29,8 +26,8 @@ const edgeTypes = {
   parallel: ParallelEdge,
 };
 
-const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode: boolean) => void }) => {
-  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+const GraphInner = ({ onSelectElement }) => {
+  const reactFlowWrapper = useRef(null);
   const { 
     nodes, edges, onConnect, setNodes, setEdges, 
     addNodeFromMetadata, deleteElement, clearCanvas,
@@ -39,10 +36,10 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
   } = useGraph();
   const { project, fitView } = useReactFlow();
   
-  const [menu, setMenu] = useState<{ x: number, y: number, id: string, isNode: boolean } | null>(null);
+  const [menu, setMenu] = useState(null);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (event) => {
       if (event.key === 'Delete' || event.key === 'Backspace') {
         const selectedNodes = nodes.filter(n => n.selected);
         const selectedEdges = edges.filter(e => e.selected);
@@ -55,21 +52,21 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
   }, [nodes, edges, deleteElement]);
 
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
     [setNodes]
   );
 
   const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     [setEdges]
   );
 
-  const onDragOver = useCallback((event: React.DragEvent) => {
+  const onDragOver = useCallback((event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const onDrop = useCallback((event: React.DragEvent) => {
+  const onDrop = useCallback((event) => {
     event.preventDefault();
     if (!reactFlowWrapper.current) return;
     const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
@@ -140,7 +137,7 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
   );
 };
 
-export const GraphCanvas = ({ onSelectElement }: { onSelectElement: (id: string, isNode: boolean) => void }) => (
+export const GraphCanvas = ({ onSelectElement }) => (
   <ReactFlowProvider>
     <GraphInner onSelectElement={onSelectElement} />
   </ReactFlowProvider>

@@ -1,7 +1,5 @@
-"use client";
-
 import React, { useEffect, useCallback } from 'react';
-import ReactFlow, { Background, Controls, Node, Edge, useNodesState, useEdgesState, Panel } from 'reactflow';
+import ReactFlow, { Background, Controls, useNodesState, useEdgesState, Panel } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
@@ -16,11 +14,7 @@ const edgeTypes = {
   parallel: ParallelEdge,
 };
 
-interface ResultGraphProps {
-  data: any;
-}
-
-export const ResultGraph: React.FC<ResultGraphProps> = ({ data }) => {
+export const ResultGraph = ({ data }) => {
   const { 
     highlightedId, setHighlightedId, 
     isResultPathMode, resultPathNodes, setResultPathNodes, executeShortestPath 
@@ -31,7 +25,7 @@ export const ResultGraph: React.FC<ResultGraphProps> = ({ data }) => {
   useEffect(() => {
     const allNodes = [...data.startnode, ...data.targetnode];
     
-    const initialNodes: Node[] = allNodes.map((item, i) => ({
+    const initialNodes = allNodes.map((item, i) => ({
       id: item._id,
       type: 'customNode',
       position: { x: (i % 3) * 250, y: Math.floor(i / 3) * 200 },
@@ -39,8 +33,7 @@ export const ResultGraph: React.FC<ResultGraphProps> = ({ data }) => {
       selected: highlightedId === item._id || resultPathNodes.includes(item._id)
     }));
 
-    // Calculate offsets for results as well
-    const getResultOffset = (source: string, target: string, idx: number, all: any[]) => {
+    const getResultOffset = (source, target, idx, all) => {
       const samePair = all.filter(e => (e._from === source && e._to === target) || (e._from === target && e._to === source));
       if (samePair.length <= 1) return 0;
       const pairIdx = samePair.findIndex(e => e._id === all[idx]._id);
@@ -48,7 +41,7 @@ export const ResultGraph: React.FC<ResultGraphProps> = ({ data }) => {
       return direction * Math.ceil(pairIdx / 2) * 40;
     };
 
-    const initialEdges: Edge[] = data.edges.map((edge: any, i: number) => ({
+    const initialEdges = data.edges.map((edge, i) => ({
       id: edge._id,
       source: edge._from,
       target: edge._to,
@@ -64,7 +57,7 @@ export const ResultGraph: React.FC<ResultGraphProps> = ({ data }) => {
     setEdges(initialEdges);
   }, [data, highlightedId, resultPathNodes, setNodes, setEdges]);
 
-  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+  const onNodeClick = useCallback((_, node) => {
     if (isResultPathMode) {
       setResultPathNodes(prev => {
         const next = [...prev, node.id];
