@@ -60,7 +60,7 @@ export const GraphProvider = ({ children }) => {
                 label: edgeMeta.label,
                 type: 'parallel',
                 animated: isAnimated,
-                data: { metadata: edgeMeta, filters: [], offset }
+                data: { metadata: edgeMeta, filters: [], offset, depth: 1 }
               });
             }
           }
@@ -85,14 +85,12 @@ export const GraphProvider = ({ children }) => {
 
   const onConnect = useCallback((params) => {
     setEdges((eds) => {
-      // البحث عن بيانات العقد المتصلة
       const sourceNode = nodes.find(n => n.id === params.source);
       const targetNode = nodes.find(n => n.id === params.target);
       
       const sourcePath = sourceNode?.data?.fullPath || '';
       const targetPath = targetNode?.data?.fullPath || '';
 
-      // محاولة مطابقة الرابط مع البيانات الوصفية
       const edgeMeta = metadata.edges.find(e => 
         (e.fromcol === sourcePath || e.fromcol.startsWith(sourcePath + '/')) && 
         (e.tocol === targetPath || e.tocol.startsWith(targetPath + '/'))
@@ -106,9 +104,10 @@ export const GraphProvider = ({ children }) => {
         animated: isAnimated, 
         type: 'parallel',
         data: { 
-          metadata: edgeMeta || { fromcol: sourcePath, tocol: targetPath, label: 'رابط يدوي', attributes: [] },
+          metadata: edgeMeta || { fromcol: sourcePath, tocol: targetPath, label: 'رابط يدوي', attributes: [], isManual: true },
           filters: [], 
-          offset 
+          offset,
+          depth: 1 
         }
       }, eds);
     });
@@ -189,7 +188,7 @@ export const GraphProvider = ({ children }) => {
               label: edgeMeta.label,
               type: 'parallel',
               animated: isAnimated,
-              data: { metadata: edgeMeta, filters: [], offset }
+              data: { metadata: edgeMeta, filters: [], offset, depth: 1 }
             });
           }
         }
@@ -241,6 +240,10 @@ export const GraphProvider = ({ children }) => {
     }
   };
 
+  const updateEdgeDepth = (id, depth) => {
+    setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, depth: parseInt(depth) || 1 } } : e));
+  };
+
   const updateEdgeOffset = (id, offset) => {
     setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset } } : e));
   };
@@ -262,7 +265,7 @@ export const GraphProvider = ({ children }) => {
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, 
-      addNodeFromMetadata, addEdgeManually, updateFilters, updateEdgeOffset, deleteElement, clearCanvas,
+      addNodeFromMetadata, addEdgeManually, updateFilters, updateEdgeOffset, updateEdgeDepth, deleteElement, clearCanvas,
       executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult,
       activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult,
       highlightedId, setHighlightedId, isResultPathMode, setIsResultPathMode,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGraph } from '../store/GraphContext';
-import { X, Plus, Trash2, Filter as FilterIcon, ArrowLeftRight } from 'lucide-react';
+import { X, Plus, Trash2, Filter as FilterIcon, ArrowLeftRight, Layers } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -8,7 +8,7 @@ import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 
 export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
-  const { nodes, edges, updateFilters } = useGraph();
+  const { nodes, edges, updateFilters, updateEdgeDepth } = useGraph();
   
   const target = isNode 
     ? nodes.find(n => n.id === selectedId) 
@@ -20,6 +20,8 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
   const label = isNode ? data.label : (target.label || data.metadata?.label || "رابط يدوي");
   const attributes = data.metadata?.attributes || [];
   const filters = data.filters || [];
+  const depth = data.depth || 1;
+  const isManualEdge = !isNode && (data.metadata?.isManual || data.metadata?.label === 'رابط يدوي');
 
   const addFilter = () => {
     if (!selectedId) return;
@@ -79,6 +81,31 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
             )}
           </div>
         </section>
+
+        {!isNode && (
+          <section>
+            <Label className="text-muted-foreground uppercase text-[10px] font-bold tracking-widest flex items-center gap-2 mb-3">
+              <Layers size={12} />
+              عمق الاستعلام (Depth)
+            </Label>
+            <div className="flex items-center gap-4">
+              <Input 
+                type="number" 
+                min="1" 
+                max="10"
+                value={depth} 
+                onChange={(e) => updateEdgeDepth(selectedId, e.target.value)}
+                disabled={!isManualEdge}
+                className="w-24 h-9 text-center font-bold"
+              />
+              <p className="text-xs text-slate-500">
+                {isManualEdge 
+                  ? "يمكنك تعديل عمق البحث لهذا الرابط اليدوي." 
+                  : "الروابط التلقائية محددة بالعمق 1 افتراضياً."}
+              </p>
+            </div>
+          </section>
+        )}
 
         <section>
           <div className="flex items-center justify-between mb-4">
