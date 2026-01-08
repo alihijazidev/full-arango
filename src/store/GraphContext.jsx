@@ -218,6 +218,10 @@ export const GraphProvider = ({ children }) => {
     }
   };
 
+  const updateEdgeOffset = (id, offset) => {
+    setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset } } : e));
+  };
+
   const deleteElement = (id, isNode) => {
     if (isNode) {
       setNodes((nds) => nds.filter((n) => n.id !== id));
@@ -235,7 +239,7 @@ export const GraphProvider = ({ children }) => {
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, 
-      addNodeFromMetadata, addEdgeManually, updateFilters, deleteElement, clearCanvas,
+      addNodeFromMetadata, addEdgeManually, updateFilters, updateEdgeOffset, deleteElement, clearCanvas,
       executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult,
       activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult,
       highlightedId, setHighlightedId, isResultPathMode, setIsResultPathMode,
