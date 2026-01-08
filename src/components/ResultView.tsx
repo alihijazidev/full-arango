@@ -5,12 +5,16 @@ import { useGraph } from '../store/GraphContext';
 import { X, Table as TableIcon, Network, Columns, Loader2, Search, ArrowRight, MapPinned, PlayCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
+import { Toggle } from './ui/toggle';
 import { cn } from '@/lib/utils';
+import { ResultTable } from './ResultTable';
+import { ResultGraph } from './ResultGraph';
 
 export const ResultView = () => {
   const { 
     queryResult, shortestPathResult, activeResultType, setActiveResultType,
-    isQueryLoading, setQueryResult, setShortestPathResult 
+    isQueryLoading, setQueryResult, setShortestPathResult,
+    isResultPathMode, setIsResultPathMode 
   } = useGraph();
   
   const [viewMode, setViewMode] = useState<'table' | 'graph' | 'both'>('both');
@@ -18,6 +22,7 @@ export const ResultView = () => {
   const closeResults = () => {
     setQueryResult(null);
     setShortestPathResult(null);
+    setIsResultPathMode(false);
   };
 
   if (isQueryLoading) {
@@ -59,6 +64,21 @@ export const ResultView = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Only show Path Finding toggle if we are looking at General Query results */}
+          {activeResultType === 'query' && (
+            <Toggle
+              pressed={isResultPathMode}
+              onPressedChange={setIsResultPathMode}
+              className={cn(
+                "gap-2 border-2 h-9 px-4 font-bold transition-all",
+                isResultPathMode ? "bg-amber-100 border-amber-500 text-amber-700 hover:bg-amber-200" : "bg-white border-slate-200"
+              )}
+            >
+              <MapPinned size={16} />
+              تحليل المسار
+            </Toggle>
+          )}
+
           <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)}>
             <TabsList>
               <TabsTrigger value="table" className="gap-2"><TableIcon size={14} /> جدول</TabsTrigger>
@@ -71,44 +91,27 @@ export const ResultView = () => {
       </header>
 
       {/* Content */}
-      {currentResult ? (
-        <div className="flex-1 overflow-hidden flex">
-          {/* Lazy imports logic or direct components if small enough */}
-          {/* Note: In a real app we'd split these, but for simplicity we keep the existing components logic */}
-          <div className="flex-1 flex overflow-hidden">
-             {/* ResultTable and ResultGraph will consume the 'currentResult' via props or context */}
-             {/* Import here if they were separate files, or just use them */}
-             {/* Re-using the logic from the previous turn */}
-             <ResultContent viewMode={viewMode} data={currentResult} />
+      <div className="flex-1 overflow-hidden">
+        {currentResult ? (
+          <div className="flex h-full overflow-hidden">
+            {(viewMode === 'table' || viewMode === 'both') && (
+              <div className={cn("h-full border-l overflow-hidden flex flex-col", viewMode === 'both' ? 'w-1/2' : 'w-full')}>
+                <ResultTable data={currentResult} />
+              </div>
+            )}
+            {(viewMode === 'graph' || viewMode === 'both') && (
+              <div className={cn("h-full relative", viewMode === 'both' ? 'w-1/2' : 'w-full')}>
+                <ResultGraph data={currentResult} />
+              </div>
+            )}
           </div>
-        </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-slate-400 flex-col gap-4">
-          <Search size={48} className="opacity-20" />
-          <p>لا توجد نتائج لهذا النوع من الاستعلام</p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Helper component to keep ResultView clean
-import { ResultTable } from './ResultTable';
-import { ResultGraph } from './ResultGraph';
-
-const ResultContent = ({ viewMode, data }: { viewMode: string, data: any }) => {
-  return (
-    <div className="flex-1 flex overflow-hidden">
-      {(viewMode === 'table' || viewMode === 'both') && (
-        <div className={cn("h-full border-l overflow-hidden flex flex-col", viewMode === 'both' ? 'w-1/2' : 'w-full')}>
-          <ResultTable data={data} />
-        </div>
-      )}
-      {(viewMode === 'graph' || viewMode === 'both') && (
-        <div className={cn("h-full relative", viewMode === 'both' ? 'w-1/2' : 'w-full')}>
-          <ResultGraph data={data} />
-        </div>
-      )}
+        ) : (
+          <div className="flex-1 h-full flex items-center justify-center text-slate-400 flex-col gap-4">
+            <Search size={48} className="opacity-20" />
+            <p>لا توجد نتائج لهذا النوع من الاستعلام</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

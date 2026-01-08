@@ -15,11 +15,10 @@ import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { RadialMenu } from './RadialMenu';
-import { Settings2, Play, LayoutGrid, Maximize2, Trash2, Zap, ZapOff, Activity, MapPinned } from 'lucide-react';
+import { Maximize2, Trash2, Zap, ZapOff, Activity } from 'lucide-react';
 import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Switch } from './ui/switch';
 import { Label } from './ui/label';
+import { Switch } from './ui/switch';
 
 const nodeTypes = {
   customNode: CustomNode,
@@ -30,27 +29,12 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
   const { 
     nodes, edges, onConnect, setNodes, setEdges, 
     addNodeFromMetadata, deleteElement, clearCanvas,
-    edgeStyle, setEdgeStyle, isAnimated, setIsAnimated,
-    isAutoConnect, setIsAutoConnect,
-    isShortestPathMode, shortestPathNodes, setShortestPathNodes, executeShortestPath
+    isAnimated, setIsAnimated,
+    isAutoConnect, setIsAutoConnect
   } = useGraph();
   const { project, fitView } = useReactFlow();
   
   const [menu, setMenu] = useState<{ x: number, y: number, id: string, isNode: boolean } | null>(null);
-
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    if (isShortestPathMode) {
-      setShortestPathNodes(prev => {
-        const next = [...prev, node.id];
-        if (next.length === 2) {
-          executeShortestPath(next[0], next[1]);
-          return [];
-        }
-        return next;
-      });
-      return;
-    }
-  }, [isShortestPathMode, setShortestPathNodes, executeShortestPath]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -97,15 +81,11 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
   return (
     <div className="w-full h-full relative" ref={reactFlowWrapper} dir="ltr">
       <ReactFlow
-        nodes={nodes.map(n => ({
-          ...n,
-          selected: n.selected || shortestPathNodes.includes(n.id)
-        }))}
+        nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         onDragOver={onDragOver}
         onDrop={onDrop}
@@ -139,15 +119,6 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={clearCanvas} title="مسح"><Trash2 size={14} /></Button>
           </div>
         </Panel>
-
-        {isShortestPathMode && (
-          <Panel position="top-center" className="bg-primary text-white px-6 py-2 rounded-full shadow-2xl animate-bounce">
-            <p className="text-xs font-bold flex items-center gap-2">
-              <MapPinned size={14} />
-              {shortestPathNodes.length === 0 ? 'اختر نقطة البداية' : 'اختر نقطة النهاية'}
-            </p>
-          </Panel>
-        )}
       </ReactFlow>
 
       {menu && (

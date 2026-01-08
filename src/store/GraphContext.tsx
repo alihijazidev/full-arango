@@ -32,10 +32,10 @@ interface GraphContextType {
   setShortestPathResult: (res: QueryResult | null) => void;
   highlightedId: string | null;
   setHighlightedId: (id: string | null) => void;
-  isShortestPathMode: boolean;
-  setIsShortestPathMode: (val: boolean) => void;
-  shortestPathNodes: string[];
-  setShortestPathNodes: React.Dispatch<React.SetStateAction<string[]>>;
+  isResultPathMode: boolean;
+  setIsResultPathMode: (val: boolean) => void;
+  resultPathNodes: string[];
+  setResultPathNodes: React.Dispatch<React.SetStateAction<string[]>>;
   edgeStyle: string;
   setEdgeStyle: (style: string) => void;
   isAnimated: boolean;
@@ -56,8 +56,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isQueryLoading, setIsQueryLoading] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   
-  const [isShortestPathMode, setIsShortestPathMode] = useState(false);
-  const [shortestPathNodes, setShortestPathNodes] = useState<string[]>([]);
+  const [isResultPathMode, setIsResultPathMode] = useState(false);
+  const [resultPathNodes, setResultPathNodes] = useState<string[]>([]);
 
   const [edgeStyle, _setEdgeStyle] = useState<string>('smoothstep');
   const [isAnimated, _setIsAnimated] = useState<boolean>(true);
@@ -89,33 +89,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const executeStructuredQuery = async () => {
     setIsQueryLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const startNodes: any[] = [];
-    const targetNodes: any[] = [];
-    const queryEdges: any[] = [];
-
-    nodes.forEach((node, index) => {
-      const mockRecord = {
-        _id: `${node.data.label}/${index + 100}`,
-        _key: `${index + 100}`,
-        label: node.data.label,
-        type: node.data.type,
-      };
-      if (index === 0) startNodes.push(mockRecord);
-      else targetNodes.push(mockRecord);
-    });
-
-    edges.forEach((edge, index) => {
-      queryEdges.push({
-        _id: `edge/${index + 500}`,
-        _key: `${index + 500}`,
-        _from: `node/${edge.source}`,
-        _to: `node/${edge.target}`,
-        label: edge.label || 'Connection',
-      });
-    });
-
-    setQueryResult({ startnode: startNodes, targetnode: targetNodes, edges: queryEdges });
+    const startNodes = nodes.map((n, i) => ({ _id: `node/${n.id}`, label: n.data.label }));
+    setQueryResult({ startnode: startNodes, targetnode: [], edges: [] });
     setActiveResultType('query');
     setIsQueryLoading(false);
   };
@@ -124,19 +99,16 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsQueryLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1200));
 
-    const fromNode = nodes.find(n => n.id === fromId);
-    const toNode = nodes.find(n => n.id === toId);
-
     const result = {
-      startnode: [{ _id: `node/${fromId}`, _key: fromId, label: fromNode?.data.label }],
-      targetnode: [{ _id: `node/${toId}`, _key: toId, label: toNode?.data.label }],
-      edges: [{ _id: 'edge/shortest', _key: 'shortest', _from: `node/${fromId}`, _to: `node/${toId}`, label: 'Shortest Path' }]
+      startnode: [{ _id: fromId, label: fromId.split('/')[1] || 'Start' }],
+      targetnode: [{ _id: toId, label: toId.split('/')[1] || 'End' }],
+      edges: [{ _id: 'edge/shortest', _from: fromId, _to: toId, label: 'أقصر مسار' }]
     };
 
     setShortestPathResult(result);
     setActiveResultType('shortestPath');
-    setIsShortestPathMode(false);
-    setShortestPathNodes([]);
+    setIsResultPathMode(false);
+    setResultPathNodes([]);
     setIsQueryLoading(false);
   };
 
@@ -216,8 +188,8 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       addNodeFromMetadata, addEdgeManually, updateFilters, deleteElement, clearCanvas,
       executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult,
       activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult,
-      highlightedId, setHighlightedId, isShortestPathMode, setIsShortestPathMode,
-      shortestPathNodes, setShortestPathNodes,
+      highlightedId, setHighlightedId, isResultPathMode, setIsResultPathMode,
+      resultPathNodes, setResultPathNodes,
       edgeStyle, setEdgeStyle, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect
     }}>
       {children}
