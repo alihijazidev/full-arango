@@ -15,8 +15,8 @@ interface GraphContextType {
   deleteElement: (id: string, isNode: boolean) => void;
   autoConnect: () => void;
   clearCanvas: () => void;
-  edgeStyle: 'default' | 'straight' | 'step' | 'smoothstep';
-  setEdgeStyle: (style: any) => void;
+  edgeStyle: string;
+  setEdgeStyle: (style: string) => void;
 }
 
 const GraphContext = createContext<GraphContextType | undefined>(undefined);
@@ -25,11 +25,17 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [metadata, setMetadata] = useState<{ collections: CollectionMetadata[]; edges: EdgeMetadata[] }>({ collections: [], edges: [] });
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [edgeStyle, setEdgeStyle] = useState<'smoothstep' | 'straight' | 'step' | 'default'>('smoothstep');
+  const [edgeStyle, _setEdgeStyle] = useState<string>('smoothstep');
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
   }, []);
+
+  // Update existing edges when the global style changes
+  const setEdgeStyle = (newStyle: string) => {
+    _setEdgeStyle(newStyle);
+    setEdges((eds) => eds.map((e) => ({ ...e, type: newStyle })));
+  };
 
   const onConnect = useCallback((params: Connection) => {
     setEdges((eds) => addEdge({ 

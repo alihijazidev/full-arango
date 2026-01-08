@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
@@ -14,7 +14,7 @@ import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { RadialMenu } from './RadialMenu';
-import { Settings2, Play, LayoutGrid, Maximize2, RefreshCw, Trash2 } from 'lucide-react';
+import { Settings2, Play, LayoutGrid, Maximize2, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
@@ -32,6 +32,22 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
   const { project, fitView } = useReactFlow();
   
   const [menu, setMenu] = useState<{ x: number, y: number, id: string, isNode: boolean } | null>(null);
+
+  // Keyboard handler for deletion
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const selectedNodes = nodes.filter(n => n.selected);
+        const selectedEdges = edges.filter(e => e.selected);
+
+        selectedNodes.forEach(n => deleteElement(n.id, true));
+        selectedEdges.forEach(e => deleteElement(e.id, false));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nodes, edges, deleteElement]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -70,7 +86,7 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
   const onLayoutGrid = () => {
     setNodes((nds) => nds.map((node, index) => ({
       ...node,
-      position: { x: (index % 3) * 200, y: Math.floor(index / 3) * 200 }
+      position: { x: (index % 3) * 250, y: Math.floor(index / 3) * 250 }
     })));
     setTimeout(() => fitView({ duration: 800 }), 100);
   };
@@ -91,6 +107,7 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
         onNodeDoubleClick={(e, n) => onSelectElement(n.id, true)}
         onEdgeDoubleClick={(e, edge) => onSelectElement(edge.id, false)}
         fitView
+        deleteKeyCode={null} // We handle this manually for more control
       >
         <Background color="#cbd5e1" gap={20} />
         <Controls />
