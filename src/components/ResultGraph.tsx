@@ -5,10 +5,15 @@ import ReactFlow, { Background, Controls, Node, Edge, useNodesState, useEdgesSta
 import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
+import { ParallelEdge } from './ParallelEdge';
 import { MapPinned } from 'lucide-react';
 
 const nodeTypes = {
   customNode: CustomNode,
+};
+
+const edgeTypes = {
+  parallel: ParallelEdge,
 };
 
 interface ResultGraphProps {
@@ -34,12 +39,23 @@ export const ResultGraph: React.FC<ResultGraphProps> = ({ data }) => {
       selected: highlightedId === item._id || resultPathNodes.includes(item._id)
     }));
 
-    const initialEdges: Edge[] = data.edges.map((edge: any) => ({
+    // Calculate offsets for results as well
+    const getResultOffset = (source: string, target: string, idx: number, all: any[]) => {
+      const samePair = all.filter(e => (e._from === source && e._to === target) || (e._from === target && e._to === source));
+      if (samePair.length <= 1) return 0;
+      const pairIdx = samePair.findIndex(e => e._id === all[idx]._id);
+      const direction = pairIdx % 2 === 0 ? -1 : 1;
+      return direction * Math.ceil(pairIdx / 2) * 40;
+    };
+
+    const initialEdges: Edge[] = data.edges.map((edge: any, i: number) => ({
       id: edge._id,
       source: edge._from,
       target: edge._to,
       label: edge.label,
+      type: 'parallel',
       animated: true,
+      data: { offset: getResultOffset(edge._from, edge._to, i, data.edges) },
       selected: highlightedId === edge._id,
       style: highlightedId === edge._id ? { stroke: 'hsl(var(--primary))', strokeWidth: 3 } : {}
     }));
@@ -67,6 +83,7 @@ export const ResultGraph: React.FC<ResultGraphProps> = ({ data }) => {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}

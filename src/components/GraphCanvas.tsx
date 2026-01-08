@@ -14,6 +14,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
+import { ParallelEdge } from './ParallelEdge';
 import { RadialMenu } from './RadialMenu';
 import { Maximize2, Trash2, Zap, ZapOff, Activity } from 'lucide-react';
 import { Button } from './ui/button';
@@ -22,6 +23,10 @@ import { Switch } from './ui/switch';
 
 const nodeTypes = {
   customNode: CustomNode,
+};
+
+const edgeTypes = {
+  parallel: ParallelEdge,
 };
 
 const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode: boolean) => void }) => {
@@ -87,6 +92,7 @@ const GraphInner = ({ onSelectElement }: { onSelectElement: (id: string, isNode:
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onDragOver={onDragOver}
         onDrop={onDrop}
         onNodeContextMenu={(e, n) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, id: n.id, isNode: true }); }}

@@ -59,7 +59,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isResultPathMode, setIsResultPathMode] = useState(false);
   const [resultPathNodes, setResultPathNodes] = useState<string[]>([]);
 
-  const [edgeStyle, _setEdgeStyle] = useState<string>('smoothstep');
+  const [edgeStyle, _setEdgeStyle] = useState<string>('parallel');
   const [isAnimated, _setIsAnimated] = useState<boolean>(true);
   const [isAutoConnect, _setIsAutoConnect] = useState<boolean>(false);
 
@@ -67,7 +67,22 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchMetadata().then(setMetadata);
   }, []);
 
+  // Helper to calculate offset for parallel edges
+  const getParallelEdgeOffset = (source: string, target: string, existingEdges: Edge[]) => {
+    const parallelEdges = existingEdges.filter(
+      (e) => (e.source === source && e.target === target) || (e.source === target && e.target === source)
+    );
+    
+    // Calculate offset based on count: 0, 30, -30, 60, -60...
+    const count = parallelEdges.length;
+    if (count === 0) return 0;
+    const step = 40;
+    const direction = count % 2 === 0 ? -1 : 1;
+    return direction * Math.ceil(count / 2) * step;
+  };
+
   const performAutoConnect = useCallback((currentNodes: Node[], currentEdges: Edge[]) => {
+    let updatedEdges = [...currentEdges];
     const newEdges: Edge[] = [];
     
     metadata.edges.forEach(edgeMeta => {
@@ -80,17 +95,18 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
           if (sourceColls.includes(edgeMeta.from) && targetColls.includes(edgeMeta.to)) {
             const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.name}`;
-            const alreadyExists = currentEdges.some(e => e.id === edgeId) || newEdges.some(e => e.id === edgeId);
+            const alreadyExists = updatedEdges.some(e => e.id === edgeId) || newEdges.some(e => e.id === edgeId);
             
             if (!alreadyExists) {
+              const offset = getParallelEdgeOffset(sourceNode.id, targetNode.id, [...updatedEdges, ...newEdges]);
               newEdges.push({
                 id: edgeId,
                 source: sourceNode.id,
                 target: targetNode.id,
                 label: edgeMeta.name,
-                type: edgeStyle,
+                type: 'parallel',
                 animated: isAnimated,
-                data: { metadata: edgeMeta, filters: [] }
+                data: { metadata: edgeMeta, filters: [], offset }
               });
             }
           }
@@ -101,7 +117,7 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (newEdges.length > 0) {
       setEdges((eds) => [...eds, ...newEdges]);
     }
-  }, [metadata.edges, edgeStyle, isAnimated]);
+  }, [metadata.edges, isAnimated]);
 
   const setIsAutoConnect = (val: boolean) => {
     _setIsAutoConnect(val);
@@ -121,13 +137,16 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const onConnect = useCallback((params: Connection) => {
-    setEdges((eds) => addEdge({ 
-      ...params, 
-      animated: isAnimated, 
-      type: edgeStyle,
-      data: { filters: [] }
-    }, eds));
-  }, [edgeStyle, isAnimated]);
+    setEdges((eds) => {
+      const offset = getParallelEdgeOffset(params.source!, params.target!, eds);
+      return addEdge({ 
+        ...params, 
+        animated: isAnimated, 
+        type: 'parallel',
+        data: { filters: [], offset }
+      }, eds);
+    });
+  }, [isAnimated]);
 
   const executeStructuredQuery = async () => {
     setIsQueryLoading(true);
@@ -169,14 +188,15 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (sourceColls.includes(edgeMeta.from) && targetColls.includes(edgeMeta.to)) {
           const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.name}`;
           if (!edges.find(e => e.id === edgeId)) {
+            const offset = getParallelEdgeOffset(sourceNode.id, targetNode.id, [...edges, ...newEdges]);
             newEdges.push({
               id: edgeId,
               source: sourceNode.id,
               target: targetNode.id,
               label: edgeMeta.name,
-              type: edgeStyle,
+              type: 'parallel',
               animated: isAnimated,
-              data: { metadata: edgeMeta, filters: [] }
+              data: { metadata: edgeMeta, filters: [], offset }
             });
           }
         }
@@ -204,7 +224,6 @@ export const GraphProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNodes((nds) => {
       const updatedNodes = [...nds, newNode];
       if (isAutoConnect) {
-        // We use a small timeout to ensure state has settled or just pass the future nodes list
         setTimeout(() => performAutoConnect(updatedNodes, edges), 0);
       }
       return updatedNodes;
