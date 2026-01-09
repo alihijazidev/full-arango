@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { useGraph } from '../store/GraphContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
@@ -8,7 +8,13 @@ import { Search, FilterX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const ResultTable = ({ data }) => {
-  const { highlightedId, setHighlightedId, resultSearchTerm, setResultSearchTerm } = useGraph();
+  const { 
+    highlightedId, setHighlightedId, 
+    selectedResultId, setSelectedResultId,
+    resultSearchTerm, setResultSearchTerm 
+  } = useGraph();
+  
+  const scrollAreaRef = useRef(null);
 
   const allNodes = useMemo(() => [...(data.startnode || []), ...(data.targetnode || [])], [data]);
 
@@ -39,6 +45,21 @@ export const ResultTable = ({ data }) => {
     });
   }, [data.edges, resultSearchTerm]);
 
+  // Handle scrolling to the selected row
+  useEffect(() => {
+    if (!selectedResultId) return;
+    
+    // Use a small timeout to ensure DOM is ready
+    const timer = setTimeout(() => {
+      const element = document.getElementById(`row-${selectedResultId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [selectedResultId]);
+
   return (
     <div className="flex flex-col h-full bg-white">
       <div className="p-4 border-b bg-slate-50/50">
@@ -53,7 +74,7 @@ export const ResultTable = ({ data }) => {
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" ref={scrollAreaRef}>
         <div className="p-6 space-y-8">
           <section>
             <div className="flex items-center justify-between mb-4 px-2">
@@ -79,12 +100,15 @@ export const ResultTable = ({ data }) => {
                   {filteredNodes.map((item) => (
                     <TableRow 
                       key={item._id}
+                      id={`row-${item._id}`}
                       className={cn(
-                        "cursor-pointer transition-colors",
-                        highlightedId === item._id ? "bg-primary/10 border-primary" : ""
+                        "cursor-pointer transition-all",
+                        (highlightedId === item._id || selectedResultId === item._id) ? "bg-primary/5 border-primary" : "",
+                        selectedResultId === item._id ? "ring-2 ring-primary/20 ring-inset" : ""
                       )}
                       onMouseEnter={() => setHighlightedId(item._id)}
                       onMouseLeave={() => setHighlightedId(null)}
+                      onClick={() => setSelectedResultId(item._id)}
                     >
                       <TableCell className="font-mono text-xs">{item._id}</TableCell>
                       <TableCell>
@@ -133,12 +157,15 @@ export const ResultTable = ({ data }) => {
                   {filteredEdges.map((edge) => (
                     <TableRow 
                       key={edge._id}
+                      id={`row-${edge._id}`}
                       className={cn(
-                        "cursor-pointer transition-colors",
-                        highlightedId === edge._id ? "bg-primary/10 border-primary" : ""
+                        "cursor-pointer transition-all",
+                        (highlightedId === edge._id || selectedResultId === edge._id) ? "bg-primary/5 border-primary" : "",
+                        selectedResultId === edge._id ? "ring-2 ring-primary/20 ring-inset" : ""
                       )}
                       onMouseEnter={() => setHighlightedId(edge._id)}
                       onMouseLeave={() => setHighlightedId(null)}
+                      onClick={() => setSelectedResultId(edge._id)}
                     >
                       <TableCell className="font-mono text-[10px] text-slate-500">{edge._from}</TableCell>
                       <TableCell className="font-bold text-xs">{edge.label}</TableCell>

@@ -18,18 +18,18 @@ const edgeTypes = {
 const ResultGraphInner = ({ data }) => {
   const { 
     highlightedId, setHighlightedId, 
+    selectedResultId, setSelectedResultId,
     isResultPathMode, resultPathNodes, setResultPathNodes, executeShortestPath,
     resultSearchTerm
   } = useGraph();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { fitView } = useReactFlow();
+  const { fitView, setCenter } = useReactFlow();
 
   const filteredData = useMemo(() => {
     if (!resultSearchTerm) return data;
     const term = resultSearchTerm.toLowerCase();
     
-    // 1. Get nodes that match text
     const matchingNodes = [...(data.startnode || []), ...(data.targetnode || [])].filter(node => {
       const inId = node._id ? String(node._id).toLowerCase().includes(term) : false;
       const inLabel = node.label ? String(node.label).toLowerCase().includes(term) : false;
@@ -41,7 +41,6 @@ const ResultGraphInner = ({ data }) => {
       return inId || inLabel || inProps;
     });
 
-    // 2. Get edges that match text
     const matchingEdges = (data.edges || []).filter(edge => {
       const inFrom = edge._from ? String(edge._from).toLowerCase().includes(term) : false;
       const inTo = edge._to ? String(edge._to).toLowerCase().includes(term) : false;
@@ -49,7 +48,6 @@ const ResultGraphInner = ({ data }) => {
       return inFrom || inTo || inLabel;
     });
 
-    // 3. Final set of nodes: matches + source/target of matching edges
     const nodeIdsToShow = new Set(matchingNodes.map(n => n._id));
     matchingEdges.forEach(e => {
       nodeIdsToShow.add(e._from);
@@ -58,7 +56,6 @@ const ResultGraphInner = ({ data }) => {
 
     const finalNodes = [...(data.startnode || []), ...(data.targetnode || [])].filter(n => nodeIdsToShow.has(n._id));
     
-    // 4. Final set of edges: matches only
     return {
       startnode: finalNodes,
       targetnode: [],
@@ -74,7 +71,7 @@ const ResultGraphInner = ({ data }) => {
       type: 'customNode',
       position: { x: (i % 3) * 250, y: Math.floor(i / 3) * 200 },
       data: { label: item._id.split('/')[1] || item.label, type: 'collection' },
-      selected: highlightedId === item._id || resultPathNodes.includes(item._id)
+      selected: selectedResultId === item._id || resultPathNodes.includes(item._id)
     }));
 
     const getResultOffset = (source, target, idx, all) => {
@@ -93,8 +90,8 @@ const ResultGraphInner = ({ data }) => {
       type: 'parallel',
       animated: true,
       data: { offset: getResultOffset(edge._from, edge._to, i, filteredData.edges) },
-      selected: highlightedId === edge._id,
-      style: highlightedId === edge._id ? { stroke: 'hsl(var(--primary))', strokeWidth: 3 } : {}
+      selected: selectedResultId === edge._id,
+      style: selectedResultId === edge._id ? { stroke: 'hsl(var(--primary))', strokeWidth: 3 } : {}
     }));
 
     setNodes(initialNodes);
@@ -103,7 +100,29 @@ const ResultGraphInner = ({ data }) => {
     if (resultSearchTerm) {
       setTimeout(() => fitView({ duration: 400 }), 50);
     }
-  }, [filteredData, highlightedId, resultPathNodes, setNodes, setEdges, fitView, resultSearchTerm]);
+  }, [filteredData, selectedResultId, resultPathNodes, setNodes, setEdges, fitView, resultSearchTerm]);
+
+  // Effect to center graph when selectedResultId changes from external source (like table click)
+  useEffect(() => {
+    if (!selectedResultId) return;
+    
+    const node = nodes.find(n => n.id === selectedResultId);
+    if (node) {
+      setCenter(node.position.x + 60, node.position.y + 50, { zoom: 1.2, duration: 800 });
+      return;
+    }
+
+    const edge = edges.find(e => e.id === selectedResultId);
+    if (edge) {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+      if (sourceNode && targetNode) {
+        const midX = (sourceNode.position.x + targetNode.position.x) / 2;
+        const midY = (sourceNode.position.y + targetNode.position.y) / 2;
+        setCenter(midX + 60, midY + 50, { zoom: 1.2, duration: 800 });
+      }
+    }
+  }, [selectedResultId, nodes, edges, setCenter]);
 
   const onNodeClick = useCallback((_, node) => {
     if (isResultPathMode) {
@@ -115,8 +134,16 @@ const ResultGraphInner = ({ data }) => {
         }
         return next;
       });
+    } else {
+      setSelectedResultId(node.id);
     }
-  }, [isResultPathMode, setResultPathNodes, executeShortestPath]);
+  }, [isResultPathMode, setResultPathNodes, executeShortestPath, setSelectedResultId]);
+
+  const onEdgeClick = useCallback((_, edge) => {
+    if (!isResultPathMode) {
+      setSelectedResultId(edge.id);
+    }
+  }, [isResultPathMode, setSelectedResultId]);
 
   return (
     <div className="w-full h-full" dir="ltr">
@@ -128,6 +155,7 @@ const ResultGraphInner = ({ data }) => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
+        onEdgeClick={onEdgeClick}
         onNodeMouseEnter={(_, node) => setHighlightedId(node.id)}
         onNodeMouseLeave={() => setHighlightedId(null)}
         onEdgeMouseEnter={(_, edge) => setHighlightedId(edge.id)}

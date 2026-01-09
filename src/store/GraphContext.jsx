@@ -13,6 +13,7 @@ export const GraphProvider = ({ children }) => {
   const [activeResultType, setActiveResultType] = useState('query');
   const [isQueryLoading, setIsQueryLoading] = useState(false);
   const [highlightedId, setHighlightedId] = useState(null);
+  const [selectedResultId, setSelectedResultId] = useState(null);
   const [isResultPathMode, setIsResultPathMode] = useState(false);
   const [resultPathNodes, setResultPathNodes] = useState([]);
   const [isAnimated, _setIsAnimated] = useState(true);
@@ -268,7 +269,7 @@ export const GraphProvider = ({ children }) => {
       addNodeFromMetadata, addEdgeManually, updateFilters, updateEdgeOffset, updateEdgeDepth, deleteElement, clearCanvas,
       executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult,
       activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult,
-      highlightedId, setHighlightedId, isResultPathMode, setIsResultPathMode,
+      highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode,
       resultPathNodes, setResultPathNodes,
       isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect,
       resultSearchTerm, setResultSearchTerm,
