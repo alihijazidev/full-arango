@@ -1,10 +1,12 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Database, FolderTree } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getArabicName, getIcon } from '../utils/mapping';
 
 export const CustomNode = memo(({ data, selected }) => {
   const isCategory = data.type === 'category';
+  const displayName = getArabicName(data.label);
+  const icon = getIcon(data.label, data.type);
 
   return (
     <div className={cn(
@@ -18,7 +20,7 @@ export const CustomNode = memo(({ data, selected }) => {
       />
       
       <div className={cn(
-        "min-w-[120px] p-3 rounded-xl bg-white shadow-md border-2 transition-all flex flex-col items-center gap-2",
+        "min-w-[140px] p-3 rounded-xl bg-white shadow-md border-2 transition-all flex flex-col items-center gap-2",
         selected 
           ? "border-primary shadow-primary/20 ring-4 ring-primary/10" 
           : "border-slate-100 hover:border-slate-300 hover:shadow-lg",
@@ -29,11 +31,7 @@ export const CustomNode = memo(({ data, selected }) => {
           isCategory ? "bg-orange-50 text-orange-500" : "bg-blue-50 text-blue-500",
           selected && (isCategory ? "bg-orange-500 text-white" : "bg-blue-500 text-white")
         )}>
-          {isCategory ? (
-            <FolderTree size={20} />
-          ) : (
-            <Database size={20} />
-          )}
+          {icon}
         </div>
 
         <div className="flex flex-col items-center text-center">
@@ -43,8 +41,8 @@ export const CustomNode = memo(({ data, selected }) => {
           )}>
             {isCategory ? 'فئة' : 'مجموعة'}
           </span>
-          <span className="text-sm font-bold text-slate-700 truncate max-w-[100px]">
-            {data.label}
+          <span className="text-sm font-bold text-slate-700 truncate max-w-[120px]">
+            {displayName}
           </span>
         </div>
       </div>

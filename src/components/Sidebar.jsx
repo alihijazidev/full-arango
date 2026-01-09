@@ -5,6 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './
 import { ScrollArea } from './ui/scroll-area';
 import { Input } from './ui/input';
 import { cn } from '@/lib/utils';
+import { getArabicName, getSmallIcon } from '../utils/mapping';
 
 export const Sidebar = () => {
   const { metadata, nodes, addEdgeManually } = useGraph();
@@ -14,7 +15,8 @@ export const Sidebar = () => {
     if (!searchTerm) return metadata.collections;
     return metadata.collections.filter(cat => 
       cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cat.entities.some(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      getArabicName(cat.name).includes(searchTerm) ||
+      cat.entities.some(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()) || getArabicName(e.name).includes(searchTerm))
     );
   }, [metadata.collections, searchTerm]);
 
@@ -73,14 +75,14 @@ export const Sidebar = () => {
                   >
                     <AccordionTrigger className="hover:no-underline py-2 px-3 rounded-md hover:bg-slate-200 transition-colors cursor-grab active:cursor-grabbing">
                       <div className="flex items-center gap-2">
-                        <FolderTree size={14} className="text-orange-500" />
-                        <span className="text-sm font-medium">{cat.name}</span>
+                        <span className="text-orange-500">{getSmallIcon(cat.name, 'category')}</span>
+                        <span className="text-sm font-medium">{getArabicName(cat.name)}</span>
                       </div>
                     </AccordionTrigger>
                   </div>
                   <AccordionContent className="pr-6 pl-2 pt-1 pb-2 space-y-1">
                     {cat.entities
-                      .filter(e => !searchTerm || e.name.toLowerCase().includes(searchTerm.toLowerCase()) || cat.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .filter(e => !searchTerm || e.name.toLowerCase().includes(searchTerm.toLowerCase()) || cat.name.toLowerCase().includes(searchTerm.toLowerCase()) || getArabicName(e.name).includes(searchTerm))
                       .map(entity => (
                         <div
                           key={entity.name}
@@ -88,8 +90,8 @@ export const Sidebar = () => {
                           onDragStart={(e) => onDragStart(e, 'collection', entity.name, cat.name)}
                           className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-200 cursor-grab active:cursor-grabbing group transition-all"
                         >
-                          <Database size={14} className="text-blue-500" />
-                          <span className="text-sm">{entity.name}</span>
+                          <span className="text-blue-500">{getSmallIcon(entity.name, 'collection')}</span>
+                          <span className="text-sm">{getArabicName(entity.name)}</span>
                           <ChevronLeft size={12} className="mr-auto opacity-0 group-hover:opacity-50" />
                         </div>
                       ))}
@@ -109,6 +111,9 @@ export const Sidebar = () => {
                 const fromStr = Array.isArray(edge.fromcol) ? edge.fromcol.join('/') : edge.fromcol;
                 const toStr = Array.isArray(edge.tocol) ? edge.tocol.join('/') : edge.tocol;
                 
+                const fromTranslated = fromStr.split('/').map(p => getArabicName(p)).join('/');
+                const toTranslated = toStr.split('/').map(p => getArabicName(p)).join('/');
+
                 return (
                   <button
                     key={`${edge.label}-${fromStr}-${toStr}`}
@@ -123,9 +128,9 @@ export const Sidebar = () => {
                       <Plus size={12} className="text-slate-300 group-hover:text-primary" />
                     </div>
                     <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <span className="bg-slate-100 px-1 rounded">{fromStr}</span>
+                      <span className="bg-slate-100 px-1 rounded">{fromTranslated}</span>
                       <span>←</span>
-                      <span className="bg-slate-100 px-1 rounded">{toStr}</span>
+                      <span className="bg-slate-100 px-1 rounded">{toTranslated}</span>
                     </div>
                   </button>
                 );

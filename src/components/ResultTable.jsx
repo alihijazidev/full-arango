@@ -6,6 +6,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Input } from './ui/input';
 import { Search, FilterX } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getArabicName } from '../utils/mapping';
 
 export const ResultTable = ({ data }) => {
   const { 
@@ -24,12 +25,13 @@ export const ResultTable = ({ data }) => {
     return allNodes.filter(node => {
       const inId = node._id ? String(node._id).toLowerCase().includes(term) : false;
       const inLabel = node.label ? String(node.label).toLowerCase().includes(term) : false;
+      const inArabic = getArabicName(node.label).includes(term);
       const inProps = Object.entries(node).some(([key, value]) => {
         if (key.startsWith('_') || key === 'label' || key === 'type' || key === 'designedNodeId') return false;
         if (value === null || value === undefined) return false;
         return String(value).toLowerCase().includes(term);
       });
-      return inId || inLabel || inProps;
+      return inId || inLabel || inArabic || inProps;
     });
   }, [allNodes, resultSearchTerm]);
 
@@ -112,7 +114,7 @@ export const ResultTable = ({ data }) => {
                     >
                       <TableCell className="font-mono text-xs">{item._id}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{item.label}</Badge>
+                        <Badge variant="outline">{getArabicName(item.label)}</Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
