@@ -33,7 +33,11 @@ const GraphInner = ({ onSelectElement }) => {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key === 'Delete' || event.key === 'Backspace') {
+      // Check if user is typing in an input or textarea to avoid accidental deletions
+      const isTyping = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName);
+      
+      // Only allow 'Delete' key for keyboard deletion, and only if not typing
+      if (!isTyping && event.key === 'Delete') {
         const selectedNodes = nodes.filter(n => n.selected);
         const selectedEdges = edges.filter(e => e.selected);
         selectedNodes.forEach(n => deleteElement(n.id, true));
