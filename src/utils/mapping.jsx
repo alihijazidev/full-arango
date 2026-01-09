@@ -43,6 +43,19 @@ const iconConfig = {
   "Products": Package
 };
 
+// Map names to hex colors for gradients
+const colorHexMap = {
+  "Identity": "#2563eb", // blue-600
+  "Users": "#4f46e5",    // indigo-600
+  "Profiles": "#0ea5e9", // sky-600
+  "Content": "#059669",  // emerald-600
+  "Posts": "#0d9488",    // teal-600
+  "Comments": "#0891b2", // cyan-600
+  "Commerce": "#d97706", // amber-600
+  "Orders": "#ea580c",   // orange-600
+  "Products": "#e11d48"  // rose-600
+};
+
 // Explicit Tailwind classes to ensure they aren't purged
 const colorStylesMap = {
   "Identity": {
@@ -171,6 +184,8 @@ export const getSmallIcon = (name, type = 'collection') => {
   if (IconComponent) return <IconComponent size={14} />;
   return type === 'category' ? <FolderTree size={14} /> : <Database size={14} />;
 };
+
+export const getHexColor = (name) => colorHexMap[name] || "#64748b";
 
 export const getColorStyles = (name, isSelected = false) => {
   const styles = colorStylesMap[name] || defaultStyles;

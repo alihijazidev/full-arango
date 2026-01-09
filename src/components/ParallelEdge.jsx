@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { EdgeLabelRenderer, useReactFlow } from 'reactflow';
 import { cn } from '@/lib/utils';
 import { useGraph } from '../store/GraphContext';
+import { getHexColor } from '../utils/mapping';
 
 export const ParallelEdge = ({
   id,
@@ -9,6 +10,8 @@ export const ParallelEdge = ({
   sourceY,
   targetX,
   targetY,
+  source,
+  target,
   style = {},
   markerEnd,
   label,
@@ -16,9 +19,23 @@ export const ParallelEdge = ({
   animated,
   data
 }) => {
-  const { updateEdgeOffset, setEdges: setGlobalEdges } = useGraph();
+  const { updateEdgeOffset, nodes } = useGraph();
   const { screenToFlowPosition, setEdges: setLocalEdges } = useReactFlow();
   
+  const sourceNode = useMemo(() => nodes.find(n => n.id === source), [nodes, source]);
+  const targetNode = useMemo(() => nodes.find(n => n.id === target), [nodes, target]);
+
+  const gradientStyle = useMemo(() => {
+    if (!sourceNode || !targetNode) return {};
+    const startColor = getHexColor(sourceNode.data.label);
+    const endColor = getHexColor(targetNode.data.label);
+    return {
+      background: `linear-gradient(to right, ${startColor}, ${endColor})`,
+      color: 'white',
+      border: 'none'
+    };
+  }, [sourceNode, targetNode]);
+
   // The offset for the handle and label relative to the straight line
   const offset = data?.offset ?? 0;
   
@@ -60,10 +77,9 @@ export const ParallelEdge = ({
       // Calculate new perpendicular offset
       const newOffset = vx * nx + vy * ny;
       
-      // Update the edge in the state (tries both global designer state and local result state)
+      // Update the edge in the state
       updateEdgeOffset(id, newOffset);
       
-      // Also attempt to update local React Flow state if we're in a local provider (like results view)
       if (setLocalEdges) {
         setLocalEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset: newOffset } } : e));
       }
@@ -123,9 +139,10 @@ export const ParallelEdge = ({
 
           {label && (
             <div
+              style={gradientStyle}
               className={cn(
-                "px-2 py-0.5 rounded-full border bg-white shadow-sm text-[10px] font-bold transition-all whitespace-nowrap select-none",
-                selected ? "border-primary text-primary scale-110" : "border-slate-200 text-slate-500"
+                "px-3 py-1 rounded-full border shadow-md text-[10px] font-bold transition-all whitespace-nowrap select-none",
+                selected ? "scale-110 ring-2 ring-white/50" : "opacity-90"
               )}
             >
               {label}
