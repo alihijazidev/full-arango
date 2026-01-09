@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useMemo } from 'react';
-import ReactFlow, { Background, useNodesState, useEdgesState, Panel, useReactFlow } from 'reactflow';
+import ReactFlow, { Background, useNodesState, useEdgesState, Panel, useReactFlow, ReactFlowProvider } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
@@ -15,7 +15,7 @@ const edgeTypes = {
   parallel: ParallelEdge,
 };
 
-export const ResultGraph = ({ data }) => {
+const ResultGraphInner = ({ data }) => {
   const { 
     highlightedId, setHighlightedId, 
     isResultPathMode, resultPathNodes, setResultPathNodes, executeShortestPath,
@@ -58,7 +58,7 @@ export const ResultGraph = ({ data }) => {
 
     const finalNodes = [...(data.startnode || []), ...(data.targetnode || [])].filter(n => nodeIdsToShow.has(n._id));
     
-    // 4. Final set of edges: matches only (per user request)
+    // 4. Final set of edges: matches only
     return {
       startnode: finalNodes,
       targetnode: [],
@@ -100,7 +100,6 @@ export const ResultGraph = ({ data }) => {
     setNodes(initialNodes);
     setEdges(initialEdges);
     
-    // Auto-fit after data change
     if (resultSearchTerm) {
       setTimeout(() => fitView({ duration: 400 }), 50);
     }
@@ -161,3 +160,9 @@ export const ResultGraph = ({ data }) => {
     </div>
   );
 };
+
+export const ResultGraph = (props) => (
+  <ReactFlowProvider>
+    <ResultGraphInner {...props} />
+  </ReactFlowProvider>
+);
