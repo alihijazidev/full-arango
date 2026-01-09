@@ -11,28 +11,31 @@ export const ResultTable = ({ data }) => {
   const { highlightedId, setHighlightedId } = useGraph();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const allNodes = useMemo(() => [...data.startnode, ...data.targetnode], [data]);
+  const allNodes = useMemo(() => [...(data.startnode || []), ...(data.targetnode || [])], [data]);
 
   const filteredNodes = useMemo(() => {
     if (!searchTerm) return allNodes;
     const term = searchTerm.toLowerCase();
     return allNodes.filter(node => {
-      const inId = node._id.toLowerCase().includes(term);
-      const inLabel = node.label.toLowerCase().includes(term);
-      const inProps = Object.entries(node).some(([key, value]) => 
-        !key.startsWith('_') && String(value).toLowerCase().includes(term)
-      );
+      const inId = node._id ? String(node._id).toLowerCase().includes(term) : false;
+      const inLabel = node.label ? String(node.label).toLowerCase().includes(term) : false;
+      const inProps = Object.entries(node).some(([key, value]) => {
+        if (key.startsWith('_') || key === 'label' || key === 'type' || key === 'designedNodeId') return false;
+        if (value === null || value === undefined) return false;
+        return String(value).toLowerCase().includes(term);
+      });
       return inId || inLabel || inProps;
     });
   }, [allNodes, searchTerm]);
 
   const filteredEdges = useMemo(() => {
-    if (!searchTerm) return data.edges;
+    const edges = data.edges || [];
+    if (!searchTerm) return edges;
     const term = searchTerm.toLowerCase();
-    return data.edges.filter(edge => {
-      const inFrom = edge._from.toLowerCase().includes(term);
-      const inTo = edge._to.toLowerCase().includes(term);
-      const inLabel = edge.label.toLowerCase().includes(term);
+    return edges.filter(edge => {
+      const inFrom = edge._from ? String(edge._from).toLowerCase().includes(term) : false;
+      const inTo = edge._to ? String(edge._to).toLowerCase().includes(term) : false;
+      const inLabel = edge.label ? String(edge.label).toLowerCase().includes(term) : false;
       return inFrom || inTo || inLabel;
     });
   }, [data.edges, searchTerm]);
@@ -90,8 +93,12 @@ export const ResultTable = ({ data }) => {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {Object.keys(item).filter(k => !k.startsWith('_') && k !== 'label' && k !== 'type' && k !== 'designedNodeId').map(key => (
-                            <Badge key={key} variant="secondary" className="text-[10px] py-0">{key}: {item[key]}</Badge>
+                          {Object.entries(item)
+                            .filter(([key]) => !key.startsWith('_') && !['label', 'type', 'designedNodeId'].includes(key))
+                            .map(([key, value]) => (
+                              <Badge key={key} variant="secondary" className="text-[10px] py-0">
+                                {key}: {value !== null && value !== undefined ? String(value) : '-'}
+                              </Badge>
                           ))}
                         </div>
                       </TableCell>
