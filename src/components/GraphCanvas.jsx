@@ -12,10 +12,11 @@ import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
 import { RadialMenu } from './RadialMenu';
-import { Maximize2, Trash2, Zap, ZapOff, Activity } from 'lucide-react';
+import { Maximize2, Trash2, Zap, ZapOff, Activity, LayoutGrid, CircleDot, Square } from 'lucide-react';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
+import { cn } from '@/lib/utils';
 
 const nodeTypes = { customNode: CustomNode };
 const edgeTypes = { parallel: ParallelEdge };
@@ -26,17 +27,15 @@ const GraphInner = ({ onSelectElement }) => {
     nodes, edges, onConnect, setNodes, setEdges, 
     addNodeFromMetadata, deleteElement, clearCanvas,
     isAnimated, setIsAnimated,
-    isAutoConnect, setIsAutoConnect
+    isAutoConnect, setIsAutoConnect,
+    backgroundStyle, setBackgroundStyle
   } = useGraph();
   const { project, fitView } = useReactFlow();
   const [menu, setMenu] = useState(null);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      // Check if user is typing in an input or textarea to avoid accidental deletions
       const isTyping = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName);
-      
-      // Only allow 'Delete' key for keyboard deletion, and only if not typing
       if (!isTyping && event.key === 'Delete') {
         const selectedNodes = nodes.filter(n => n.selected);
         const selectedEdges = edges.filter(e => e.selected);
@@ -66,6 +65,18 @@ const GraphInner = ({ onSelectElement }) => {
     addNodeFromMetadata(data.nodeType, data.nodeName, position, data.categoryName);
   }, [project, addNodeFromMetadata]);
 
+  const cycleBackground = () => {
+    const styles = ['dots', 'lines', 'none'];
+    const nextIndex = (styles.indexOf(backgroundStyle) + 1) % styles.length;
+    setBackgroundStyle(styles[nextIndex]);
+  };
+
+  const getBgIcon = () => {
+    if (backgroundStyle === 'dots') return <CircleDot size={14} />;
+    if (backgroundStyle === 'lines') return <LayoutGrid size={14} />;
+    return <Square size={14} />;
+  };
+
   return (
     <div className="w-full h-full relative" ref={reactFlowWrapper} dir="ltr">
       <ReactFlow
@@ -85,7 +96,14 @@ const GraphInner = ({ onSelectElement }) => {
         fitView
         deleteKeyCode={null}
       >
-        <Background color="#cbd5e1" gap={20} />
+        {backgroundStyle !== 'none' && (
+          <Background 
+            variant={backgroundStyle === 'lines' ? 'lines' : 'dots'} 
+            color="#cbd5e1" 
+            gap={20} 
+          />
+        )}
+        
         <Panel position="top-right" className="flex items-center gap-4 bg-white/90 backdrop-blur-md p-3 rounded-xl border shadow-lg">
           <div className="flex items-center gap-3 border-r pr-3">
             <div className="flex items-center gap-2">
@@ -100,6 +118,15 @@ const GraphInner = ({ onSelectElement }) => {
             </div>
           </div>
           <div className="flex items-center gap-1">
+             <Button 
+               variant="ghost" 
+               size="icon" 
+               className="h-8 w-8 hover:bg-slate-100" 
+               onClick={cycleBackground}
+               title="تغيير الخلفية"
+             >
+               {getBgIcon()}
+             </Button>
              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100" onClick={() => fitView({ duration: 800 })} title="تكبير"><Maximize2 size={14} /></Button>
              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={clearCanvas} title="مسح"><Trash2 size={14} /></Button>
           </div>

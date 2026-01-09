@@ -18,6 +18,7 @@ export const GraphProvider = ({ children }) => {
   const [isAnimated, _setIsAnimated] = useState(true);
   const [isAutoConnect, _setIsAutoConnect] = useState(false);
   const [resultSearchTerm, setResultSearchTerm] = useState('');
+  const [backgroundStyle, setBackgroundStyle] = useState('dots'); // 'dots', 'lines', 'none'
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
@@ -270,7 +271,8 @@ export const GraphProvider = ({ children }) => {
       highlightedId, setHighlightedId, isResultPathMode, setIsResultPathMode,
       resultPathNodes, setResultPathNodes,
       isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect,
-      resultSearchTerm, setResultSearchTerm
+      resultSearchTerm, setResultSearchTerm,
+      backgroundStyle, setBackgroundStyle
     }}>
       {children}
     </GraphContext.Provider>
