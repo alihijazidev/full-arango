@@ -5,7 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './
 import { ScrollArea } from './ui/scroll-area';
 import { Input } from './ui/input';
 import { cn } from '@/lib/utils';
-import { getArabicName, getSmallIcon } from '../utils/mapping';
+import { getArabicName, getSmallIcon, getColorStyles } from '../utils/mapping';
 
 export const Sidebar = () => {
   const { metadata, nodes, addEdgeManually } = useGraph();
@@ -66,38 +66,44 @@ export const Sidebar = () => {
               الفئات والمجموعات
             </h3>
             <Accordion type="multiple" className="w-full">
-              {filteredCategories.map(cat => (
-                <AccordionItem value={cat.name} key={cat.name} className="border-none">
-                  <div 
-                    draggable 
-                    onDragStart={(e) => onDragStart(e, 'category', cat.name)}
-                    className="flex items-center"
-                  >
-                    <AccordionTrigger className="hover:no-underline py-2 px-3 rounded-md hover:bg-slate-200 transition-colors cursor-grab active:cursor-grabbing">
-                      <div className="flex items-center gap-2">
-                        <span className="text-orange-500">{getSmallIcon(cat.name, 'category')}</span>
-                        <span className="text-sm font-medium">{getArabicName(cat.name)}</span>
-                      </div>
-                    </AccordionTrigger>
-                  </div>
-                  <AccordionContent className="pr-6 pl-2 pt-1 pb-2 space-y-1">
-                    {cat.entities
-                      .filter(e => !searchTerm || e.name.toLowerCase().includes(searchTerm.toLowerCase()) || cat.name.toLowerCase().includes(searchTerm.toLowerCase()) || getArabicName(e.name).includes(searchTerm))
-                      .map(entity => (
-                        <div
-                          key={entity.name}
-                          draggable
-                          onDragStart={(e) => onDragStart(e, 'collection', entity.name, cat.name)}
-                          className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-200 cursor-grab active:cursor-grabbing group transition-all"
-                        >
-                          <span className="text-blue-500">{getSmallIcon(entity.name, 'collection')}</span>
-                          <span className="text-sm">{getArabicName(entity.name)}</span>
-                          <ChevronLeft size={12} className="mr-auto opacity-0 group-hover:opacity-50" />
+              {filteredCategories.map(cat => {
+                const colors = getColorStyles(cat.name);
+                return (
+                  <AccordionItem value={cat.name} key={cat.name} className="border-none">
+                    <div 
+                      draggable 
+                      onDragStart={(e) => onDragStart(e, 'category', cat.name)}
+                      className="flex items-center"
+                    >
+                      <AccordionTrigger className="hover:no-underline py-2 px-3 rounded-md hover:bg-slate-200 transition-colors cursor-grab active:cursor-grabbing">
+                        <div className="flex items-center gap-2">
+                          <span className={cn(colors.text)}>{getSmallIcon(cat.name, 'category')}</span>
+                          <span className="text-sm font-medium">{getArabicName(cat.name)}</span>
                         </div>
-                      ))}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
+                      </AccordionTrigger>
+                    </div>
+                    <AccordionContent className="pr-6 pl-2 pt-1 pb-2 space-y-1">
+                      {cat.entities
+                        .filter(e => !searchTerm || e.name.toLowerCase().includes(searchTerm.toLowerCase()) || cat.name.toLowerCase().includes(searchTerm.toLowerCase()) || getArabicName(e.name).includes(searchTerm))
+                        .map(entity => {
+                          const entityColors = getColorStyles(entity.name);
+                          return (
+                            <div
+                              key={entity.name}
+                              draggable
+                              onDragStart={(e) => onDragStart(e, 'collection', entity.name, cat.name)}
+                              className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-200 cursor-grab active:cursor-grabbing group transition-all"
+                            >
+                              <span className={cn(entityColors.text)}>{getSmallIcon(entity.name, 'collection')}</span>
+                              <span className="text-sm">{getArabicName(entity.name)}</span>
+                              <ChevronLeft size={12} className="mr-auto opacity-0 group-hover:opacity-50" />
+                            </div>
+                          );
+                        })}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
             </Accordion>
           </section>
 

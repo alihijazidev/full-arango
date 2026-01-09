@@ -6,7 +6,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Input } from './ui/input';
 import { Search, FilterX } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getArabicName } from '../utils/mapping';
+import { getArabicName, getColorStyles } from '../utils/mapping';
 
 export const ResultTable = ({ data }) => {
   const { 
@@ -99,36 +99,44 @@ export const ResultTable = ({ data }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredNodes.map((item) => (
-                    <TableRow 
-                      key={item._id}
-                      id={`row-${item._id}`}
-                      className={cn(
-                        "cursor-pointer transition-all",
-                        (highlightedId === item._id || selectedResultId === item._id) ? "bg-primary/5 border-primary" : "",
-                        selectedResultId === item._id ? "ring-2 ring-primary/20 ring-inset" : ""
-                      )}
-                      onMouseEnter={() => setHighlightedId(item._id)}
-                      onMouseLeave={() => setHighlightedId(null)}
-                      onClick={() => setSelectedResultId(item._id)}
-                    >
-                      <TableCell className="font-mono text-xs">{item._id}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{getArabicName(item.label)}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {Object.entries(item)
-                            .filter(([key]) => !key.startsWith('_') && !['label', 'type', 'designedNodeId'].includes(key))
-                            .map(([key, value]) => (
-                              <Badge key={key} variant="secondary" className="text-[10px] py-0">
-                                {key}: {value !== null && value !== undefined ? String(value) : '-'}
-                              </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredNodes.map((item) => {
+                    const colors = getColorStyles(item.label);
+                    return (
+                      <TableRow 
+                        key={item._id}
+                        id={`row-${item._id}`}
+                        className={cn(
+                          "cursor-pointer transition-all",
+                          (highlightedId === item._id || selectedResultId === item._id) ? "bg-primary/5 border-primary" : "",
+                          selectedResultId === item._id ? "ring-2 ring-primary/20 ring-inset" : ""
+                        )}
+                        onMouseEnter={() => setHighlightedId(item._id)}
+                        onMouseLeave={() => setHighlightedId(null)}
+                        onClick={() => setSelectedResultId(item._id)}
+                      >
+                        <TableCell className="font-mono text-xs">{item._id}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={cn("border-2", colors.border, colors.text, colors.bg)}
+                          >
+                            {getArabicName(item.label)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {Object.entries(item)
+                              .filter(([key]) => !key.startsWith('_') && !['label', 'type', 'designedNodeId'].includes(key))
+                              .map(([key, value]) => (
+                                <Badge key={key} variant="secondary" className="text-[10px] py-0">
+                                  {key}: {value !== null && value !== undefined ? String(value) : '-'}
+                                </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

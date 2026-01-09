@@ -1,12 +1,13 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import { cn } from '@/lib/utils';
-import { getArabicName, getIcon } from '../utils/mapping';
+import { getArabicName, getIcon, getColorStyles } from '../utils/mapping';
 
 export const CustomNode = memo(({ data, selected }) => {
   const isCategory = data.type === 'category';
   const displayName = getArabicName(data.label);
   const icon = getIcon(data.label, data.type);
+  const colors = getColorStyles(data.label, selected);
 
   return (
     <div className={cn(
@@ -22,14 +23,14 @@ export const CustomNode = memo(({ data, selected }) => {
       <div className={cn(
         "min-w-[140px] p-3 rounded-xl bg-white shadow-md border-2 transition-all flex flex-col items-center gap-2",
         selected 
-          ? "border-primary shadow-primary/20 ring-4 ring-primary/10" 
+          ? cn("shadow-lg ring-4", colors.border, colors.ring, colors.shadow) 
           : "border-slate-100 hover:border-slate-300 hover:shadow-lg",
         isCategory ? "border-dashed" : "border-solid"
       )}>
         <div className={cn(
           "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
-          isCategory ? "bg-orange-50 text-orange-500" : "bg-blue-50 text-blue-500",
-          selected && (isCategory ? "bg-orange-500 text-white" : "bg-blue-500 text-white")
+          colors.bg,
+          colors.text
         )}>
           {icon}
         </div>
@@ -37,7 +38,7 @@ export const CustomNode = memo(({ data, selected }) => {
         <div className="flex flex-col items-center text-center">
           <span className={cn(
             "text-[9px] font-bold uppercase tracking-widest mb-0.5",
-            isCategory ? "text-orange-400" : "text-blue-400"
+            colors.accent
           )}>
             {isCategory ? 'فئة' : 'مجموعة'}
           </span>
