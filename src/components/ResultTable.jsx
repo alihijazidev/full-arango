@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useGraph } from '../store/GraphContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
@@ -8,14 +8,13 @@ import { Search, FilterX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const ResultTable = ({ data }) => {
-  const { highlightedId, setHighlightedId } = useGraph();
-  const [searchTerm, setSearchTerm] = useState('');
+  const { highlightedId, setHighlightedId, resultSearchTerm, setResultSearchTerm } = useGraph();
 
   const allNodes = useMemo(() => [...(data.startnode || []), ...(data.targetnode || [])], [data]);
 
   const filteredNodes = useMemo(() => {
-    if (!searchTerm) return allNodes;
-    const term = searchTerm.toLowerCase();
+    if (!resultSearchTerm) return allNodes;
+    const term = resultSearchTerm.toLowerCase();
     return allNodes.filter(node => {
       const inId = node._id ? String(node._id).toLowerCase().includes(term) : false;
       const inLabel = node.label ? String(node.label).toLowerCase().includes(term) : false;
@@ -26,19 +25,19 @@ export const ResultTable = ({ data }) => {
       });
       return inId || inLabel || inProps;
     });
-  }, [allNodes, searchTerm]);
+  }, [allNodes, resultSearchTerm]);
 
   const filteredEdges = useMemo(() => {
     const edges = data.edges || [];
-    if (!searchTerm) return edges;
-    const term = searchTerm.toLowerCase();
+    if (!resultSearchTerm) return edges;
+    const term = resultSearchTerm.toLowerCase();
     return edges.filter(edge => {
       const inFrom = edge._from ? String(edge._from).toLowerCase().includes(term) : false;
       const inTo = edge._to ? String(edge._to).toLowerCase().includes(term) : false;
       const inLabel = edge.label ? String(edge.label).toLowerCase().includes(term) : false;
       return inFrom || inTo || inLabel;
     });
-  }, [data.edges, searchTerm]);
+  }, [data.edges, resultSearchTerm]);
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -48,8 +47,8 @@ export const ResultTable = ({ data }) => {
           <Input 
             placeholder="بحث في النتائج (المعرف، النوع، أو الخصائص)..." 
             className="pr-10 h-10 bg-white shadow-sm text-sm text-right" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={resultSearchTerm}
+            onChange={(e) => setResultSearchTerm(e.target.value)}
           />
         </div>
       </div>
@@ -61,7 +60,7 @@ export const ResultTable = ({ data }) => {
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
                 العناصر المسترجعة ({filteredNodes.length})
               </h3>
-              {searchTerm && filteredNodes.length === 0 && (
+              {resultSearchTerm && filteredNodes.length === 0 && (
                 <span className="text-xs text-rose-500 flex items-center gap-1">
                   <FilterX size={12} /> لا توجد نتائج مطابقة
                 </span>
@@ -114,7 +113,7 @@ export const ResultTable = ({ data }) => {
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
                 العلاقات ({filteredEdges.length})
               </h3>
-              {searchTerm && filteredEdges.length === 0 && (
+              {resultSearchTerm && filteredEdges.length === 0 && (
                 <span className="text-xs text-rose-500 flex items-center gap-1">
                   <FilterX size={12} /> لا توجد نتائج مطابقة
                 </span>

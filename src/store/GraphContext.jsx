@@ -17,6 +17,7 @@ export const GraphProvider = ({ children }) => {
   const [resultPathNodes, setResultPathNodes] = useState([]);
   const [isAnimated, _setIsAnimated] = useState(true);
   const [isAutoConnect, _setIsAutoConnect] = useState(false);
+  const [resultSearchTerm, setResultSearchTerm] = useState('');
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
@@ -126,48 +127,22 @@ export const GraphProvider = ({ children }) => {
 
   const executeStructuredQuery = async () => {
     setIsQueryLoading(true);
-
-    // بناء هيكل الاستعلام المطلوب: [{node, edge, node}] لكل رابط
     const structuredQuery = edges.map(edge => {
       const sourceNode = nodes.find(n => n.id === edge.source);
       const targetNode = nodes.find(n => n.id === edge.target);
-
       return {
-        sourceNode: {
-          id: sourceNode.id,
-          label: sourceNode.data.label,
-          type: sourceNode.data.type,
-          path: sourceNode.data.fullPath,
-          filters: sourceNode.data.filters
-        },
-        edge: {
-          id: edge.id,
-          label: edge.label || edge.data?.metadata?.label || "manual",
-          depth: edge.data?.depth || 1,
-          filters: edge.data?.filters || []
-        },
-        targetNode: {
-          id: targetNode.id,
-          label: targetNode.data.label,
-          type: targetNode.data.type,
-          path: targetNode.data.fullPath,
-          filters: targetNode.data.filters
-        }
+        sourceNode: { id: sourceNode.id, label: sourceNode.data.label, type: sourceNode.data.type, path: sourceNode.data.fullPath, filters: sourceNode.data.filters },
+        edge: { id: edge.id, label: edge.label || edge.data?.metadata?.label || "manual", depth: edge.data?.depth || 1, filters: edge.data?.filters || [] },
+        targetNode: { id: targetNode.id, label: targetNode.data.label, type: targetNode.data.type, path: targetNode.data.fullPath, filters: targetNode.data.filters }
       };
     });
-
     console.log("Structured Query Request:", structuredQuery);
-    
-    // محاكاة طلب API
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // محاكاة النتائج بناءً على العقد المصممة
     const mockResultNodes = nodes.map((n) => ({ 
       _id: `${n.data.label}/mock-${Math.floor(Math.random() * 1000)}`, 
       label: n.data.label,
       designedNodeId: n.id
     }));
-
     const mockResultEdges = [];
     edges.forEach(edge => {
       const sourceInResults = mockResultNodes.find(n => n.designedNodeId === edge.source);
@@ -181,7 +156,6 @@ export const GraphProvider = ({ children }) => {
         });
       }
     });
-
     setQueryResult({ startnode: mockResultNodes, targetnode: [], edges: mockResultEdges });
     setActiveResultType('query');
     setIsQueryLoading(false);
@@ -190,18 +164,11 @@ export const GraphProvider = ({ children }) => {
   const executeShortestPath = async (fromId, toId) => {
     setIsQueryLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1200));
-
     const pathNodes = queryResult.startnode.filter(n => n._id === fromId || n._id === toId);
     const pathEdges = queryResult.edges.filter(e => 
-      (e._from === fromId && e._to === toId) || (e._from === toId && e._to === fromId)
+      (e._from === fromId && e._to === toId) || (e._to === fromId && e._from === toId)
     );
-
-    setShortestPathResult({
-      startnode: pathNodes,
-      targetnode: [],
-      edges: pathEdges
-    });
-    
+    setShortestPathResult({ startnode: pathNodes, targetnode: [], edges: pathEdges });
     setActiveResultType('shortestPath');
     setIsQueryLoading(false);
     setIsResultPathMode(false);
@@ -211,20 +178,16 @@ export const GraphProvider = ({ children }) => {
   const addEdgeManually = (edgeLabel) => {
     const edgeMeta = metadata.edges.find(e => e.label === edgeLabel);
     if (!edgeMeta) return;
-
     const newEdges = [];
     nodes.forEach(sourceNode => {
       nodes.forEach(targetNode => {
         if (sourceNode.id === targetNode.id) return;
         const sourcePath = sourceNode.data.fullPath;
         const targetPath = targetNode.data.fullPath;
-
         const fromStr = Array.isArray(edgeMeta.fromcol) ? edgeMeta.fromcol.join('/') : edgeMeta.fromcol;
         const toStr = Array.isArray(edgeMeta.tocol) ? edgeMeta.tocol.join('/') : edgeMeta.tocol;
-
         const isSourceMatch = fromStr === sourcePath || fromStr.startsWith(sourcePath + '/');
         const isTargetMatch = toStr === targetPath || toStr.startsWith(targetPath + '/');
-
         if (isSourceMatch && isTargetMatch) {
           const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.label}`;
           if (!edges.find(e => e.id === edgeId)) {
@@ -248,7 +211,6 @@ export const GraphProvider = ({ children }) => {
   const addNodeFromMetadata = (type, name, position, categoryName = null) => {
     const id = `${type}-${name}-${Date.now()}`;
     const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
-    
     let nodeMetadata = null;
     if (type === 'category') {
       nodeMetadata = metadata.collections.find(c => c.name === name);
@@ -256,26 +218,15 @@ export const GraphProvider = ({ children }) => {
       const cat = metadata.collections.find(c => c.name === categoryName);
       nodeMetadata = cat?.entities.find(e => e.name === name);
     }
-
     const newNode = {
       id,
       type: 'customNode',
       position,
-      data: {
-        label: name,
-        type,
-        fullPath,
-        categoryName,
-        metadata: nodeMetadata,
-        filters: []
-      }
+      data: { label: name, type, fullPath, categoryName, metadata: nodeMetadata, filters: [] }
     };
-    
     setNodes((nds) => {
       const updatedNodes = [...nds, newNode];
-      if (isAutoConnect) {
-        setTimeout(() => performAutoConnect(updatedNodes, edges), 0);
-      }
+      if (isAutoConnect) setTimeout(() => performAutoConnect(updatedNodes, edges), 0);
       return updatedNodes;
     });
   };
@@ -318,7 +269,8 @@ export const GraphProvider = ({ children }) => {
       activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult,
       highlightedId, setHighlightedId, isResultPathMode, setIsResultPathMode,
       resultPathNodes, setResultPathNodes,
-      isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect
+      isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect,
+      resultSearchTerm, setResultSearchTerm
     }}>
       {children}
     </GraphContext.Provider>

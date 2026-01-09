@@ -1,10 +1,11 @@
-import React, { useEffect, useCallback } from 'react';
-import ReactFlow, { Background, useNodesState, useEdgesState, Panel } from 'reactflow';
+import React, { useEffect, useCallback, useMemo } from 'react';
+import ReactFlow, { Background, useNodesState, useEdgesState, Panel, useReactFlow } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
-import { MapPinned } from 'lucide-react';
+import { MapPinned, Maximize2 } from 'lucide-react';
+import { Button } from './ui/button';
 
 const nodeTypes = {
   customNode: CustomNode,
@@ -17,13 +18,56 @@ const edgeTypes = {
 export const ResultGraph = ({ data }) => {
   const { 
     highlightedId, setHighlightedId, 
-    isResultPathMode, resultPathNodes, setResultPathNodes, executeShortestPath 
+    isResultPathMode, resultPathNodes, setResultPathNodes, executeShortestPath,
+    resultSearchTerm
   } = useGraph();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const { fitView } = useReactFlow();
+
+  const filteredData = useMemo(() => {
+    if (!resultSearchTerm) return data;
+    const term = resultSearchTerm.toLowerCase();
+    
+    // 1. Get nodes that match text
+    const matchingNodes = [...(data.startnode || []), ...(data.targetnode || [])].filter(node => {
+      const inId = node._id ? String(node._id).toLowerCase().includes(term) : false;
+      const inLabel = node.label ? String(node.label).toLowerCase().includes(term) : false;
+      const inProps = Object.entries(node).some(([key, value]) => {
+        if (key.startsWith('_') || key === 'label' || key === 'type' || key === 'designedNodeId') return false;
+        if (value === null || value === undefined) return false;
+        return String(value).toLowerCase().includes(term);
+      });
+      return inId || inLabel || inProps;
+    });
+
+    // 2. Get edges that match text
+    const matchingEdges = (data.edges || []).filter(edge => {
+      const inFrom = edge._from ? String(edge._from).toLowerCase().includes(term) : false;
+      const inTo = edge._to ? String(edge._to).toLowerCase().includes(term) : false;
+      const inLabel = edge.label ? String(edge.label).toLowerCase().includes(term) : false;
+      return inFrom || inTo || inLabel;
+    });
+
+    // 3. Final set of nodes: matches + source/target of matching edges
+    const nodeIdsToShow = new Set(matchingNodes.map(n => n._id));
+    matchingEdges.forEach(e => {
+      nodeIdsToShow.add(e._from);
+      nodeIdsToShow.add(e._to);
+    });
+
+    const finalNodes = [...(data.startnode || []), ...(data.targetnode || [])].filter(n => nodeIdsToShow.has(n._id));
+    
+    // 4. Final set of edges: matches only (per user request)
+    return {
+      startnode: finalNodes,
+      targetnode: [],
+      edges: matchingEdges
+    };
+  }, [data, resultSearchTerm]);
 
   useEffect(() => {
-    const allNodes = [...data.startnode, ...data.targetnode];
+    const allNodes = filteredData.startnode;
     
     const initialNodes = allNodes.map((item, i) => ({
       id: item._id,
@@ -41,21 +85,26 @@ export const ResultGraph = ({ data }) => {
       return direction * Math.ceil(pairIdx / 2) * 40;
     };
 
-    const initialEdges = data.edges.map((edge, i) => ({
+    const initialEdges = filteredData.edges.map((edge, i) => ({
       id: edge._id,
       source: edge._from,
       target: edge._to,
       label: edge.label,
       type: 'parallel',
       animated: true,
-      data: { offset: getResultOffset(edge._from, edge._to, i, data.edges) },
+      data: { offset: getResultOffset(edge._from, edge._to, i, filteredData.edges) },
       selected: highlightedId === edge._id,
       style: highlightedId === edge._id ? { stroke: 'hsl(var(--primary))', strokeWidth: 3 } : {}
     }));
 
     setNodes(initialNodes);
     setEdges(initialEdges);
-  }, [data, highlightedId, resultPathNodes, setNodes, setEdges]);
+    
+    // Auto-fit after data change
+    if (resultSearchTerm) {
+      setTimeout(() => fitView({ duration: 400 }), 50);
+    }
+  }, [filteredData, highlightedId, resultPathNodes, setNodes, setEdges, fitView, resultSearchTerm]);
 
   const onNodeClick = useCallback((_, node) => {
     if (isResultPathMode) {
@@ -88,6 +137,18 @@ export const ResultGraph = ({ data }) => {
       >
         <Background color="#f1f5f9" gap={20} />
         
+        <Panel position="bottom-right" className="m-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="bg-white/80 backdrop-blur shadow-md gap-2"
+            onClick={() => fitView({ duration: 800 })}
+          >
+            <Maximize2 size={14} />
+            إعادة تعيين الموقع
+          </Button>
+        </Panel>
+
         {isResultPathMode && (
           <Panel position="top-center" className="bg-amber-500 text-white px-4 py-1.5 rounded-full shadow-lg animate-pulse">
             <p className="text-[10px] font-bold flex items-center gap-2">
