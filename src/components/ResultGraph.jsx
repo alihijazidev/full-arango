@@ -27,11 +27,17 @@ const ResultGraphInner = ({ data }) => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { fitView, setCenter } = useReactFlow();
 
+  // Combine all nodes from the data source
+  const allRawNodes = useMemo(() => {
+    return [...(data.startnode || []), ...(data.targetnode || [])];
+  }, [data]);
+
   const filteredData = useMemo(() => {
-    if (!resultSearchTerm) return data;
+    if (!resultSearchTerm) return { nodes: allRawNodes, edges: data.edges || [] };
+    
     const term = resultSearchTerm.toLowerCase();
     
-    const matchingNodes = [...(data.startnode || []), ...(data.targetnode || [])].filter(node => {
+    const matchingNodes = allRawNodes.filter(node => {
       const inId = node._id ? String(node._id).toLowerCase().includes(term) : false;
       const inLabel = node.label ? String(node.label).toLowerCase().includes(term) : false;
       const inProps = Object.entries(node).some(([key, value]) => {
@@ -55,25 +61,24 @@ const ResultGraphInner = ({ data }) => {
       nodeIdsToShow.add(e._to);
     });
 
-    const finalNodes = [...(data.startnode || []), ...(data.targetnode || [])].filter(n => nodeIdsToShow.has(n._id));
+    const finalNodes = allRawNodes.filter(n => nodeIdsToShow.has(n._id));
     
     return {
-      startnode: finalNodes,
-      targetnode: [],
+      nodes: finalNodes,
       edges: matchingEdges
     };
-  }, [data, resultSearchTerm]);
+  }, [allRawNodes, data.edges, resultSearchTerm]);
 
-  // Only initialize nodes and edges when the filtered data itself changes
-  // This prevents resetting positions when clicking/selecting (which changes other dependencies)
   useEffect(() => {
-    const allNodes = filteredData.startnode;
-    
-    const initialNodes = allNodes.map((item, i) => ({
+    const initialNodes = filteredData.nodes.map((item, i) => ({
       id: item._id,
       type: 'customNode',
-      position: { x: (i % 3) * 250, y: Math.floor(i / 3) * 200 },
-      data: { label: item._id.split('/')[1] || item.label, type: 'collection' },
+      position: { x: (i % 4) * 250, y: Math.floor(i / 4) * 200 },
+      data: { 
+        label: item.label || item._id.split('/')[1] || "Unknown", 
+        type: 'collection',
+        metadata: item // Pass full metadata to the node
+      },
     }));
 
     const getResultOffset = (source, target, idx, all) => {
@@ -91,16 +96,20 @@ const ResultGraphInner = ({ data }) => {
       label: edge.label,
       type: 'parallel',
       animated: true,
-      data: { offset: getResultOffset(edge._from, edge._to, i, filteredData.edges) },
+      data: { 
+        offset: getResultOffset(edge._from, edge._to, i, filteredData.edges),
+        metadata: edge // Pass full metadata to the edge
+      },
     }));
 
     setNodes(initialNodes);
     setEdges(initialEdges);
     
-    setTimeout(() => fitView({ duration: 400 }), 50);
-  }, [filteredData, setNodes, setEdges]); // Removed fitView, resultSearchTerm etc to avoid unnecessary resets
+    // Auto-fit on initial load or search change
+    const timer = setTimeout(() => fitView({ duration: 400, padding: 0.2 }), 100);
+    return () => clearTimeout(timer);
+  }, [filteredData, setNodes, setEdges, fitView]);
 
-  // Update selection and highlights without resetting positions
   useEffect(() => {
     setNodes((nds) => nds.map((node) => ({
       ...node,
@@ -116,7 +125,6 @@ const ResultGraphInner = ({ data }) => {
     })));
   }, [selectedResultId, resultPathNodes, highlightedId, setNodes, setEdges]);
 
-  // Center graph on selection
   useEffect(() => {
     if (!selectedResultId) return;
     
