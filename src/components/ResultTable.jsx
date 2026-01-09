@@ -126,6 +126,7 @@ export const ResultTable = ({ data }) => {
                     <TableHead className="text-right">من (_from)</TableHead>
                     <TableHead className="text-right">العلاقة</TableHead>
                     <TableHead className="text-right">إلى (_to)</TableHead>
+                    <TableHead className="text-right">الخصائص</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -142,6 +143,17 @@ export const ResultTable = ({ data }) => {
                       <TableCell className="font-mono text-[10px] text-slate-500">{edge._from}</TableCell>
                       <TableCell className="font-bold text-xs">{edge.label}</TableCell>
                       <TableCell className="font-mono text-[10px] text-slate-500">{edge._to}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(edge)
+                            .filter(([key]) => !key.startsWith('_') && key !== 'label')
+                            .map(([key, value]) => (
+                              <Badge key={key} variant="secondary" className="text-[10px] py-0">
+                                {key}: {value !== null && value !== undefined ? String(value) : '-'}
+                              </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
