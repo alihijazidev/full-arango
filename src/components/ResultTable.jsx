@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { useGraph } from '../store/GraphContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 
 export const ResultTable = ({ data }) => {
   const { highlightedId, setHighlightedId, resultSearchTerm, setResultSearchTerm } = useGraph();
+  const scrollAreaRef = useRef(null);
 
   const allNodes = useMemo(() => [...(data.startnode || []), ...(data.targetnode || [])], [data]);
 
@@ -35,9 +36,24 @@ export const ResultTable = ({ data }) => {
       const inFrom = edge._from ? String(edge._from).toLowerCase().includes(term) : false;
       const inTo = edge._to ? String(edge._to).toLowerCase().includes(term) : false;
       const inLabel = edge.label ? String(edge.label).toLowerCase().includes(term) : false;
-      return inFrom || inTo || inLabel;
+      const inProps = Object.entries(edge).some(([key, value]) => {
+        if (key.startsWith('_') || key === 'label') return false;
+        if (value === null || value === undefined) return false;
+        return String(value).toLowerCase().includes(term);
+      });
+      return inFrom || inTo || inLabel || inProps;
     });
   }, [data.edges, resultSearchTerm]);
+
+  // Auto-scroll to highlighted element
+  useEffect(() => {
+    if (highlightedId) {
+      const element = document.getElementById(`row-${highlightedId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [highlightedId]);
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -53,7 +69,7 @@ export const ResultTable = ({ data }) => {
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" ref={scrollAreaRef}>
         <div className="p-6 space-y-8">
           <section>
             <div className="flex items-center justify-between mb-4 px-2">
@@ -79,9 +95,10 @@ export const ResultTable = ({ data }) => {
                   {filteredNodes.map((item) => (
                     <TableRow 
                       key={item._id}
+                      id={`row-${item._id}`}
                       className={cn(
-                        "cursor-pointer transition-colors",
-                        highlightedId === item._id ? "bg-primary/10 border-primary" : ""
+                        "cursor-pointer transition-all duration-300",
+                        highlightedId === item._id ? "bg-primary/10 border-r-4 border-r-primary" : ""
                       )}
                       onMouseEnter={() => setHighlightedId(item._id)}
                       onMouseLeave={() => setHighlightedId(null)}
@@ -126,15 +143,17 @@ export const ResultTable = ({ data }) => {
                     <TableHead className="text-right">من (_from)</TableHead>
                     <TableHead className="text-right">العلاقة</TableHead>
                     <TableHead className="text-right">إلى (_to)</TableHead>
+                    <TableHead className="text-right">الخصائص</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredEdges.map((edge) => (
                     <TableRow 
                       key={edge._id}
+                      id={`row-${edge._id}`}
                       className={cn(
-                        "cursor-pointer transition-colors",
-                        highlightedId === edge._id ? "bg-primary/10 border-primary" : ""
+                        "cursor-pointer transition-all duration-300",
+                        highlightedId === edge._id ? "bg-primary/10 border-r-4 border-r-primary" : ""
                       )}
                       onMouseEnter={() => setHighlightedId(edge._id)}
                       onMouseLeave={() => setHighlightedId(null)}
@@ -142,6 +161,17 @@ export const ResultTable = ({ data }) => {
                       <TableCell className="font-mono text-[10px] text-slate-500">{edge._from}</TableCell>
                       <TableCell className="font-bold text-xs">{edge.label}</TableCell>
                       <TableCell className="font-mono text-[10px] text-slate-500">{edge._to}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(edge)
+                            .filter(([key]) => !key.startsWith('_') && key !== 'label')
+                            .map(([key, value]) => (
+                              <Badge key={key} variant="secondary" className="text-[10px] py-0">
+                                {key}: {value !== null && value !== undefined ? String(value) : '-'}
+                              </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
