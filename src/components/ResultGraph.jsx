@@ -22,6 +22,7 @@ const ResultGraphInner = ({ data }) => {
     isResultPathMode, resultPathNodes, setResultPathNodes, executeShortestPath,
     resultSearchTerm
   } = useGraph();
+  
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { fitView, setCenter } = useReactFlow();
@@ -63,6 +64,8 @@ const ResultGraphInner = ({ data }) => {
     };
   }, [data, resultSearchTerm]);
 
+  // Only initialize nodes and edges when the filtered data itself changes
+  // This prevents resetting positions when clicking/selecting (which changes other dependencies)
   useEffect(() => {
     const allNodes = filteredData.startnode;
     
@@ -71,7 +74,6 @@ const ResultGraphInner = ({ data }) => {
       type: 'customNode',
       position: { x: (i % 3) * 250, y: Math.floor(i / 3) * 200 },
       data: { label: item._id.split('/')[1] || item.label, type: 'collection' },
-      selected: selectedResultId === item._id || resultPathNodes.includes(item._id)
     }));
 
     const getResultOffset = (source, target, idx, all) => {
@@ -90,19 +92,31 @@ const ResultGraphInner = ({ data }) => {
       type: 'parallel',
       animated: true,
       data: { offset: getResultOffset(edge._from, edge._to, i, filteredData.edges) },
-      selected: selectedResultId === edge._id,
-      style: selectedResultId === edge._id ? { stroke: 'hsl(var(--primary))', strokeWidth: 3 } : {}
     }));
 
     setNodes(initialNodes);
     setEdges(initialEdges);
     
-    if (resultSearchTerm) {
-      setTimeout(() => fitView({ duration: 400 }), 50);
-    }
-  }, [filteredData, selectedResultId, resultPathNodes, setNodes, setEdges, fitView, resultSearchTerm]);
+    setTimeout(() => fitView({ duration: 400 }), 50);
+  }, [filteredData, setNodes, setEdges]); // Removed fitView, resultSearchTerm etc to avoid unnecessary resets
 
-  // Effect to center graph when selectedResultId changes from external source (like table click)
+  // Update selection and highlights without resetting positions
+  useEffect(() => {
+    setNodes((nds) => nds.map((node) => ({
+      ...node,
+      selected: selectedResultId === node.id || resultPathNodes.includes(node.id) || highlightedId === node.id
+    })));
+    
+    setEdges((eds) => eds.map((edge) => ({
+      ...edge,
+      selected: selectedResultId === edge.id || highlightedId === edge.id,
+      style: (selectedResultId === edge.id || highlightedId === edge.id) 
+        ? { stroke: 'hsl(var(--primary))', strokeWidth: 3 } 
+        : {}
+    })));
+  }, [selectedResultId, resultPathNodes, highlightedId, setNodes, setEdges]);
+
+  // Center graph on selection
   useEffect(() => {
     if (!selectedResultId) return;
     

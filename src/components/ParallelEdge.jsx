@@ -16,10 +16,10 @@ export const ParallelEdge = ({
   animated,
   data
 }) => {
-  const { updateEdgeOffset } = useGraph();
-  const { screenToFlowPosition } = useReactFlow();
+  const { updateEdgeOffset, setEdges: setGlobalEdges } = useGraph();
+  const { screenToFlowPosition, setEdges: setLocalEdges } = useReactFlow();
   
-  // المسافة المطلوبة للمقبض والتسمية عن الخط المستقيم
+  // The offset for the handle and label relative to the straight line
   const offset = data?.offset ?? 0;
   
   const midX = (sourceX + targetX) / 2;
@@ -29,16 +29,16 @@ export const ParallelEdge = ({
   const dy = targetY - sourceY;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
   
-  // متجه الوحدة العمودي
+  // Normal unit vector
   const nx = -dy / len;
   const ny = dx / len;
   
-  // لجعل المنحنى يمر عبر النقطة (offset)، يجب أن تكون نقطة التحكم عند (2 * offset)
+  // Control point for quadratic curve
   const controlOffset = offset * 2;
   const cx = midX + nx * controlOffset;
   const cy = midY + ny * controlOffset;
 
-  // إحداثيات التسمية والمقبض (المكان الذي يمر فيه الخيط فعلياً)
+  // Actual label/handle position
   const labelX = midX + nx * offset;
   const labelY = midY + ny * offset;
 
@@ -57,10 +57,16 @@ export const ParallelEdge = ({
       const vx = flowPos.x - midX;
       const vy = flowPos.y - midY;
       
-      // حساب المسافة العمودية الجديدة للماوس عن الخط المستقيم
+      // Calculate new perpendicular offset
       const newOffset = vx * nx + vy * ny;
       
+      // Update the edge in the state (tries both global designer state and local result state)
       updateEdgeOffset(id, newOffset);
+      
+      // Also attempt to update local React Flow state if we're in a local provider (like results view)
+      if (setLocalEdges) {
+        setLocalEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset: newOffset } } : e));
+      }
     };
 
     const onMouseUp = () => {
