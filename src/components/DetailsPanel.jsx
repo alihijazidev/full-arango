@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGraph } from '../store/GraphContext';
-import { X, Plus, Trash2, Filter as FilterIcon, ArrowLeftRight, Layers } from 'lucide-react';
+import { X, Plus, Trash2, Filter as FilterIcon, ArrowLeftRight, Layers, Edit2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -8,7 +8,7 @@ import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 
 export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
-  const { nodes, edges, updateFilters, updateEdgeDepth } = useGraph();
+  const { nodes, edges, updateFilters, updateEdgeDepth, updateEdgeLabel, metadata } = useGraph();
   
   const target = isNode 
     ? nodes.find(n => n.id === selectedId) 
@@ -17,13 +17,15 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
   if (!target) return null;
 
   const data = target.data || {};
-  const label = isNode ? data.label : (target.label || data.metadata?.label || "رابط يدوي");
+  const currentLabel = isNode ? data.label : (target.label || data.metadata?.label || "رابط يدوي");
   const attributes = data.metadata?.attributes || [];
   const filters = data.filters || [];
   const depth = data.depth || 1;
-  const isManualEdge = !isNode && (data.metadata?.isManual || data.metadata?.label === 'رابط يدوي');
 
-  // تحويل المصفوفات لنصوص للعرض
+  // التحقق مما إذا كان الرابط موجوداً في metadata
+  const isPredefinedEdge = !isNode && metadata.edges.some(me => me.label === target.label);
+  const isManualEdge = !isNode && !isPredefinedEdge;
+
   const fromPathStr = Array.isArray(data.metadata?.fromcol) ? data.metadata.fromcol.join('/') : (data.metadata?.fromcol || 'مصدر يدوي');
   const toPathStr = Array.isArray(data.metadata?.tocol) ? data.metadata.tocol.join('/') : (data.metadata?.tocol || 'هدف يدوي');
 
@@ -64,9 +66,22 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
 
       <div className="p-6 flex-1 overflow-auto space-y-8" dir="rtl">
         <section>
-          <Label className="text-muted-foreground uppercase text-[10px] font-bold tracking-widest mb-2 block">الهوية</Label>
-          <div className="bg-slate-100 p-3 rounded-md">
-            <p className="font-bold text-xl">{label}</p>
+          <Label className="text-muted-foreground uppercase text-[10px] font-bold tracking-widest mb-2 block flex items-center gap-2">
+            الهوية
+            {!isNode && <Edit2 size={10} className="text-slate-400" />}
+          </Label>
+          <div className="bg-slate-100 p-3 rounded-md space-y-2">
+            {isNode ? (
+              <p className="font-bold text-xl">{currentLabel}</p>
+            ) : (
+              <Input 
+                value={currentLabel}
+                onChange={(e) => updateEdgeLabel(selectedId, e.target.value)}
+                className="font-bold text-lg bg-white border-slate-200 h-10"
+                placeholder="أدخل مسمى الرابط..."
+              />
+            )}
+            
             {isNode ? (
               <>
                 {data.type === 'collection' && (
@@ -102,11 +117,18 @@ export const DetailsPanel = ({ selectedId, isNode, onClose }) => {
                 disabled={!isManualEdge}
                 className="w-24 h-9 text-center font-bold"
               />
-              <p className="text-xs text-slate-500">
-                {isManualEdge 
-                  ? "يمكنك تعديل عمق البحث لهذا الرابط اليدوي." 
-                  : "الروابط التلقائية محددة بالعمق 1 افتراضياً."}
-              </p>
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-slate-500">
+                  {isManualEdge 
+                    ? "يمكنك تعديل عمق البحث لهذا الرابط اليدوي." 
+                    : "الروابط التلقائية محددة بالعمق 1 افتراضياً."}
+                </p>
+                {isPredefinedEdge && (
+                  <span className="text-[9px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 w-fit">
+                    علاقة معرفة في النظام
+                  </span>
+                )}
+              </div>
             </div>
           </section>
         )}

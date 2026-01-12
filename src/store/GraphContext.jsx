@@ -108,7 +108,7 @@ export const GraphProvider = ({ children }) => {
       
       return addEdge({ 
         ...params, 
-        label: edgeMeta?.label || null,
+        label: edgeMeta?.label || 'رابط يدوي',
         animated: isAnimated, 
         type: 'parallel',
         data: { 
@@ -245,6 +245,10 @@ export const GraphProvider = ({ children }) => {
     setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, depth: parseInt(depth) || 1 } } : e));
   };
 
+  const updateEdgeLabel = (id, label) => {
+    setEdges((eds) => eds.map((e) => e.id === id ? { ...e, label } : e));
+  };
+
   const updateEdgeOffset = (id, offset) => {
     setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset } } : e));
   };
@@ -266,7 +270,7 @@ export const GraphProvider = ({ children }) => {
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, 
-      addNodeFromMetadata, addEdgeManually, updateFilters, updateEdgeOffset, updateEdgeDepth, deleteElement, clearCanvas,
+      addNodeFromMetadata, addEdgeManually, updateFilters, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas,
       executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult,
       activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult,
       highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode,
