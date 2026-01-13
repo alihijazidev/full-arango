@@ -2,6 +2,7 @@
 
 import React from 'react';
 import * as LucideIcons from 'lucide-react';
+import * as FlatIcons from 'react-icons/fc';
 import { 
   Fingerprint, 
   FileText, 
@@ -50,7 +51,11 @@ const getDynamicColorName = (name) => {
 const resolveCustomIcon = (iconData, size) => {
   if (!iconData) return null;
   
-  // حالياً ندعم مكتبة Lucide فقط لأنها SVG ونظامنا يعتمد عليها
+  if (iconData.set === 'fc') {
+    const IconComponent = FlatIcons[iconData.name];
+    return IconComponent ? <IconComponent size={size} /> : null;
+  }
+  
   const IconComponent = LucideIcons[iconData.name];
   return IconComponent ? <IconComponent size={size} /> : null;
 };
@@ -58,7 +63,7 @@ const resolveCustomIcon = (iconData, size) => {
 export const getArabicName = (name) => nameMapping[name] || name;
 
 export const getIcon = (name, type = 'collection', globalIcons = {}) => {
-  const custom = resolveCustomIcon(globalIcons[name], 20);
+  const custom = resolveCustomIcon(globalIcons[name], 24);
   if (custom) return custom;
 
   const IconComponent = iconConfig[name];
@@ -68,7 +73,7 @@ export const getIcon = (name, type = 'collection', globalIcons = {}) => {
 };
 
 export const getSmallIcon = (name, type = 'collection', globalIcons = {}) => {
-  const custom = resolveCustomIcon(globalIcons[name], 14);
+  const custom = resolveCustomIcon(globalIcons[name], 16);
   if (custom) return custom;
 
   const IconComponent = iconConfig[name];
