@@ -10,10 +10,7 @@ import {
   ShoppingCart, 
   Package,
   FolderTree,
-  Database,
-  Hash,
-  Globe,
-  Layers
+  Database
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import * as FaIcons from 'react-icons/fa';
@@ -22,6 +19,12 @@ import * as HiIcons from 'react-icons/hi';
 import * as BiIcons from 'react-icons/bi';
 import * as SiIcons from 'react-icons/si';
 import * as RiIcons from 'react-icons/ri';
+import * as AiIcons from 'react-icons/ai';
+import * as BsIcons from 'react-icons/bs';
+import * as Io5Icons from 'react-icons/io5';
+import * as TiIcons from 'react-icons/ti';
+import * as GiIcons from 'react-icons/gi';
+import * as VscIcons from 'react-icons/vsc';
 
 export const nameMapping = {
   "Identity": "الهوية",
@@ -56,7 +59,6 @@ const getDynamicColorName = (name) => {
   return COLOR_PALETTE[index];
 };
 
-// وظيفة مساعدة لجلب مكون الأيقونة من بيانات المخزن عبر كافة المكتبات
 const resolveCustomIcon = (iconData, size) => {
   if (!iconData) return null;
   
@@ -67,7 +69,13 @@ const resolveCustomIcon = (iconData, size) => {
     hi: HiIcons,
     bi: BiIcons,
     si: SiIcons,
-    ri: RiIcons
+    ri: RiIcons,
+    ai: AiIcons,
+    bs: BsIcons,
+    io5: Io5Icons,
+    ti: TiIcons,
+    gi: GiIcons,
+    vsc: VscIcons
   };
 
   const Lib = libs[iconData.set];
@@ -86,7 +94,6 @@ export const getIcon = (name, type = 'collection', globalIcons = {}) => {
   const IconComponent = iconConfig[name];
   if (IconComponent) return <IconComponent size={20} />;
   if (type === 'category') return <FolderTree size={20} />;
-  if (name.toLowerCase().includes('id')) return <Fingerprint size={20} />;
   return <Database size={20} />;
 };
 
