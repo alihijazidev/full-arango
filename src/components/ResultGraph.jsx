@@ -4,7 +4,7 @@ import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
-import { MapPinned, Maximize2, LayoutGrid, Filter, Network, GitGraph } from 'lucide-react';
+import { MapPinned, Maximize2, LayoutGrid, Network, GitGraph } from 'lucide-react';
 import { Button } from './ui/button';
 import dagre from 'dagre';
 
@@ -50,7 +50,6 @@ const getTreeLayoutedElements = (nodes, edges, direction = 'TB') => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  // Define node dimensions for dagre
   const nodeWidth = 180;
   const nodeHeight = 100;
 
@@ -91,22 +90,16 @@ const ResultGraphInner = ({ data }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { fitView } = useReactFlow();
-  const [layoutMode, setLayoutMode] = useState('grid'); // 'grid' or 'tree'
+  const [layoutMode, setLayoutMode] = useState('grid'); 
 
   const allRawNodes = useMemo(() => {
     return [...(data.startnode || []), ...(data.targetnode || [])];
   }, [data]);
 
   const filteredData = useMemo(() => {
-    const uniqueEdgesMap = new Map();
-    (data.edges || []).forEach(edge => {
-      if (!uniqueEdgesMap.has(edge._id)) {
-        uniqueEdgesMap.set(edge._id, edge);
-      }
-    });
-    const uniqueEdges = Array.from(uniqueEdgesMap.values());
+    const allEdges = data.edges || [];
 
-    if (!resultSearchTerm) return { nodes: allRawNodes, edges: uniqueEdges };
+    if (!resultSearchTerm) return { nodes: allRawNodes, edges: allEdges };
     
     const term = resultSearchTerm.toLowerCase();
     const matchingNodes = allRawNodes.filter(node => {
@@ -115,7 +108,7 @@ const ResultGraphInner = ({ data }) => {
       return inId || inLabel;
     });
 
-    const matchingEdges = uniqueEdges.filter(edge => {
+    const matchingEdges = allEdges.filter(edge => {
       return (
         edge._from.toLowerCase().includes(term) || 
         edge._to.toLowerCase().includes(term) || 
