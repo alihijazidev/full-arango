@@ -1,7 +1,8 @@
 "use client";
 
 import React from 'react';
-import { DynamicSvg } from '../components/DynamicSvg';
+import * as LucideIcons from 'lucide-react';
+import * as FlatIcons from 'react-icons/fc';
 import { 
   FolderTree,
   Database
@@ -34,8 +35,10 @@ export const getIcon = (name, type = 'collection', globalIcons = {}) => {
   const custom = globalIcons[name];
   
   if (custom) {
-    // إذا كان لدينا أيقونة مخصصة (سواء من Iconify أو غيرها)
-    return <DynamicSvg iconName={custom.name} size={24} />;
+    // جلب الأيقونة من المكتبة المحلية بناءً على النوع (ملون أو عادي)
+    const IconLib = custom.set === 'fc' ? FlatIcons : LucideIcons;
+    const IconComponent = IconLib[custom.name];
+    if (IconComponent) return <IconComponent size={24} />;
   }
 
   // الأيقونات الافتراضية
@@ -45,7 +48,11 @@ export const getIcon = (name, type = 'collection', globalIcons = {}) => {
 
 export const getSmallIcon = (name, type = 'collection', globalIcons = {}) => {
   const custom = globalIcons[name];
-  if (custom) return <DynamicSvg iconName={custom.name} size={14} />;
+  if (custom) {
+    const IconLib = custom.set === 'fc' ? FlatIcons : LucideIcons;
+    const IconComponent = IconLib[custom.name];
+    if (IconComponent) return <IconComponent size={14} />;
+  }
   return type === 'category' ? <FolderTree size={14} /> : <Database size={14} />;
 };
 
