@@ -5,82 +5,81 @@ import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
 
-// قائمة موسعة وشاملة للأيقونات لتغطية كافة احتياجات التصميم
-const COMMON_ICONS = [
-  // الهوية والمستخدمين
-  'User', 'UserCircle', 'Users', 'UserPlus', 'UserMinus', 'UserCheck', 'Fingerprint', 'Contact', 'ShieldCheck',
-  // البيانات والتقنية
-  'Database', 'Server', 'Cpu', 'HardDrive', 'Network', 'Workflow', 'GitBranch', 'Code2', 'Terminal', 'Layers', 'Boxes', 'Container',
-  // المحتوى والرسائل
-  'FileText', 'Files', 'Folder', 'FolderTree', 'MessageSquare', 'MessageCircle', 'Mail', 'Send', 'AtSign', 'Bookmark', 'Tag',
-  // التجارة والمال
-  'ShoppingBag', 'ShoppingCart', 'Package', 'CreditCard', 'Banknote', 'Coins', 'Wallet', 'TrendingUp', 'TrendingDown', 'Percent', 'Receipt',
-  // إحصائيات ورسوم بيانية
-  'BarChart', 'BarChart3', 'PieChart', 'LineChart', 'Activity', 'Gauge', 'Target',
-  // عام وواجهة المستخدم
-  'Home', 'Settings', 'Bell', 'Calendar', 'Clock', 'Search', 'Link', 'ExternalLink', 'Share2', 'Trash2', 'Edit', 'Edit3', 'Save', 'Copy', 'Plus', 'Minus', 'Check', 'X', 'Info', 'AlertTriangle', 'HelpCircle',
-  // وسائط وأجهزة
-  'Camera', 'Image', 'Video', 'PlayCircle', 'PauseCircle', 'Headphones', 'Mic', 'Music', 'Smartphone', 'Laptop', 'Monitor', 'Speaker',
-  // اتجاهات وأسهم
-  'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ChevronUp', 'ChevronDown', 'ChevronLeft', 'ChevronRight', 'Move', 'RefreshCw', 'Maximize2', 'Minimize2',
-  // بيئة وعناصر
-  'Sun', 'Moon', 'Zap', 'Flame', 'Droplet', 'Atom', 'FlaskConical', 'Globe', 'Map', 'Navigation', 'MapPin'
-];
+// استخراج كافة أسماء الأيقونات من المكتبة برمجياً
+// نقوم بتصفية العناصر التي تبدأ بحرف كبير وليست من ضمن أدوات المكتبة الداخلية
+const ALL_LUCIDE_ICONS = Object.keys(LucideIcons).filter(name => 
+  typeof LucideIcons[name] === 'function' || typeof LucideIcons[name] === 'object'
+).filter(name => 
+  /^[A-Z]/.test(name) && // تبدأ بحرف كبير (مكونات React)
+  name !== 'LucideIcon' && 
+  !name.startsWith('Lucide') &&
+  name !== 'createLucideIcon'
+);
 
 export const IconPicker = ({ onSelect, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredIcons = useMemo(() => {
-    return COMMON_ICONS.filter(name => 
-      name.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort(); // ترتيب أبجدي لتسهيل البحث البصري
+    const term = searchTerm.toLowerCase();
+    return ALL_LUCIDE_ICONS.filter(name => 
+      name.toLowerCase().includes(term)
+    ).sort();
   }, [searchTerm]);
 
   return (
-    <div className="w-72 bg-white border rounded-xl shadow-2xl p-4 animate-in zoom-in-95 duration-200" dir="rtl">
+    <div className="w-80 bg-white border rounded-xl shadow-2xl p-4 animate-in zoom-in-95 duration-200" dir="rtl">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold text-slate-500 uppercase">اختر أيقونة ({COMMON_ICONS.length})</span>
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
-          <X size={14} />
+        <div className="flex flex-col">
+          <span className="text-xs font-bold text-slate-800 uppercase">مكتبة الأيقونات الشاملة</span>
+          <span className="text-[10px] text-slate-400">متاح {ALL_LUCIDE_ICONS.length} أيقونة</span>
+        </div>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+          <X size={16} />
         </Button>
       </div>
       
       <div className="relative mb-3">
         <Search className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
         <Input 
-          placeholder="بحث عن أيقونة (مثلاً: User, Chart, Data)..." 
-          className="h-9 pr-8 text-xs bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-primary" 
+          placeholder="ابحث عن أيقونة بالإنجليزية (مثل: User, Home)..." 
+          className="h-10 pr-8 text-xs bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-primary shadow-inner" 
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           autoFocus
         />
       </div>
 
-      <ScrollArea className="h-64">
-        <div className="grid grid-cols-5 gap-2 pr-1">
+      <ScrollArea className="h-72">
+        <div className="grid grid-cols-5 gap-2 pr-2">
           {filteredIcons.map(name => {
             const IconComponent = LucideIcons[name];
-            if (!IconComponent) return null;
+            // في حال وجود بعض التصديرات التي ليست أيقونات فعلياً
+            if (!IconComponent || typeof IconComponent === 'string') return null;
             
             return (
               <button
                 key={name}
                 onClick={() => onSelect(name)}
-                className="flex items-center justify-center p-2.5 rounded-lg hover:bg-primary/10 hover:text-primary transition-all border border-transparent hover:border-primary/20 group"
+                className="flex items-center justify-center p-2 rounded-lg hover:bg-primary/10 hover:text-primary transition-all border border-transparent hover:border-primary/20 group"
                 title={name}
               >
-                <IconComponent size={20} className="group-hover:scale-110 transition-transform" />
+                <IconComponent size={22} className="group-hover:scale-110 transition-transform" />
               </button>
             );
           })}
         </div>
+        
         {filteredIcons.length === 0 && (
-          <div className="text-center py-12 text-slate-400 flex flex-col items-center gap-2">
-            <Search size={24} className="opacity-20" />
-            <p className="text-xs italic">لا توجد أيقونة تطابق بحثك</p>
+          <div className="text-center py-16 text-slate-400 flex flex-col items-center gap-3">
+            <Search size={32} className="opacity-10" />
+            <p className="text-xs italic">لا توجد نتائج مطابقة لبحثك</p>
           </div>
         )}
       </ScrollArea>
+      
+      <div className="mt-3 pt-3 border-t text-[9px] text-slate-400 text-center">
+        استخدم كلمات إنجليزية للبحث في مكتبة Lucide
+      </div>
     </div>
   );
 };
