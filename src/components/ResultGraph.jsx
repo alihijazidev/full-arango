@@ -4,11 +4,9 @@ import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
-import { MapPinned, Maximize2, LayoutTemplate, Zap } from 'lucide-react';
+import { MapPinned, Maximize2, Zap, Share2 } from 'lucide-react';
 import { Button } from './ui/button';
-import ELK from 'elkjs/lib/elk.bundled.js';
-
-const elk = new ELK();
+import { forceSimulation, forceLink, forceManyBody, forceCenter, forceX, forceY } from 'd3-force';
 
 const nodeTypes = {
   customNode: CustomNode,
@@ -16,50 +14,6 @@ const nodeTypes = {
 
 const edgeTypes = {
   parallel: ParallelEdge,
-};
-
-// إعدادات ELK للتوزيع الذكي
-const elkOptions = {
-  'elk.algorithm': 'layered',
-  'elk.direction': 'RIGHT',
-  'elk.layered.spacing.nodeNodeLayered': '100',
-  'elk.spacing.nodeNode': '80',
-  'elk.edgeRouting': 'SPLINES',
-};
-
-const getLayoutedElements = async (nodes, edges) => {
-  const graph = {
-    id: 'root',
-    layoutOptions: elkOptions,
-    children: nodes.map((node) => ({
-      ...node,
-      width: 180,
-      height: 100,
-    })),
-    edges: edges.map((edge) => ({
-      id: edge.id,
-      sources: [edge.source],
-      targets: [edge.target],
-    })),
-  };
-
-  try {
-    const layoutedGraph = await elk.layout(graph);
-    
-    return {
-      nodes: nodes.map((node) => {
-        const layoutedNode = layoutedGraph.children.find((n) => n.id === node.id);
-        return {
-          ...node,
-          position: { x: layoutedNode.x, y: layoutedNode.y },
-        };
-      }),
-      edges,
-    };
-  } catch (error) {
-    console.error('ELK Layout Error:', error);
-    return { nodes, edges };
-  }
 };
 
 const ResultGraphInner = ({ data }) => {
@@ -72,25 +26,27 @@ const ResultGraphInner = ({ data }) => {
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { fitView, setCenter } = useReactFlow();
-  const [isLayouting, setIsLayouting] = useState(false);
+  const { fitView } = useReactFlow();
+  const [isSimulating, setIsSimulating] = useState(false);
 
   const allRawNodes = useMemo(() => {
     return [...(data.startnode || []), ...(data.targetnode || [])];
   }, [data]);
 
+  // تصفية البيانات بناءً على البحث
   const filteredData = useMemo(() => {
     if (!resultSearchTerm) return { nodes: allRawNodes, edges: data.edges || [] };
     const term = resultSearchTerm.toLowerCase();
     
     const matchingNodes = allRawNodes.filter(node => {
-      const inId = node._id ? String(node._id).toLowerCase().includes(term) : false;
-      const inLabel = node.label ? String(node.label).toLowerCase().includes(term) : false;
-      return inId || inLabel;
+      return (node._id && node._id.toLowerCase().includes(term)) || 
+             (node.label && node.label.toLowerCase().includes(term));
     });
 
     const matchingEdges = (data.edges || []).filter(edge => {
-      return edge._from.toLowerCase().includes(term) || edge._to.toLowerCase().includes(term) || edge.label.toLowerCase().includes(term);
+      return edge._from.toLowerCase().includes(term) || 
+             edge._to.toLowerCase().includes(term) || 
+             edge.label.toLowerCase().includes(term);
     });
 
     const nodeIdsToShow = new Set(matchingNodes.map(n => n._id));
@@ -102,13 +58,39 @@ const ResultGraphInner = ({ data }) => {
     };
   }, [allRawNodes, data.edges, resultSearchTerm]);
 
-  const applyLayout = useCallback(async (currentNodes, currentEdges) => {
-    setIsLayouting(true);
-    const { nodes: layoutedNodes, edges: layoutedEdges } = await getLayoutedElements(currentNodes, currentEdges);
+  // تطبيق توزيع القوى (Force Layout)
+  const runSimulation = useCallback((initialNodes, initialEdges) => {
+    setIsSimulating(true);
+
+    // تحويل البيانات لتناسب d3-force
+    const simulationNodes = initialNodes.map(n => ({ ...n, x: Math.random() * 500, y: Math.random() * 500 }));
+    const simulationLinks = initialEdges.map(e => ({ 
+      source: e.source, 
+      target: e.target,
+      id: e.id
+    }));
+
+    const simulation = forceSimulation(simulationNodes)
+      .force("link", forceLink(simulationLinks).id(d => d.id).distance(150).strength(1))
+      .force("charge", forceManyBody().strength(-800)) // قوة تنافر قوية لمنع التداخل
+      .force("center", forceCenter(window.innerWidth / 4, window.innerHeight / 4))
+      .force("x", forceX().strength(0.1))
+      .force("y", forceY().strength(0.1))
+      .stop();
+
+    // تشغيل المحاكاة لعدد من الخطوات للوصول للاستقرار
+    for (let i = 0; i < 300; ++i) simulation.tick();
+
+    const layoutedNodes = simulationNodes.map(node => ({
+      ...initialNodes.find(n => n.id === node.id),
+      position: { x: node.x, y: node.y }
+    }));
+
     setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
-    setIsLayouting(false);
-    setTimeout(() => fitView({ duration: 800, padding: 0.2 }), 100);
+    setEdges(initialEdges);
+    setIsSimulating(false);
+    
+    setTimeout(() => fitView({ duration: 1000, padding: 0.2 }), 100);
   }, [setNodes, setEdges, fitView]);
 
   useEffect(() => {
@@ -124,7 +106,7 @@ const ResultGraphInner = ({ data }) => {
       },
     }));
 
-    const rawEdges = filteredData.edges.map((edge, i) => ({
+    const rawEdges = filteredData.edges.map((edge) => ({
       id: edge._id,
       source: edge._from,
       target: edge._to,
@@ -134,9 +116,12 @@ const ResultGraphInner = ({ data }) => {
       data: { offset: 0, metadata: edge },
     }));
 
-    applyLayout(rawNodes, rawEdges);
-  }, [filteredData, applyLayout]);
+    if (rawNodes.length > 0) {
+      runSimulation(rawNodes, rawEdges);
+    }
+  }, [filteredData, runSimulation]);
 
+  // تحديث حالة التحديد (Selection)
   useEffect(() => {
     setNodes((nds) => nds.map((node) => ({
       ...node,
@@ -161,23 +146,23 @@ const ResultGraphInner = ({ data }) => {
         onEdgeMouseLeave={() => setHighlightedId(null)}
         fitView
       >
-        <Background color="#f1f5f9" gap={20} />
+        <Background color="#f8fafc" gap={20} variant="dots" />
         
         <Panel position="bottom-right" className="m-4 flex gap-2">
           <Button 
             variant="outline" 
             size="sm" 
-            className="bg-white/80 backdrop-blur shadow-md gap-2"
-            onClick={() => applyLayout(nodes, edges)}
-            disabled={isLayouting}
+            className="bg-white shadow-md gap-2 border-primary/20 text-primary"
+            onClick={() => runSimulation(nodes, edges)}
+            disabled={isSimulating}
           >
-            {isLayouting ? <Zap size={14} className="animate-spin" /> : <LayoutTemplate size={14} />}
-            إعادة التوزيع (ELK)
+            {isSimulating ? <Zap size={14} className="animate-spin" /> : <Share2 size={14} />}
+            توزيع القوى (Force)
           </Button>
           <Button 
             variant="outline" 
             size="sm" 
-            className="bg-white/80 backdrop-blur shadow-md gap-2"
+            className="bg-white shadow-md gap-2"
             onClick={() => fitView({ duration: 800 })}
           >
             <Maximize2 size={14} />
@@ -186,10 +171,10 @@ const ResultGraphInner = ({ data }) => {
         </Panel>
 
         {isResultPathMode && (
-          <Panel position="top-center" className="bg-amber-500 text-white px-4 py-1.5 rounded-full shadow-lg animate-pulse">
-            <p className="text-[10px] font-bold flex items-center gap-2">
-              <MapPinned size={14} />
-              {resultPathNodes.length === 0 ? 'اختر نقطة البداية' : 'اختر نقطة النهاية'}
+          <Panel position="top-center" className="bg-amber-500 text-white px-6 py-2 rounded-full shadow-lg animate-bounce mt-4">
+            <p className="text-xs font-bold flex items-center gap-2">
+              <MapPinned size={16} />
+              {resultPathNodes.length === 0 ? 'حدد عقدة البداية' : 'حدد عقدة النهاية'}
             </p>
           </Panel>
         )}
