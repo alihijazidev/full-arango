@@ -4,7 +4,7 @@ import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
-import { MapPinned, Maximize2, LayoutGrid, Zap } from 'lucide-react';
+import { MapPinned, Maximize2, LayoutGrid, Filter } from 'lucide-react';
 import { Button } from './ui/button';
 
 const nodeTypes = {
@@ -17,11 +17,10 @@ const edgeTypes = {
 
 // وظيفة التوزيع الشبكي المنظم
 const getGridLayoutedElements = (nodes, edges) => {
-  const spacingX = 300; // المسافة الأفقية
-  const spacingY = 200; // المسافة الرأسية
-  const columns = Math.ceil(Math.sqrt(nodes.length)); // حساب عدد الأعمدة بناءً على عدد العقد
+  const spacingX = 300; 
+  const spacingY = 200; 
+  const columns = Math.ceil(Math.sqrt(nodes.length)); 
 
-  // فرز العقد بناءً على النوع (Label) ثم المعرف لضمان تجميع المجموعات المتشابهة معاً
   const sortedNodes = [...nodes].sort((a, b) => {
     if (a.data.label !== b.data.label) {
       return a.data.label.localeCompare(b.data.label);
@@ -55,15 +54,24 @@ const ResultGraphInner = ({ data }) => {
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { fitView, setCenter } = useReactFlow();
-  const [layoutType, setLayoutType] = useState('grid'); // 'grid' or 'force' (يمكن التبديل مستقبلاً)
+  const { fitView } = useReactFlow();
 
   const allRawNodes = useMemo(() => {
     return [...(data.startnode || []), ...(data.targetnode || [])];
   }, [data]);
 
   const filteredData = useMemo(() => {
-    if (!resultSearchTerm) return { nodes: allRawNodes, edges: data.edges || [] };
+    // 1. تصفية العلاقات المتكررة بناءً على _id
+    const uniqueEdgesMap = new Map();
+    (data.edges || []).forEach(edge => {
+      if (!uniqueEdgesMap.has(edge._id)) {
+        uniqueEdgesMap.set(edge._id, edge);
+      }
+    });
+    const uniqueEdges = Array.from(uniqueEdgesMap.values());
+
+    if (!resultSearchTerm) return { nodes: allRawNodes, edges: uniqueEdges };
+    
     const term = resultSearchTerm.toLowerCase();
     
     const matchingNodes = allRawNodes.filter(node => {
@@ -72,8 +80,13 @@ const ResultGraphInner = ({ data }) => {
       return inId || inLabel;
     });
 
-    const matchingEdges = (data.edges || []).filter(edge => {
-      return edge._from.toLowerCase().includes(term) || edge._to.toLowerCase().includes(term) || edge.label.toLowerCase().includes(term);
+    const matchingEdges = uniqueEdges.filter(edge => {
+      return (
+        edge._from.toLowerCase().includes(term) || 
+        edge._to.toLowerCase().includes(term) || 
+        edge.label.toLowerCase().includes(term) ||
+        edge._id.toLowerCase().includes(term)
+      );
     });
 
     const nodeIdsToShow = new Set(matchingNodes.map(n => n._id));
@@ -108,13 +121,11 @@ const ResultGraphInner = ({ data }) => {
       data: { offset: 0, metadata: edge },
     }));
 
-    // تطبيق التخطيط الشبكي
     const { nodes: layoutedNodes, edges: layoutedEdges } = getGridLayoutedElements(rawNodes, rawEdges);
 
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
     
-    // تأخير بسيط لضمان تحديث المواقع قبل عمل fitView
     setTimeout(() => fitView({ duration: 800, padding: 0.2 }), 50);
   }, [filteredData, setNodes, setEdges, fitView]);
 
@@ -149,6 +160,10 @@ const ResultGraphInner = ({ data }) => {
         <Background color="#f1f5f9" gap={20} />
         
         <Panel position="bottom-right" className="m-4 flex gap-2">
+          <div className="bg-white/80 backdrop-blur px-3 py-1.5 rounded-md border shadow-sm flex items-center gap-2 text-[10px] font-bold text-slate-500">
+            <Filter size={12} className="text-primary" />
+            تصفية المعرفات المتكررة نشطة
+          </div>
           <Button 
             variant="outline" 
             size="sm" 
