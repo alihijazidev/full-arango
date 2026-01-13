@@ -1,12 +1,11 @@
-import React, { useEffect, useCallback, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useCallback, useMemo, useState } from 'react';
 import ReactFlow, { Background, useNodesState, useEdgesState, Panel, useReactFlow, ReactFlowProvider } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
-import { MapPinned, Maximize2, Activity, Zap } from 'lucide-react';
+import { MapPinned, Maximize2, LayoutGrid, Zap } from 'lucide-react';
 import { Button } from './ui/button';
-import { forceSimulation, forceLink, forceManyBody, forceCenter, forceX, forceY } from 'd3-force';
 
 const nodeTypes = {
   customNode: CustomNode,
@@ -14,6 +13,36 @@ const nodeTypes = {
 
 const edgeTypes = {
   parallel: ParallelEdge,
+};
+
+// وظيفة التوزيع الشبكي المنظم
+const getGridLayoutedElements = (nodes, edges) => {
+  const spacingX = 300; // المسافة الأفقية
+  const spacingY = 200; // المسافة الرأسية
+  const columns = Math.ceil(Math.sqrt(nodes.length)); // حساب عدد الأعمدة بناءً على عدد العقد
+
+  // فرز العقد بناءً على النوع (Label) ثم المعرف لضمان تجميع المجموعات المتشابهة معاً
+  const sortedNodes = [...nodes].sort((a, b) => {
+    if (a.data.label !== b.data.label) {
+      return a.data.label.localeCompare(b.data.label);
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  const layoutedNodes = sortedNodes.map((node, index) => {
+    const row = Math.floor(index / columns);
+    const col = index % columns;
+    
+    return {
+      ...node,
+      position: {
+        x: col * spacingX,
+        y: row * spacingY,
+      },
+    };
+  });
+
+  return { nodes: layoutedNodes, edges };
 };
 
 const ResultGraphInner = ({ data }) => {
@@ -27,9 +56,7 @@ const ResultGraphInner = ({ data }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { fitView, setCenter } = useReactFlow();
-  const [isSimulating, setIsSimulating] = useState(false);
-  
-  const simulationRef = useRef(null);
+  const [layoutType, setLayoutType] = useState('grid'); // 'grid' or 'force' (يمكن التبديل مستقبلاً)
 
   const allRawNodes = useMemo(() => {
     return [...(data.startnode || []), ...(data.targetnode || [])];
@@ -58,39 +85,7 @@ const ResultGraphInner = ({ data }) => {
     };
   }, [allRawNodes, data.edges, resultSearchTerm]);
 
-  // وظيفة تشغيل المحاكاة الفيزيائية لتوزيع العقد
-  const runSimulation = useCallback((initialNodes, initialEdges) => {
-    if (simulationRef.current) simulationRef.current.stop();
-    
-    setIsSimulating(true);
-
-    // تجهيز البيانات للمحاكاة
-    const d3Nodes = initialNodes.map(n => ({ ...n, x: Math.random() * 500, y: Math.random() * 500 }));
-    const d3Links = initialEdges.map(e => ({ source: e.source, target: e.target }));
-
-    const simulation = forceSimulation(d3Nodes)
-      .force("link", forceLink(d3Links).id(d => d.id).distance(150).strength(1))
-      .force("charge", forceManyBody().strength(-1000)) // تنافر قوي لمنع التداخل
-      .force("x", forceX().strength(0.1))
-      .force("y", forceY().strength(0.1))
-      .force("center", forceCenter(0, 0));
-
-    simulation.on("tick", () => {
-      setNodes(d3Nodes.map(node => ({
-        ...node,
-        position: { x: node.x, y: node.y }
-      })));
-    });
-
-    simulation.on("end", () => {
-      setIsSimulating(false);
-      fitView({ duration: 800, padding: 0.2 });
-    });
-
-    simulationRef.current = simulation;
-  }, [setNodes, fitView]);
-
-  useEffect(() => {
+  const applyLayout = useCallback(() => {
     const rawNodes = filteredData.nodes.map((item) => ({
       id: item._id,
       type: 'customNode',
@@ -113,13 +108,19 @@ const ResultGraphInner = ({ data }) => {
       data: { offset: 0, metadata: edge },
     }));
 
-    setEdges(rawEdges);
-    runSimulation(rawNodes, rawEdges);
+    // تطبيق التخطيط الشبكي
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getGridLayoutedElements(rawNodes, rawEdges);
 
-    return () => {
-      if (simulationRef.current) simulationRef.current.stop();
-    };
-  }, [filteredData, runSimulation, setEdges]);
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+    
+    // تأخير بسيط لضمان تحديث المواقع قبل عمل fitView
+    setTimeout(() => fitView({ duration: 800, padding: 0.2 }), 50);
+  }, [filteredData, setNodes, setEdges, fitView]);
+
+  useEffect(() => {
+    applyLayout();
+  }, [applyLayout]);
 
   useEffect(() => {
     setNodes((nds) => nds.map((node) => ({
@@ -152,11 +153,10 @@ const ResultGraphInner = ({ data }) => {
             variant="outline" 
             size="sm" 
             className="bg-white/80 backdrop-blur shadow-md gap-2"
-            onClick={() => runSimulation(nodes, edges)}
-            disabled={isSimulating}
+            onClick={applyLayout}
           >
-            {isSimulating ? <Activity size={14} className="animate-spin" /> : <Zap size={14} />}
-            إعادة المحاكاة (Force)
+            <LayoutGrid size={14} />
+            إعادة ترتيب الشبكة
           </Button>
           <Button 
             variant="outline" 
