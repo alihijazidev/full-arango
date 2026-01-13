@@ -1,16 +1,8 @@
 "use client";
 
 import React from 'react';
-import * as LucideIcons from 'lucide-react';
-import * as FlatIcons from 'react-icons/fc';
+import { DynamicSvg } from '../components/DynamicSvg';
 import { 
-  Fingerprint, 
-  FileText, 
-  MessageSquare, 
-  MessageCircle, 
-  ShoppingBag, 
-  ShoppingCart, 
-  Package,
   FolderTree,
   Database
 } from 'lucide-react';
@@ -21,18 +13,6 @@ export const nameMapping = {
   "Commerce": "التجارة",
   "Users": "المستخدمون",
   "Profiles": "الملفات الشخصية"
-};
-
-const iconConfig = {
-  "Identity": Fingerprint,
-  "Content": FileText,
-  "Commerce": ShoppingBag,
-  "Users": LucideIcons.Users,
-  "Profiles": LucideIcons.Contact,
-  "Posts": MessageSquare,
-  "Comments": MessageCircle,
-  "Orders": ShoppingCart,
-  "Products": Package
 };
 
 const COLOR_PALETTE = ["blue", "indigo", "sky", "emerald", "teal", "cyan", "amber", "orange", "rose", "violet", "purple", "pink", "lime"];
@@ -48,36 +28,24 @@ const getDynamicColorName = (name) => {
   return COLOR_PALETTE[index];
 };
 
-const resolveCustomIcon = (iconData, size) => {
-  if (!iconData) return null;
-  
-  if (iconData.set === 'fc') {
-    const IconComponent = FlatIcons[iconData.name];
-    return IconComponent ? <IconComponent size={size} /> : null;
-  }
-  
-  const IconComponent = LucideIcons[iconData.name];
-  return IconComponent ? <IconComponent size={size} /> : null;
-};
-
 export const getArabicName = (name) => nameMapping[name] || name;
 
 export const getIcon = (name, type = 'collection', globalIcons = {}) => {
-  const custom = resolveCustomIcon(globalIcons[name], 24);
-  if (custom) return custom;
+  const custom = globalIcons[name];
+  
+  if (custom) {
+    // إذا كان لدينا أيقونة مخصصة (سواء من Iconify أو غيرها)
+    return <DynamicSvg iconName={custom.name} size={24} />;
+  }
 
-  const IconComponent = iconConfig[name];
-  if (IconComponent) return typeof IconComponent === 'function' ? <IconComponent size={20} /> : React.createElement(IconComponent, { size: 20 });
+  // الأيقونات الافتراضية
   if (type === 'category') return <FolderTree size={20} />;
   return <Database size={20} />;
 };
 
 export const getSmallIcon = (name, type = 'collection', globalIcons = {}) => {
-  const custom = resolveCustomIcon(globalIcons[name], 16);
-  if (custom) return custom;
-
-  const IconComponent = iconConfig[name];
-  if (IconComponent) return typeof IconComponent === 'function' ? <IconComponent size={14} /> : React.createElement(IconComponent, { size: 14 });
+  const custom = globalIcons[name];
+  if (custom) return <DynamicSvg iconName={custom.name} size={14} />;
   return type === 'category' ? <FolderTree size={14} /> : <Database size={14} />;
 };
 
