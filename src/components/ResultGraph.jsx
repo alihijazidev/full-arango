@@ -27,7 +27,6 @@ const ResultGraphInner = ({ data }) => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { fitView, setCenter } = useReactFlow();
 
-  // Combine all nodes from the data source
   const allRawNodes = useMemo(() => {
     return [...(data.startnode || []), ...(data.targetnode || [])];
   }, [data]);
@@ -70,16 +69,22 @@ const ResultGraphInner = ({ data }) => {
   }, [allRawNodes, data.edges, resultSearchTerm]);
 
   useEffect(() => {
-    const initialNodes = filteredData.nodes.map((item, i) => ({
-      id: item._id,
-      type: 'customNode',
-      position: { x: (i % 4) * 250, y: Math.floor(i / 4) * 200 },
-      data: { 
-        label: item.label || item._id.split('/')[1] || "Unknown", 
-        type: 'collection',
-        metadata: item // Pass full metadata to the node
-      },
-    }));
+    const initialNodes = filteredData.nodes.map((item, i) => {
+      // استخراج اسم المجموعة من المعرف (مثلاً Users من Users/123)
+      const collectionName = item.label || (item._id && item._id.includes('/') ? item._id.split('/')[0] : "Unknown");
+      
+      return {
+        id: item._id,
+        type: 'customNode',
+        position: { x: (i % 4) * 250, y: Math.floor(i / 4) * 200 },
+        data: { 
+          label: collectionName, // يستخدم للألوان والأيقونات والترجمة
+          instanceId: item._id,  // يستخدم لعرض المعرف الفعلي على العقدة
+          type: 'collection',
+          metadata: item 
+        },
+      };
+    });
 
     const getResultOffset = (source, target, idx, all) => {
       const samePair = all.filter(e => (e._from === source && e._to === target) || (e._from === target && e._to === source));
@@ -98,14 +103,13 @@ const ResultGraphInner = ({ data }) => {
       animated: true,
       data: { 
         offset: getResultOffset(edge._from, edge._to, i, filteredData.edges),
-        metadata: edge // Pass full metadata to the edge
+        metadata: edge 
       },
     }));
 
     setNodes(initialNodes);
     setEdges(initialEdges);
     
-    // Auto-fit on initial load or search change
     const timer = setTimeout(() => fitView({ duration: 400, padding: 0.2 }), 100);
     return () => clearTimeout(timer);
   }, [filteredData, setNodes, setEdges, fitView]);

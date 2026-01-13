@@ -5,7 +5,8 @@ import { getArabicName, getIcon, getColorStyles } from '../utils/mapping';
 
 export const CustomNode = memo(({ data, selected }) => {
   const isCategory = data.type === 'category';
-  const displayName = getArabicName(data.label);
+  // في حال كانت العقدة نتيجة بحث، نعرض المعرف (instanceId)، وإلا نعرض الاسم العربي للمجموعة
+  const displayLabel = data.instanceId ? data.instanceId : getArabicName(data.label);
   const icon = getIcon(data.label, data.type);
   const colors = getColorStyles(data.label, selected);
 
@@ -35,15 +36,18 @@ export const CustomNode = memo(({ data, selected }) => {
           {icon}
         </div>
 
-        <div className="flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center w-full overflow-hidden">
           <span className={cn(
             "text-[9px] font-bold uppercase tracking-widest mb-0.5",
             colors.accent
           )}>
-            {isCategory ? 'فئة' : 'مجموعة'}
+            {isCategory ? 'فئة' : getArabicName(data.label)}
           </span>
-          <span className="text-sm font-bold text-slate-700 truncate max-w-[120px]">
-            {displayName}
+          <span className={cn(
+            "font-bold text-slate-700 truncate w-full px-1",
+            data.instanceId ? "text-[10px] font-mono" : "text-sm"
+          )}>
+            {displayLabel}
           </span>
         </div>
       </div>
