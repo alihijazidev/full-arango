@@ -1,7 +1,7 @@
+"use client";
+
 import React from 'react';
 import { 
-  User, 
-  UserCircle, 
   Fingerprint, 
   FileText, 
   MessageSquare, 
@@ -39,6 +39,10 @@ import * as PiIcons from 'react-icons/pi';
 import * as TbIcons from 'react-icons/tb';
 import * as TfiIcons from 'react-icons/tfi';
 import * as SlIcons from 'react-icons/sl';
+import * as RxIcons from 'react-icons/rx';
+import * as LiaIcons from 'react-icons/lia';
+import * as CiIcons from 'react-icons/ci';
+import * as LuIcons from 'react-icons/lu';
 
 export const nameMapping = {
   "Identity": "الهوية",
@@ -52,8 +56,8 @@ const iconConfig = {
   "Identity": Fingerprint,
   "Content": FileText,
   "Commerce": ShoppingBag,
-  "Users": User,
-  "Profiles": UserCircle,
+  "Users": Hi2Icons.HiOutlineUserGroup,
+  "Profiles": Hi2Icons.HiOutlineIdentification,
   "Posts": MessageSquare,
   "Comments": MessageCircle,
   "Orders": ShoppingCart,
@@ -103,7 +107,11 @@ const resolveCustomIcon = (iconData, size) => {
     pi: PiIcons,
     tb: TbIcons,
     tfi: TfiIcons,
-    sl: SlIcons
+    sl: SlIcons,
+    rx: RxIcons,
+    lia: LiaIcons,
+    ci: CiIcons,
+    lu: LuIcons
   };
 
   const Lib = libs[iconData.set];
@@ -120,7 +128,7 @@ export const getIcon = (name, type = 'collection', globalIcons = {}) => {
   if (custom) return custom;
 
   const IconComponent = iconConfig[name];
-  if (IconComponent) return <IconComponent size={20} />;
+  if (IconComponent) return typeof IconComponent === 'function' ? <IconComponent size={20} /> : React.createElement(IconComponent, { size: 20 });
   if (type === 'category') return <FolderTree size={20} />;
   return <Database size={20} />;
 };
@@ -130,7 +138,7 @@ export const getSmallIcon = (name, type = 'collection', globalIcons = {}) => {
   if (custom) return custom;
 
   const IconComponent = iconConfig[name];
-  if (IconComponent) return <IconComponent size={14} />;
+  if (IconComponent) return typeof IconComponent === 'function' ? <IconComponent size={14} /> : React.createElement(IconComponent, { size: 14 });
   return type === 'category' ? <FolderTree size={14} /> : <Database size={14} />;
 };
 

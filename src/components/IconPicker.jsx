@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useMemo } from 'react';
 import * as LucideIcons from 'lucide-react';
 import * as FaIcons from 'react-icons/fa';
@@ -26,6 +28,10 @@ import * as PiIcons from 'react-icons/pi';
 import * as TbIcons from 'react-icons/tb';
 import * as TfiIcons from 'react-icons/tfi';
 import * as SlIcons from 'react-icons/sl';
+import * as RxIcons from 'react-icons/rx';
+import * as LiaIcons from 'react-icons/lia';
+import * as CiIcons from 'react-icons/ci';
+import * as LuIcons from 'react-icons/lu';
 import { Search, X, Layers } from 'lucide-react';
 import { Input } from './ui/input';
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
@@ -41,6 +47,10 @@ export const IconPicker = ({ onSelect, onClose }) => {
     lucide: { name: 'Lucide', icons: Object.keys(LucideIcons.icons), lib: LucideIcons.icons },
     fa6: { name: 'FA 6', icons: Object.keys(Fa6Icons), lib: Fa6Icons },
     fa: { name: 'FA 5', icons: Object.keys(FaIcons), lib: FaIcons },
+    rx: { name: 'Radix', icons: Object.keys(RxIcons), lib: RxIcons },
+    lia: { name: 'Line Awesome', icons: Object.keys(LiaIcons), lib: LiaIcons },
+    ci: { name: 'Circum', icons: Object.keys(CiIcons), lib: CiIcons },
+    lu: { name: 'Lucide (M)', icons: Object.keys(LuIcons), lib: LuIcons },
     fc: { name: 'Flat Color', icons: Object.keys(FcIcons), lib: FcIcons },
     di: { name: 'Devicons', icons: Object.keys(DiIcons), lib: DiIcons },
     pi: { name: 'Phosphor', icons: Object.keys(PiIcons), lib: PiIcons },
@@ -72,33 +82,32 @@ export const IconPicker = ({ onSelect, onClose }) => {
     
     if (activeTab === 'all') {
       const results = [];
-      // البحث في كافة المكتبات
       for (const [key, set] of Object.entries(iconSets)) {
         const matches = set.icons
           .filter(name => name.toLowerCase().includes(term))
           .map(name => ({ name, set: key, libName: set.name, lib: set.lib }));
         results.push(...matches);
-        if (results.length > 300) break; // تحديد النتائج لضمان الأداء
+        if (results.length > 400) break; 
       }
       return results;
     } else {
       const currentSet = iconSets[activeTab];
       return currentSet.icons
         .filter(name => name.toLowerCase().includes(term))
-        .slice(0, 300)
+        .slice(0, 400)
         .map(name => ({ name, set: activeTab, libName: currentSet.name, lib: currentSet.lib }));
     }
   }, [searchTerm, activeTab, iconSets]);
 
   return (
-    <div className="w-[600px] bg-white border rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] p-6 animate-in zoom-in-95 duration-200 border-slate-200" dir="rtl">
+    <div className="w-[650px] bg-white border rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] p-6 animate-in zoom-in-95 duration-200 border-slate-200" dir="rtl">
       <div className="flex items-center justify-between mb-5">
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <span className="text-base font-black text-slate-900 tracking-tight">ترسانة الأيقونات الموحدة</span>
-            <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] font-bold">27 مكتبة</Badge>
+            <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] font-bold">31 مكتبة</Badge>
           </div>
-          <span className="text-xs text-slate-500 font-medium">بحث شامل وفوري في كافة التصنيفات العالمية</span>
+          <span className="text-xs text-slate-500 font-medium">أكبر قاعدة بيانات أيقونات مدمجة (Offline)</span>
         </div>
         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-slate-100" onClick={onClose}>
           <X size={20} className="text-slate-400" />
@@ -114,7 +123,7 @@ export const IconPicker = ({ onSelect, onClose }) => {
                 className="px-4 py-2 text-[11px] font-bold rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all flex items-center gap-2"
               >
                 <Layers size={14} />
-                البحث الموحد (الكل)
+                البحث الموحد
               </TabsTrigger>
               <div className="w-px h-6 bg-slate-200 mx-1 self-center" />
               {Object.entries(iconSets).map(([key, set]) => (
@@ -135,7 +144,7 @@ export const IconPicker = ({ onSelect, onClose }) => {
       <div className="relative mb-5">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
         <Input 
-          placeholder={activeTab === 'all' ? "ابحث في كافة المكتبات الـ 27..." : `بحث في مكتبة ${iconSets[activeTab].name}...`} 
+          placeholder={activeTab === 'all' ? "ابحث في أكثر من 120,000 أيقونة..." : `بحث في مكتبة ${iconSets[activeTab].name}...`} 
           className="h-12 pr-12 text-sm bg-white border-slate-200 rounded-2xl focus-visible:ring-primary/20 shadow-sm" 
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -147,10 +156,10 @@ export const IconPicker = ({ onSelect, onClose }) => {
         {filteredIcons.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 opacity-50">
             <Search size={48} />
-            <p className="text-sm font-medium">لم نجد أي أيقونة بهذا الاسم</p>
+            <p className="text-sm font-medium">لا توجد نتائج مطابقة</p>
           </div>
         ) : (
-          <div className="grid grid-cols-6 gap-3 p-1">
+          <div className="grid grid-cols-7 gap-3 p-1">
             {filteredIcons.map(item => {
               const IconComponent = item.lib[item.name];
               if (!IconComponent) return null;
@@ -179,9 +188,9 @@ export const IconPicker = ({ onSelect, onClose }) => {
       <div className="mt-5 flex items-center justify-between text-[10px] text-slate-400 border-t pt-4">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>{activeTab === 'all' ? 'محرك البحث الموحد نشط' : `مكتبة ${iconSets[activeTab].name} نشطة`}</span>
+          <span>قاعدة البيانات محملة بالكامل</span>
         </div>
-        <span className="bg-slate-100 px-3 py-1 rounded-full font-black text-slate-600">النتائج: {filteredIcons.length} {filteredIcons.length === 301 ? '+' : ''}</span>
+        <Badge variant="outline" className="text-[10px] font-black">{filteredIcons.length} نتيجة</Badge>
       </div>
     </div>
   );
