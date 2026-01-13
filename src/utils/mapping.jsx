@@ -16,6 +16,7 @@ import * as LucideIcons from 'lucide-react';
 import * as FaIcons from 'react-icons/fa';
 import * as MdIcons from 'react-icons/md';
 import * as HiIcons from 'react-icons/hi';
+import * as Hi2Icons from 'react-icons/hi2';
 import * as BiIcons from 'react-icons/bi';
 import * as SiIcons from 'react-icons/si';
 import * as RiIcons from 'react-icons/ri';
@@ -31,6 +32,12 @@ import * as GoIcons from 'react-icons/go';
 import * as ImIcons from 'react-icons/im';
 import * as GrIcons from 'react-icons/gr';
 import * as CgIcons from 'react-icons/cg';
+import * as DiIcons from 'react-icons/di';
+import * as FiIcons from 'react-icons/fi';
+import * as PiIcons from 'react-icons/pi';
+import * as TbIcons from 'react-icons/tb';
+import * as TfiIcons from 'react-icons/tfi';
+import * as SlIcons from 'react-icons/sl';
 
 export const nameMapping = {
   "Identity": "الهوية",
@@ -73,6 +80,7 @@ const resolveCustomIcon = (iconData, size) => {
     fa: FaIcons,
     md: MdIcons,
     hi: HiIcons,
+    hi2: Hi2Icons,
     bi: BiIcons,
     si: SiIcons,
     ri: RiIcons,
@@ -87,7 +95,13 @@ const resolveCustomIcon = (iconData, size) => {
     go: GoIcons,
     im: ImIcons,
     gr: GrIcons,
-    cg: CgIcons
+    cg: CgIcons,
+    di: DiIcons,
+    fi: FiIcons,
+    pi: PiIcons,
+    tb: TbIcons,
+    tfi: TfiIcons,
+    sl: SlIcons
   };
 
   const Lib = libs[iconData.set];

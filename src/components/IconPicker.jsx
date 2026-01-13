@@ -3,6 +3,7 @@ import * as LucideIcons from 'lucide-react';
 import * as FaIcons from 'react-icons/fa';
 import * as MdIcons from 'react-icons/md';
 import * as HiIcons from 'react-icons/hi';
+import * as Hi2Icons from 'react-icons/hi2';
 import * as BiIcons from 'react-icons/bi';
 import * as SiIcons from 'react-icons/si';
 import * as RiIcons from 'react-icons/ri';
@@ -18,6 +19,12 @@ import * as GoIcons from 'react-icons/go';
 import * as ImIcons from 'react-icons/im';
 import * as GrIcons from 'react-icons/gr';
 import * as CgIcons from 'react-icons/cg';
+import * as DiIcons from 'react-icons/di';
+import * as FiIcons from 'react-icons/fi';
+import * as PiIcons from 'react-icons/pi';
+import * as TbIcons from 'react-icons/tb';
+import * as TfiIcons from 'react-icons/tfi';
+import * as SlIcons from 'react-icons/sl';
 import { Search, X } from 'lucide-react';
 import { Input } from './ui/input';
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
@@ -31,14 +38,18 @@ export const IconPicker = ({ onSelect, onClose }) => {
   const iconSets = useMemo(() => ({
     lucide: { name: 'Lucide', icons: Object.keys(LucideIcons.icons), lib: LucideIcons.icons },
     fc: { name: 'Flat Color (ملونة)', icons: Object.keys(FcIcons), lib: FcIcons },
+    di: { name: 'Devicons (تقنية)', icons: Object.keys(DiIcons), lib: DiIcons },
+    pi: { name: 'Phosphor', icons: Object.keys(PiIcons), lib: PiIcons },
+    tb: { name: 'Tabler', icons: Object.keys(TbIcons), lib: TbIcons },
     fa: { name: 'Font Awesome', icons: Object.keys(FaIcons), lib: FaIcons },
     md: { name: 'Material', icons: Object.keys(MdIcons), lib: MdIcons },
     ai: { name: 'Ant Design', icons: Object.keys(AiIcons), lib: AiIcons },
     bs: { name: 'Bootstrap', icons: Object.keys(BsIcons), lib: BsIcons },
+    fi: { name: 'Feather', icons: Object.keys(FiIcons), lib: FiIcons },
     go: { name: 'Octicons (GitHub)', icons: Object.keys(GoIcons), lib: GoIcons },
     io5: { name: 'Ionicons', icons: Object.keys(Io5Icons), lib: Io5Icons },
     gi: { name: 'Game Icons', icons: Object.keys(GiIcons), lib: GiIcons },
-    hi: { name: 'Heroicons', icons: Object.keys(HiIcons), lib: HiIcons },
+    hi2: { name: 'Heroicons 2', icons: Object.keys(Hi2Icons), lib: Hi2Icons },
     bi: { name: 'BoxIcons', icons: Object.keys(BiIcons), lib: BiIcons },
     ri: { name: 'Remix', icons: Object.keys(RiIcons), lib: RiIcons },
     si: { name: 'Simple (Tech)', icons: Object.keys(SiIcons), lib: SiIcons },
@@ -46,6 +57,8 @@ export const IconPicker = ({ onSelect, onClose }) => {
     wi: { name: 'Weather', icons: Object.keys(WiIcons), lib: WiIcons },
     gr: { name: 'Grommet', icons: Object.keys(GrIcons), lib: GrIcons },
     cg: { name: 'css.gg', icons: Object.keys(CgIcons), lib: CgIcons },
+    tfi: { name: 'Themify', icons: Object.keys(TfiIcons), lib: TfiIcons },
+    sl: { name: 'Simple Line', icons: Object.keys(SlIcons), lib: SlIcons },
     ti: { name: 'Typicons', icons: Object.keys(TiIcons), lib: TiIcons },
     vsc: { name: 'VS Code', icons: Object.keys(VscIcons), lib: VscIcons },
   }), []);
@@ -59,11 +72,11 @@ export const IconPicker = ({ onSelect, onClose }) => {
   }, [searchTerm, activeTab, iconSets]);
 
   return (
-    <div className="w-[520px] bg-white border rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] p-6 animate-in zoom-in-95 duration-200 border-slate-200" dir="rtl">
+    <div className="w-[550px] bg-white border rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] p-6 animate-in zoom-in-95 duration-200 border-slate-200" dir="rtl">
       <div className="flex items-center justify-between mb-5">
         <div className="flex flex-col">
           <span className="text-base font-black text-slate-900 tracking-tight">ترسانة الأيقونات العظمى</span>
-          <span className="text-xs text-slate-500 font-medium">19 مكتبة عالمية - تغطية شاملة لكافة المجالات</span>
+          <span className="text-xs text-slate-500 font-medium">26 مكتبة عالمية - تغطية شاملة لكافة المجالات</span>
         </div>
         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-slate-100" onClick={onClose}>
           <X size={20} className="text-slate-400" />
@@ -101,7 +114,7 @@ export const IconPicker = ({ onSelect, onClose }) => {
       </div>
 
       <ScrollArea className="h-[400px] -mr-2 pr-2">
-        <div className="grid grid-cols-6 gap-3">
+        <div className="grid grid-cols-7 gap-3">
           {filteredIcons.map(name => {
             const IconComponent = iconSets[activeTab].lib[name];
             if (!IconComponent) return null;
@@ -124,9 +137,9 @@ export const IconPicker = ({ onSelect, onClose }) => {
       <div className="mt-5 flex items-center justify-between text-[10px] text-slate-400 border-t pt-4">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>مكتبة {iconSets[activeTab].name} جاهزة</span>
+          <span>مكتبة {iconSets[activeTab].name} نشطة</span>
         </div>
-        <span className="bg-slate-100 px-3 py-1 rounded-full font-black text-slate-600">نتائج البحث: {filteredIcons.length}</span>
+        <span className="bg-slate-100 px-3 py-1 rounded-full font-black text-slate-600">النتائج المعروضة: {filteredIcons.length}</span>
       </div>
     </div>
   );
