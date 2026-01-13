@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import * as FaIcons from 'react-icons/fa';
+import * as Fa6Icons from 'react-icons/fa6';
 import * as MdIcons from 'react-icons/md';
 import * as HiIcons from 'react-icons/hi';
 import * as Hi2Icons from 'react-icons/hi2';
@@ -78,6 +79,7 @@ const resolveCustomIcon = (iconData, size) => {
   const libs = {
     lucide: LucideIcons.icons,
     fa: FaIcons,
+    fa6: Fa6Icons,
     md: MdIcons,
     hi: HiIcons,
     hi2: Hi2Icons,

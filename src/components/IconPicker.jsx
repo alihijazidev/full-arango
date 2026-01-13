@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import * as LucideIcons from 'lucide-react';
 import * as FaIcons from 'react-icons/fa';
+import * as Fa6Icons from 'react-icons/fa6';
 import * as MdIcons from 'react-icons/md';
 import * as HiIcons from 'react-icons/hi';
 import * as Hi2Icons from 'react-icons/hi2';
@@ -37,19 +38,21 @@ export const IconPicker = ({ onSelect, onClose }) => {
 
   const iconSets = useMemo(() => ({
     lucide: { name: 'Lucide', icons: Object.keys(LucideIcons.icons), lib: LucideIcons.icons },
+    fa6: { name: 'Font Awesome 6', icons: Object.keys(Fa6Icons), lib: Fa6Icons },
+    fa: { name: 'Font Awesome 5', icons: Object.keys(FaIcons), lib: FaIcons },
     fc: { name: 'Flat Color (ملونة)', icons: Object.keys(FcIcons), lib: FcIcons },
     di: { name: 'Devicons (تقنية)', icons: Object.keys(DiIcons), lib: DiIcons },
     pi: { name: 'Phosphor', icons: Object.keys(PiIcons), lib: PiIcons },
     tb: { name: 'Tabler', icons: Object.keys(TbIcons), lib: TbIcons },
-    fa: { name: 'Font Awesome', icons: Object.keys(FaIcons), lib: FaIcons },
     md: { name: 'Material', icons: Object.keys(MdIcons), lib: MdIcons },
     ai: { name: 'Ant Design', icons: Object.keys(AiIcons), lib: AiIcons },
     bs: { name: 'Bootstrap', icons: Object.keys(BsIcons), lib: BsIcons },
+    hi2: { name: 'Heroicons 2', icons: Object.keys(Hi2Icons), lib: Hi2Icons },
+    hi: { name: 'Heroicons 1', icons: Object.keys(HiIcons), lib: HiIcons },
     fi: { name: 'Feather', icons: Object.keys(FiIcons), lib: FiIcons },
     go: { name: 'Octicons (GitHub)', icons: Object.keys(GoIcons), lib: GoIcons },
     io5: { name: 'Ionicons', icons: Object.keys(Io5Icons), lib: Io5Icons },
     gi: { name: 'Game Icons', icons: Object.keys(GiIcons), lib: GiIcons },
-    hi2: { name: 'Heroicons 2', icons: Object.keys(Hi2Icons), lib: Hi2Icons },
     bi: { name: 'BoxIcons', icons: Object.keys(BiIcons), lib: BiIcons },
     ri: { name: 'Remix', icons: Object.keys(RiIcons), lib: RiIcons },
     si: { name: 'Simple (Tech)', icons: Object.keys(SiIcons), lib: SiIcons },
@@ -76,7 +79,7 @@ export const IconPicker = ({ onSelect, onClose }) => {
       <div className="flex items-center justify-between mb-5">
         <div className="flex flex-col">
           <span className="text-base font-black text-slate-900 tracking-tight">ترسانة الأيقونات العظمى</span>
-          <span className="text-xs text-slate-500 font-medium">26 مكتبة عالمية - تغطية شاملة لكافة المجالات</span>
+          <span className="text-xs text-slate-500 font-medium">دعم كامل لـ Font Awesome 5/6 و 26 مكتبة أخرى</span>
         </div>
         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-slate-100" onClick={onClose}>
           <X size={20} className="text-slate-400" />
