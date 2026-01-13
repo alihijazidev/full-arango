@@ -1,26 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import * as LucideIcons from 'lucide-react';
-import { Search, X } from 'lucide-react';
+import { icons, Search, X } from 'lucide-react';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
 
-// قائمة بالكلمات المحجوزة التي لا تمثل أيقونات
-const EXCLUDED_KEYS = new Set([
-  'LucideIcon',
-  'LucideReact',
-  'createLucideIcon',
-  'default',
-  'icons'
-]);
-
-// استخراج الأسماء التي تبدأ بحرف كبير وليست في قائمة الاستثناءات
-const ALL_LUCIDE_ICONS = Object.keys(LucideIcons).filter(name => 
-  /^[A-Z]/.test(name) && 
-  !EXCLUDED_KEYS.has(name) &&
-  !name.startsWith('Lucide') &&
-  (typeof LucideIcons[name] === 'function' || typeof LucideIcons[name] === 'object')
-);
+// الحصول على كافة أسماء الأيقونات الصالحة من كائن icons الرسمي
+const ALL_LUCIDE_ICONS = Object.keys(icons).sort();
 
 export const IconPicker = ({ onSelect, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,15 +14,15 @@ export const IconPicker = ({ onSelect, onClose }) => {
     const term = searchTerm.toLowerCase();
     return ALL_LUCIDE_ICONS.filter(name => 
       name.toLowerCase().includes(term)
-    ).sort();
+    );
   }, [searchTerm]);
 
   return (
     <div className="w-80 bg-white border rounded-xl shadow-2xl p-4 animate-in zoom-in-95 duration-200" dir="rtl">
       <div className="flex items-center justify-between mb-3">
         <div className="flex flex-col">
-          <span className="text-xs font-bold text-slate-800 uppercase">مكتبة الأيقونات الشاملة</span>
-          <span className="text-[10px] text-slate-400">متاح {ALL_LUCIDE_ICONS.length} أيقونة</span>
+          <span className="text-xs font-bold text-slate-800 uppercase">مكتبة الأيقونات ({ALL_LUCIDE_ICONS.length})</span>
+          <span className="text-[10px] text-slate-400">جميع أيقونات Lucide متاحة للبحث</span>
         </div>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
           <X size={16} />
@@ -47,7 +32,7 @@ export const IconPicker = ({ onSelect, onClose }) => {
       <div className="relative mb-3">
         <Search className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
         <Input 
-          placeholder="ابحث بالإنجليزية (مثل: User, Home)..." 
+          placeholder="بحث (مثلاً: User, Heart, Settings)..." 
           className="h-10 pr-8 text-xs bg-slate-50 border-none shadow-inner" 
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -58,10 +43,8 @@ export const IconPicker = ({ onSelect, onClose }) => {
       <ScrollArea className="h-72">
         <div className="grid grid-cols-5 gap-2 pr-2">
           {filteredIcons.map(name => {
-            const IconComponent = LucideIcons[name];
-            
-            // تحقق إضافي قبل الرندر
-            if (!IconComponent || typeof IconComponent === 'string') return null;
+            const IconComponent = icons[name];
+            if (!IconComponent) return null;
             
             return (
               <button
