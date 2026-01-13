@@ -23,10 +23,12 @@ const getGridLayoutedElements = (nodes, edges) => {
   const columns = Math.ceil(Math.sqrt(nodes.length)); 
 
   const sortedNodes = [...nodes].sort((a, b) => {
-    if (a.data.label !== b.data.label) {
-      return a.data.label.localeCompare(b.data.label);
+    const labelA = String(a.data?.label || '');
+    const labelB = String(b.data?.label || '');
+    if (labelA !== labelB) {
+      return labelA.localeCompare(labelB);
     }
-    return a.id.localeCompare(b.id);
+    return String(a.id).localeCompare(String(b.id));
   });
 
   const layoutedNodes = sortedNodes.map((node, index) => {
@@ -70,8 +72,8 @@ const getTreeLayoutedElements = (nodes, edges, direction = 'TB') => {
     return {
       ...node,
       position: {
-        x: nodeWithPosition.x - nodeWidth / 2,
-        y: nodeWithPosition.y - nodeHeight / 2,
+        x: (nodeWithPosition?.x || 0) - nodeWidth / 2,
+        y: (nodeWithPosition?.y || 0) - nodeHeight / 2,
       },
     };
   });
@@ -93,11 +95,11 @@ const ResultGraphInner = ({ data }) => {
   const [layoutMode, setLayoutMode] = useState('grid'); 
 
   const allRawNodes = useMemo(() => {
-    return [...(data.startnode || []), ...(data.targetnode || [])];
+    return [...(data?.startnode || []), ...(data?.targetnode || [])];
   }, [data]);
 
   const filteredData = useMemo(() => {
-    const allEdges = data.edges || [];
+    const allEdges = data?.edges || [];
 
     if (!resultSearchTerm) return { nodes: allRawNodes, edges: allEdges };
     
@@ -109,21 +111,23 @@ const ResultGraphInner = ({ data }) => {
     });
 
     const matchingEdges = allEdges.filter(edge => {
-      return (
-        edge._from.toLowerCase().includes(term) || 
-        edge._to.toLowerCase().includes(term) || 
-        edge.label.toLowerCase().includes(term)
-      );
+      const from = String(edge._from || '').toLowerCase();
+      const to = String(edge._to || '').toLowerCase();
+      const label = String(edge.label || '').toLowerCase();
+      return from.includes(term) || to.includes(term) || label.includes(term);
     });
 
     const nodeIdsToShow = new Set(matchingNodes.map(n => n._id));
-    matchingEdges.forEach(e => { nodeIdsToShow.add(e._from); nodeIdsToShow.add(e._to); });
+    matchingEdges.forEach(e => { 
+      if (e._from) nodeIdsToShow.add(e._from); 
+      if (e._to) nodeIdsToShow.add(e._to); 
+    });
 
     return {
       nodes: allRawNodes.filter(n => nodeIdsToShow.has(n._id)),
       edges: matchingEdges
     };
-  }, [allRawNodes, data.edges, resultSearchTerm]);
+  }, [allRawNodes, data?.edges, resultSearchTerm]);
 
   const applyLayout = useCallback((mode = layoutMode) => {
     const rawNodes = filteredData.nodes.map((item) => ({
@@ -131,7 +135,7 @@ const ResultGraphInner = ({ data }) => {
       type: 'customNode',
       position: { x: 0, y: 0 },
       data: { 
-        label: item.label || (item._id && item._id.includes('/') ? item._id.split('/')[0] : "Unknown"),
+        label: item.label || (item._id && String(item._id).includes('/') ? String(item._id).split('/')[0] : "Unknown"),
         instanceId: item._id,
         type: 'collection',
         metadata: item 
