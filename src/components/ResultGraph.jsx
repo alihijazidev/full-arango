@@ -4,8 +4,9 @@ import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
-import { MapPinned, Maximize2, LayoutGrid, Filter } from 'lucide-react';
+import { MapPinned, Maximize2, LayoutGrid, Filter, Network, GitGraph } from 'lucide-react';
 import { Button } from './ui/button';
+import dagre from 'dagre';
 
 const nodeTypes = {
   customNode: CustomNode,
@@ -15,7 +16,7 @@ const edgeTypes = {
   parallel: ParallelEdge,
 };
 
-// وظيفة التوزيع الشبكي المنظم
+// --- Grid Layout Logic ---
 const getGridLayoutedElements = (nodes, edges) => {
   const spacingX = 300; 
   const spacingY = 200; 
@@ -44,6 +45,41 @@ const getGridLayoutedElements = (nodes, edges) => {
   return { nodes: layoutedNodes, edges };
 };
 
+// --- Tree (Hierarchical) Layout Logic using Dagre ---
+const getTreeLayoutedElements = (nodes, edges, direction = 'TB') => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+  // Define node dimensions for dagre
+  const nodeWidth = 180;
+  const nodeHeight = 100;
+
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 70, ranksep: 120 });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - nodeWidth / 2,
+        y: nodeWithPosition.y - nodeHeight / 2,
+      },
+    };
+  });
+
+  return { nodes: layoutedNodes, edges };
+};
+
 const ResultGraphInner = ({ data }) => {
   const { 
     highlightedId, setHighlightedId, 
@@ -55,13 +91,13 @@ const ResultGraphInner = ({ data }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { fitView } = useReactFlow();
+  const [layoutMode, setLayoutMode] = useState('grid'); // 'grid' or 'tree'
 
   const allRawNodes = useMemo(() => {
     return [...(data.startnode || []), ...(data.targetnode || [])];
   }, [data]);
 
   const filteredData = useMemo(() => {
-    // 1. تصفية العلاقات المتكررة بناءً على _id
     const uniqueEdgesMap = new Map();
     (data.edges || []).forEach(edge => {
       if (!uniqueEdgesMap.has(edge._id)) {
@@ -73,7 +109,6 @@ const ResultGraphInner = ({ data }) => {
     if (!resultSearchTerm) return { nodes: allRawNodes, edges: uniqueEdges };
     
     const term = resultSearchTerm.toLowerCase();
-    
     const matchingNodes = allRawNodes.filter(node => {
       const inId = node._id ? String(node._id).toLowerCase().includes(term) : false;
       const inLabel = node.label ? String(node.label).toLowerCase().includes(term) : false;
@@ -84,8 +119,7 @@ const ResultGraphInner = ({ data }) => {
       return (
         edge._from.toLowerCase().includes(term) || 
         edge._to.toLowerCase().includes(term) || 
-        edge.label.toLowerCase().includes(term) ||
-        edge._id.toLowerCase().includes(term)
+        edge.label.toLowerCase().includes(term)
       );
     });
 
@@ -98,7 +132,7 @@ const ResultGraphInner = ({ data }) => {
     };
   }, [allRawNodes, data.edges, resultSearchTerm]);
 
-  const applyLayout = useCallback(() => {
+  const applyLayout = useCallback((mode = layoutMode) => {
     const rawNodes = filteredData.nodes.map((item) => ({
       id: item._id,
       type: 'customNode',
@@ -121,17 +155,22 @@ const ResultGraphInner = ({ data }) => {
       data: { offset: 0, metadata: edge },
     }));
 
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getGridLayoutedElements(rawNodes, rawEdges);
+    let result;
+    if (mode === 'tree') {
+      result = getTreeLayoutedElements(rawNodes, rawEdges);
+    } else {
+      result = getGridLayoutedElements(rawNodes, rawEdges);
+    }
 
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
+    setNodes(result.nodes);
+    setEdges(result.edges);
     
     setTimeout(() => fitView({ duration: 800, padding: 0.2 }), 50);
-  }, [filteredData, setNodes, setEdges, fitView]);
+  }, [filteredData, layoutMode, setNodes, setEdges, fitView]);
 
   useEffect(() => {
     applyLayout();
-  }, [applyLayout]);
+  }, [applyLayout, layoutMode]);
 
   useEffect(() => {
     setNodes((nds) => nds.map((node) => ({
@@ -160,23 +199,33 @@ const ResultGraphInner = ({ data }) => {
         <Background color="#f1f5f9" gap={20} />
         
         <Panel position="bottom-right" className="m-4 flex gap-2">
-          <div className="bg-white/80 backdrop-blur px-3 py-1.5 rounded-md border shadow-sm flex items-center gap-2 text-[10px] font-bold text-slate-500">
-            <Filter size={12} className="text-primary" />
-            تصفية المعرفات المتكررة نشطة
+          <div className="bg-white/90 backdrop-blur p-1 rounded-lg border shadow-sm flex items-center gap-1">
+            <Button 
+              variant={layoutMode === 'grid' ? 'default' : 'ghost'} 
+              size="sm" 
+              className="h-8 gap-2"
+              onClick={() => setLayoutMode('grid')}
+            >
+              <LayoutGrid size={14} />
+              شبكة (Grid)
+            </Button>
+            <Button 
+              variant={layoutMode === 'tree' ? 'default' : 'ghost'} 
+              size="sm" 
+              className="h-8 gap-2"
+              onClick={() => setLayoutMode('tree')}
+            >
+              <GitGraph size={14} />
+              شجري (Tree)
+            </Button>
           </div>
+
+          <div className="h-8 w-px bg-slate-200 mx-1 self-center" />
+
           <Button 
             variant="outline" 
             size="sm" 
-            className="bg-white/80 backdrop-blur shadow-md gap-2"
-            onClick={applyLayout}
-          >
-            <LayoutGrid size={14} />
-            إعادة ترتيب الشبكة
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="bg-white/80 backdrop-blur shadow-md gap-2"
+            className="bg-white/80 backdrop-blur shadow-md gap-2 h-10"
             onClick={() => fitView({ duration: 800 })}
           >
             <Maximize2 size={14} />
