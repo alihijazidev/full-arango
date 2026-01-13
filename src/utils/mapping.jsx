@@ -10,31 +10,25 @@ import {
   ShoppingCart, 
   Package,
   FolderTree,
-  Database
+  Database,
+  Hash,
+  Globe,
+  Layers
 } from 'lucide-react';
 
+// قاموس الأسماء (يمكن أن يظل للترجمات الثابتة، وما عدا ذلك يعود كما هو)
 export const nameMapping = {
-  // Categories
   "Identity": "الهوية",
   "Content": "المحتوى",
   "Commerce": "التجارة",
-  
-  // Collections
   "Users": "المستخدمون",
-  "Profiles": "الملفات الشخصية",
-  "Posts": "المنشورات",
-  "Comments": "التعليقات",
-  "Orders": "الطلبات",
-  "Products": "المنتجات"
+  "Profiles": "الملفات الشخصية"
 };
 
 const iconConfig = {
-  // Categories
   "Identity": Fingerprint,
   "Content": FileText,
   "Commerce": ShoppingBag,
-  
-  // Collections
   "Users": User,
   "Profiles": UserCircle,
   "Posts": MessageSquare,
@@ -43,132 +37,25 @@ const iconConfig = {
   "Products": Package
 };
 
-// Map names to hex colors for gradients
-const colorHexMap = {
-  "Identity": "#2563eb", // blue-600
-  "Users": "#4f46e5",    // indigo-600
-  "Profiles": "#0ea5e9", // sky-600
-  "Content": "#059669",  // emerald-600
-  "Posts": "#0d9488",    // teal-600
-  "Comments": "#0891b2", // cyan-600
-  "Commerce": "#d97706", // amber-600
-  "Orders": "#ea580c",   // orange-600
-  "Products": "#e11d48"  // rose-600
-};
+// لوحة الألوان المتاحة للتوليد التلقائي
+const COLOR_PALETTE = [
+  "blue", "indigo", "sky", "emerald", "teal", "cyan", 
+  "amber", "orange", "rose", "violet", "purple", "pink", "lime"
+];
 
-// Explicit Tailwind classes to ensure they aren't purged
-const colorStylesMap = {
-  "Identity": {
-    bg: "bg-blue-50",
-    bgSelected: "bg-blue-500",
-    text: "text-blue-600",
-    textSelected: "text-white",
-    border: "border-blue-200",
-    borderSelected: "border-blue-500",
-    accent: "text-blue-400",
-    ring: "ring-blue-500/10",
-    shadow: "shadow-blue-500/20"
-  },
-  "Users": {
-    bg: "bg-indigo-50",
-    bgSelected: "bg-indigo-500",
-    text: "text-indigo-600",
-    textSelected: "text-white",
-    border: "border-indigo-200",
-    borderSelected: "border-indigo-500",
-    accent: "text-indigo-400",
-    ring: "ring-indigo-500/10",
-    shadow: "shadow-indigo-500/20"
-  },
-  "Profiles": {
-    bg: "bg-sky-50",
-    bgSelected: "bg-sky-500",
-    text: "text-sky-600",
-    textSelected: "text-white",
-    border: "border-sky-200",
-    borderSelected: "border-sky-500",
-    accent: "text-sky-400",
-    ring: "ring-sky-500/10",
-    shadow: "shadow-sky-500/20"
-  },
-  "Content": {
-    bg: "bg-emerald-50",
-    bgSelected: "bg-emerald-500",
-    text: "text-emerald-600",
-    textSelected: "text-white",
-    border: "border-emerald-200",
-    borderSelected: "border-emerald-500",
-    accent: "text-emerald-400",
-    ring: "ring-emerald-500/10",
-    shadow: "shadow-emerald-500/20"
-  },
-  "Posts": {
-    bg: "bg-teal-50",
-    bgSelected: "bg-teal-500",
-    text: "text-teal-600",
-    textSelected: "text-white",
-    border: "border-teal-200",
-    borderSelected: "border-teal-500",
-    accent: "text-teal-400",
-    ring: "ring-teal-500/10",
-    shadow: "shadow-teal-500/20"
-  },
-  "Comments": {
-    bg: "bg-cyan-50",
-    bgSelected: "bg-cyan-500",
-    text: "text-cyan-600",
-    textSelected: "text-white",
-    border: "border-cyan-200",
-    borderSelected: "border-cyan-500",
-    accent: "text-cyan-400",
-    ring: "ring-cyan-500/10",
-    shadow: "shadow-cyan-500/20"
-  },
-  "Commerce": {
-    bg: "bg-amber-50",
-    bgSelected: "bg-amber-500",
-    text: "text-amber-600",
-    textSelected: "text-white",
-    border: "border-amber-200",
-    borderSelected: "border-amber-500",
-    accent: "text-amber-400",
-    ring: "ring-amber-500/10",
-    shadow: "shadow-amber-500/20"
-  },
-  "Orders": {
-    bg: "bg-orange-50",
-    bgSelected: "bg-orange-500",
-    text: "text-orange-600",
-    textSelected: "text-white",
-    border: "border-orange-200",
-    borderSelected: "border-orange-500",
-    accent: "text-orange-400",
-    ring: "ring-orange-500/10",
-    shadow: "shadow-orange-500/20"
-  },
-  "Products": {
-    bg: "bg-rose-50",
-    bgSelected: "bg-rose-500",
-    text: "text-rose-600",
-    textSelected: "text-white",
-    border: "border-rose-200",
-    borderSelected: "border-rose-500",
-    accent: "text-rose-400",
-    ring: "ring-rose-500/10",
-    shadow: "shadow-rose-500/20"
+// دالة بسيطة لتحويل النص إلى رقم ثابت (Hash) لاختيار لون مستقر
+const stringToHash = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
+  return Math.abs(hash);
 };
 
-const defaultStyles = {
-  bg: "bg-slate-50",
-  bgSelected: "bg-slate-500",
-  text: "text-slate-600",
-  textSelected: "text-white",
-  border: "border-slate-200",
-  borderSelected: "border-slate-500",
-  accent: "text-slate-400",
-  ring: "ring-slate-500/10",
-  shadow: "shadow-slate-500/20"
+// اختيار لون من اللوحة بناءً على النص
+const getDynamicColorName = (name) => {
+  const index = stringToHash(name) % COLOR_PALETTE.length;
+  return COLOR_PALETTE[index];
 };
 
 export const getArabicName = (name) => nameMapping[name] || name;
@@ -176,7 +63,14 @@ export const getArabicName = (name) => nameMapping[name] || name;
 export const getIcon = (name, type = 'collection') => {
   const IconComponent = iconConfig[name];
   if (IconComponent) return <IconComponent size={20} />;
-  return type === 'category' ? <FolderTree size={20} /> : <Database size={20} />;
+  
+  if (type === 'category') return <FolderTree size={20} />;
+  
+  // أيقونات افتراضية حيوية بناءً على الاسم
+  if (name.toLowerCase().includes('id')) return <Fingerprint size={20} />;
+  if (name.toLowerCase().includes('log')) return <FileText size={20} />;
+  
+  return <Database size={20} />;
 };
 
 export const getSmallIcon = (name, type = 'collection') => {
@@ -185,17 +79,46 @@ export const getSmallIcon = (name, type = 'collection') => {
   return type === 'category' ? <FolderTree size={14} /> : <Database size={14} />;
 };
 
-export const getHexColor = (name) => colorHexMap[name] || "#64748b";
+// توليد قيم الـ Hex للألوان لاستخدامها في الرسوم البيانية (SVG/Canvas)
+export const getHexColor = (name) => {
+  const color = getDynamicColorName(name);
+  const hexMap = {
+    blue: "#2563eb", indigo: "#4f46e5", sky: "#0ea5e9", emerald: "#059669",
+    teal: "#0d9488", cyan: "#0891b2", amber: "#d97706", orange: "#ea580c",
+    rose: "#e11d48", violet: "#7c3aed", purple: "#9333ea", pink: "#db2777", lime: "#65a30d"
+  };
+  return hexMap[color] || "#64748b";
+};
 
+// توليد ستايلات Tailwind بشكل حيوي
 export const getColorStyles = (name, isSelected = false) => {
-  const styles = colorStylesMap[name] || defaultStyles;
+  const color = getDynamicColorName(name);
+  
+  // ماب للقيم الثابتة لضمان عدم حذف Tailwind لها أثناء الـ Build
+  const stylesMap = {
+    blue: { bg: "bg-blue-50", bgSel: "bg-blue-500", text: "text-blue-600", border: "border-blue-200", ring: "ring-blue-500/10" },
+    indigo: { bg: "bg-indigo-50", bgSel: "bg-indigo-500", text: "text-indigo-600", border: "border-indigo-200", ring: "ring-indigo-500/10" },
+    sky: { bg: "bg-sky-50", bgSel: "bg-sky-500", text: "text-sky-600", border: "border-sky-200", ring: "ring-sky-500/10" },
+    emerald: { bg: "bg-emerald-50", bgSel: "bg-emerald-500", text: "text-emerald-600", border: "border-emerald-200", ring: "ring-emerald-500/10" },
+    teal: { bg: "bg-teal-50", bgSel: "bg-teal-500", text: "text-teal-600", border: "border-teal-200", ring: "ring-teal-500/10" },
+    cyan: { bg: "bg-cyan-50", bgSel: "bg-cyan-500", text: "text-cyan-600", border: "border-cyan-200", ring: "ring-cyan-500/10" },
+    amber: { bg: "bg-amber-50", bgSel: "bg-amber-500", text: "text-amber-600", border: "border-amber-200", ring: "ring-amber-500/10" },
+    orange: { bg: "bg-orange-50", bgSel: "bg-orange-500", text: "text-orange-600", border: "border-orange-200", ring: "ring-orange-500/10" },
+    rose: { bg: "bg-rose-50", bgSel: "bg-rose-500", text: "text-rose-600", border: "border-rose-200", ring: "ring-rose-500/10" },
+    violet: { bg: "bg-violet-50", bgSel: "bg-violet-500", text: "text-violet-600", border: "border-violet-200", ring: "ring-violet-500/10" },
+    purple: { bg: "bg-purple-50", bgSel: "bg-purple-500", text: "text-purple-600", border: "border-purple-200", ring: "ring-purple-500/10" },
+    pink: { bg: "bg-pink-50", bgSel: "bg-pink-500", text: "text-pink-600", border: "border-pink-200", ring: "ring-pink-500/10" },
+    lime: { bg: "bg-lime-50", bgSel: "bg-lime-500", text: "text-lime-600", border: "border-lime-200", ring: "ring-lime-500/10" }
+  };
+
+  const s = stylesMap[color] || stylesMap.blue;
   
   return {
-    bg: isSelected ? styles.bgSelected : styles.bg,
-    text: isSelected ? styles.textSelected : styles.text,
-    border: isSelected ? styles.borderSelected : styles.border,
-    accent: styles.accent,
-    ring: styles.ring,
-    shadow: styles.shadow
+    bg: isSelected ? s.bgSel : s.bg,
+    text: isSelected ? "text-white" : s.text,
+    border: isSelected ? s.bgSel : s.border,
+    accent: s.text,
+    ring: s.ring,
+    shadow: `shadow-${color}-500/20`
   };
 };
