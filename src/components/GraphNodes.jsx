@@ -1,35 +1,16 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import * as LucideIcons from 'lucide-react';
-import * as FaIcons from 'react-icons/fa';
-import * as MdIcons from 'react-icons/md';
 import { cn } from '@/lib/utils';
+import { useGraph } from '../store/GraphContext';
 import { getArabicName, getIcon, getColorStyles } from '../utils/mapping';
 
 export const CustomNode = memo(({ data, selected }) => {
+  const { globalIcons } = useGraph();
   const isCategory = data.type === 'category';
   const displayLabel = data.instanceId ? data.instanceId : getArabicName(data.label);
   
-  // منطق جلب الأيقونة بناءً على المكتبة المحددة
-  let icon;
-  const iconData = data.customIconData;
-  
-  if (iconData) {
-    let Lib;
-    if (iconData.set === 'fa') Lib = FaIcons;
-    else if (iconData.set === 'md') Lib = MdIcons;
-    else Lib = LucideIcons.icons;
-
-    const IconComponent = Lib[iconData.name];
-    if (IconComponent) {
-      icon = <IconComponent size={20} />;
-    }
-  }
-
-  // إذا لم تكن هناك أيقونة مخصصة، استخدم الافتراضي
-  if (!icon) {
-    icon = getIcon(data.label, data.type);
-  }
+  // جلب الأيقونة (ستتحقق تلقائياً من وجود تخصيص عالمي للاسم)
+  const icon = getIcon(data.label, data.type, globalIcons);
 
   const colors = getColorStyles(data.label, selected);
 

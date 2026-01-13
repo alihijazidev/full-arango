@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { getArabicName, getSmallIcon, getColorStyles } from '../utils/mapping';
 
 export const Sidebar = () => {
-  const { metadata, nodes, addEdgeManually } = useGraph();
+  const { metadata, nodes, addEdgeManually, globalIcons } = useGraph();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredCategories = useMemo(() => {
@@ -77,7 +77,9 @@ export const Sidebar = () => {
                     >
                       <AccordionTrigger className="hover:no-underline py-2 px-3 rounded-md hover:bg-slate-200 transition-colors cursor-grab active:cursor-grabbing">
                         <div className="flex items-center gap-2">
-                          <span className={cn(colors.text)}>{getSmallIcon(cat.name, 'category')}</span>
+                          <span className={cn(colors.text)}>
+                            {getSmallIcon(cat.name, 'category', globalIcons)}
+                          </span>
                           <span className="text-sm font-medium">{getArabicName(cat.name)}</span>
                         </div>
                       </AccordionTrigger>
@@ -94,7 +96,9 @@ export const Sidebar = () => {
                               onDragStart={(e) => onDragStart(e, 'collection', entity.name, cat.name)}
                               className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-200 cursor-grab active:cursor-grabbing group transition-all"
                             >
-                              <span className={cn(entityColors.text)}>{getSmallIcon(entity.name, 'collection')}</span>
+                              <span className={cn(entityColors.text)}>
+                                {getSmallIcon(entity.name, 'collection', globalIcons)}
+                              </span>
                               <span className="text-sm">{getArabicName(entity.name)}</span>
                               <ChevronLeft size={12} className="mr-auto opacity-0 group-hover:opacity-50" />
                             </div>

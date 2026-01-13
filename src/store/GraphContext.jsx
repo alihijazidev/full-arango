@@ -21,6 +21,9 @@ export const GraphProvider = ({ children }) => {
   const [resultSearchTerm, setResultSearchTerm] = useState('');
   const [backgroundStyle, setBackgroundStyle] = useState('dots');
 
+  // المخزن المركزي للأيقونات المخصصة (الاسم -> بيانات الأيقونة)
+  const [globalIcons, setGlobalIcons] = useState({});
+
   useEffect(() => {
     fetchMetadata().then(setMetadata);
   }, []);
@@ -158,27 +161,30 @@ export const GraphProvider = ({ children }) => {
     else setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, filters } } : e));
   };
 
+  // تعديل: تحديث الأيقونة بشكل عالمي للاسم (Label)
   const updateNodeIcon = (id, iconData) => {
-    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, customIconData: iconData } } : n));
+    const node = nodes.find(n => n.id === id);
+    if (!node) return;
+    
+    const label = node.data.label;
+    setGlobalIcons(prev => ({
+      ...prev,
+      [label]: iconData
+    }));
   };
 
   const updateEdgeDepth = (id, depth) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, depth: parseInt(depth) || 1 } } : e));
   const updateEdgeLabel = (id, label) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, label } : e));
   const updateEdgeOffset = (id, offset) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset } } : e));
-  
   const deleteElement = (id, isNode) => {
-    if (isNode) { 
-      setNodes((nds) => nds.filter((n) => n.id !== id)); 
-      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id)); 
-    }
+    if (isNode) { setNodes((nds) => nds.filter((n) => n.id !== id)); setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id)); }
     else setEdges((eds) => eds.filter((e) => e.id !== id));
   };
-  
   const clearCanvas = () => { setNodes([]); setEdges([]); };
 
   return (
     <GraphContext.Provider value={{ 
-      metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle
+      metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons
     }}>
       {children}
     </GraphContext.Provider>

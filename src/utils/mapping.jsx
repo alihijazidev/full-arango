@@ -15,8 +15,10 @@ import {
   Globe,
   Layers
 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import * as FaIcons from 'react-icons/fa';
+import * as MdIcons from 'react-icons/md';
 
-// قاموس الأسماء (يمكن أن يظل للترجمات الثابتة، وما عدا ذلك يعود كما هو)
 export const nameMapping = {
   "Identity": "الهوية",
   "Content": "المحتوى",
@@ -37,49 +39,57 @@ const iconConfig = {
   "Products": Package
 };
 
-// لوحة الألوان المتاحة للتوليد التلقائي
-const COLOR_PALETTE = [
-  "blue", "indigo", "sky", "emerald", "teal", "cyan", 
-  "amber", "orange", "rose", "violet", "purple", "pink", "lime"
-];
+const COLOR_PALETTE = ["blue", "indigo", "sky", "emerald", "teal", "cyan", "amber", "orange", "rose", "violet", "purple", "pink", "lime"];
 
-// دالة بسيطة لتحويل النص إلى رقم ثابت (Hash) لاختيار لون مستقر
 const stringToHash = (str) => {
   let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
+  for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
   return Math.abs(hash);
 };
 
-// اختيار لون من اللوحة بناءً على النص
 const getDynamicColorName = (name) => {
   const index = stringToHash(name) % COLOR_PALETTE.length;
   return COLOR_PALETTE[index];
 };
 
+// وظيفة مساعدة لجلب مكون الأيقونة من بيانات المخزن
+const resolveCustomIcon = (iconData, size) => {
+  if (!iconData) return null;
+  let Lib;
+  if (iconData.set === 'fa') Lib = FaIcons;
+  else if (iconData.set === 'md') Lib = MdIcons;
+  else Lib = LucideIcons.icons;
+
+  const IconComponent = Lib[iconData.name];
+  return IconComponent ? <IconComponent size={size} /> : null;
+};
+
 export const getArabicName = (name) => nameMapping[name] || name;
 
-export const getIcon = (name, type = 'collection') => {
+// تم تحديثها لتقبل globalIcons
+export const getIcon = (name, type = 'collection', globalIcons = {}) => {
+  // 1. التحقق من وجود أيقونة مخصصة عالمياً لهذه التسمية
+  const custom = resolveCustomIcon(globalIcons[name], 20);
+  if (custom) return custom;
+
+  // 2. الرجوع للافتراضيات
   const IconComponent = iconConfig[name];
   if (IconComponent) return <IconComponent size={20} />;
-  
   if (type === 'category') return <FolderTree size={20} />;
-  
-  // أيقونات افتراضية حيوية بناءً على الاسم
   if (name.toLowerCase().includes('id')) return <Fingerprint size={20} />;
-  if (name.toLowerCase().includes('log')) return <FileText size={20} />;
-  
   return <Database size={20} />;
 };
 
-export const getSmallIcon = (name, type = 'collection') => {
+// تم تحديثها لتقبل globalIcons
+export const getSmallIcon = (name, type = 'collection', globalIcons = {}) => {
+  const custom = resolveCustomIcon(globalIcons[name], 14);
+  if (custom) return custom;
+
   const IconComponent = iconConfig[name];
   if (IconComponent) return <IconComponent size={14} />;
   return type === 'category' ? <FolderTree size={14} /> : <Database size={14} />;
 };
 
-// توليد قيم الـ Hex للألوان لاستخدامها في الرسوم البيانية (SVG/Canvas)
 export const getHexColor = (name) => {
   const color = getDynamicColorName(name);
   const hexMap = {
@@ -90,11 +100,8 @@ export const getHexColor = (name) => {
   return hexMap[color] || "#64748b";
 };
 
-// توليد ستايلات Tailwind بشكل حيوي
 export const getColorStyles = (name, isSelected = false) => {
   const color = getDynamicColorName(name);
-  
-  // ماب للقيم الثابتة لضمان عدم حذف Tailwind لها أثناء الـ Build
   const stylesMap = {
     blue: { bg: "bg-blue-50", bgSel: "bg-blue-500", text: "text-blue-600", border: "border-blue-200", ring: "ring-blue-500/10" },
     indigo: { bg: "bg-indigo-50", bgSel: "bg-indigo-500", text: "text-indigo-600", border: "border-indigo-200", ring: "ring-indigo-500/10" },
@@ -110,15 +117,6 @@ export const getColorStyles = (name, isSelected = false) => {
     pink: { bg: "bg-pink-50", bgSel: "bg-pink-500", text: "text-pink-600", border: "border-pink-200", ring: "ring-pink-500/10" },
     lime: { bg: "bg-lime-50", bgSel: "bg-lime-500", text: "text-lime-600", border: "border-lime-200", ring: "ring-lime-500/10" }
   };
-
   const s = stylesMap[color] || stylesMap.blue;
-  
-  return {
-    bg: isSelected ? s.bgSel : s.bg,
-    text: isSelected ? "text-white" : s.text,
-    border: isSelected ? s.bgSel : s.border,
-    accent: s.text,
-    ring: s.ring,
-    shadow: `shadow-${color}-500/20`
-  };
+  return { bg: isSelected ? s.bgSel : s.bg, text: isSelected ? "text-white" : s.text, border: isSelected ? s.bgSel : s.border, accent: s.text, ring: s.ring, shadow: `shadow-${color}-500/20` };
 };
