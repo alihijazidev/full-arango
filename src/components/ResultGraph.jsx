@@ -1,14 +1,12 @@
-import React, { useEffect, useCallback, useMemo, useState } from 'react';
+import React, { useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import ReactFlow, { Background, useNodesState, useEdgesState, Panel, useReactFlow, ReactFlowProvider } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
-import { MapPinned, Maximize2, LayoutTemplate, Zap } from 'lucide-react';
+import { MapPinned, Maximize2, Activity, Zap } from 'lucide-react';
 import { Button } from './ui/button';
-import ELK from 'elkjs/lib/elk.bundled.js';
-
-const elk = new ELK();
+import { forceSimulation, forceLink, forceManyBody, forceCenter, forceX, forceY } from 'd3-force';
 
 const nodeTypes = {
   customNode: CustomNode,
@@ -16,50 +14,6 @@ const nodeTypes = {
 
 const edgeTypes = {
   parallel: ParallelEdge,
-};
-
-// إعدادات ELK للتوزيع الذكي
-const elkOptions = {
-  'elk.algorithm': 'layered',
-  'elk.direction': 'RIGHT',
-  'elk.layered.spacing.nodeNodeLayered': '100',
-  'elk.spacing.nodeNode': '80',
-  'elk.edgeRouting': 'SPLINES',
-};
-
-const getLayoutedElements = async (nodes, edges) => {
-  const graph = {
-    id: 'root',
-    layoutOptions: elkOptions,
-    children: nodes.map((node) => ({
-      ...node,
-      width: 180,
-      height: 100,
-    })),
-    edges: edges.map((edge) => ({
-      id: edge.id,
-      sources: [edge.source],
-      targets: [edge.target],
-    })),
-  };
-
-  try {
-    const layoutedGraph = await elk.layout(graph);
-    
-    return {
-      nodes: nodes.map((node) => {
-        const layoutedNode = layoutedGraph.children.find((n) => n.id === node.id);
-        return {
-          ...node,
-          position: { x: layoutedNode.x, y: layoutedNode.y },
-        };
-      }),
-      edges,
-    };
-  } catch (error) {
-    console.error('ELK Layout Error:', error);
-    return { nodes, edges };
-  }
 };
 
 const ResultGraphInner = ({ data }) => {
@@ -73,7 +27,9 @@ const ResultGraphInner = ({ data }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { fitView, setCenter } = useReactFlow();
-  const [isLayouting, setIsLayouting] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
+  
+  const simulationRef = useRef(null);
 
   const allRawNodes = useMemo(() => {
     return [...(data.startnode || []), ...(data.targetnode || [])];
@@ -102,14 +58,37 @@ const ResultGraphInner = ({ data }) => {
     };
   }, [allRawNodes, data.edges, resultSearchTerm]);
 
-  const applyLayout = useCallback(async (currentNodes, currentEdges) => {
-    setIsLayouting(true);
-    const { nodes: layoutedNodes, edges: layoutedEdges } = await getLayoutedElements(currentNodes, currentEdges);
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
-    setIsLayouting(false);
-    setTimeout(() => fitView({ duration: 800, padding: 0.2 }), 100);
-  }, [setNodes, setEdges, fitView]);
+  // وظيفة تشغيل المحاكاة الفيزيائية لتوزيع العقد
+  const runSimulation = useCallback((initialNodes, initialEdges) => {
+    if (simulationRef.current) simulationRef.current.stop();
+    
+    setIsSimulating(true);
+
+    // تجهيز البيانات للمحاكاة
+    const d3Nodes = initialNodes.map(n => ({ ...n, x: Math.random() * 500, y: Math.random() * 500 }));
+    const d3Links = initialEdges.map(e => ({ source: e.source, target: e.target }));
+
+    const simulation = forceSimulation(d3Nodes)
+      .force("link", forceLink(d3Links).id(d => d.id).distance(150).strength(1))
+      .force("charge", forceManyBody().strength(-1000)) // تنافر قوي لمنع التداخل
+      .force("x", forceX().strength(0.1))
+      .force("y", forceY().strength(0.1))
+      .force("center", forceCenter(0, 0));
+
+    simulation.on("tick", () => {
+      setNodes(d3Nodes.map(node => ({
+        ...node,
+        position: { x: node.x, y: node.y }
+      })));
+    });
+
+    simulation.on("end", () => {
+      setIsSimulating(false);
+      fitView({ duration: 800, padding: 0.2 });
+    });
+
+    simulationRef.current = simulation;
+  }, [setNodes, fitView]);
 
   useEffect(() => {
     const rawNodes = filteredData.nodes.map((item) => ({
@@ -124,7 +103,7 @@ const ResultGraphInner = ({ data }) => {
       },
     }));
 
-    const rawEdges = filteredData.edges.map((edge, i) => ({
+    const rawEdges = filteredData.edges.map((edge) => ({
       id: edge._id,
       source: edge._from,
       target: edge._to,
@@ -134,8 +113,13 @@ const ResultGraphInner = ({ data }) => {
       data: { offset: 0, metadata: edge },
     }));
 
-    applyLayout(rawNodes, rawEdges);
-  }, [filteredData, applyLayout]);
+    setEdges(rawEdges);
+    runSimulation(rawNodes, rawEdges);
+
+    return () => {
+      if (simulationRef.current) simulationRef.current.stop();
+    };
+  }, [filteredData, runSimulation, setEdges]);
 
   useEffect(() => {
     setNodes((nds) => nds.map((node) => ({
@@ -168,11 +152,11 @@ const ResultGraphInner = ({ data }) => {
             variant="outline" 
             size="sm" 
             className="bg-white/80 backdrop-blur shadow-md gap-2"
-            onClick={() => applyLayout(nodes, edges)}
-            disabled={isLayouting}
+            onClick={() => runSimulation(nodes, edges)}
+            disabled={isSimulating}
           >
-            {isLayouting ? <Zap size={14} className="animate-spin" /> : <LayoutTemplate size={14} />}
-            إعادة التوزيع (ELK)
+            {isSimulating ? <Activity size={14} className="animate-spin" /> : <Zap size={14} />}
+            إعادة المحاكاة (Force)
           </Button>
           <Button 
             variant="outline" 
