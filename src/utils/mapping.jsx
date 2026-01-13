@@ -25,6 +25,12 @@ import * as Io5Icons from 'react-icons/io5';
 import * as TiIcons from 'react-icons/ti';
 import * as GiIcons from 'react-icons/gi';
 import * as VscIcons from 'react-icons/vsc';
+import * as FcIcons from 'react-icons/fc';
+import * as WiIcons from 'react-icons/wi';
+import * as GoIcons from 'react-icons/go';
+import * as ImIcons from 'react-icons/im';
+import * as GrIcons from 'react-icons/gr';
+import * as CgIcons from 'react-icons/cg';
 
 export const nameMapping = {
   "Identity": "الهوية",
@@ -75,7 +81,13 @@ const resolveCustomIcon = (iconData, size) => {
     io5: Io5Icons,
     ti: TiIcons,
     gi: GiIcons,
-    vsc: VscIcons
+    vsc: VscIcons,
+    fc: FcIcons,
+    wi: WiIcons,
+    go: GoIcons,
+    im: ImIcons,
+    gr: GrIcons,
+    cg: CgIcons
   };
 
   const Lib = libs[iconData.set];
