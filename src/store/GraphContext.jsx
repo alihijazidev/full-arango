@@ -1,4 +1,3 @@
-/* ... نفس محتوى الملف مع تعديل وظيفة updateNodeIcon ... */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { fetchMetadata } from '../services/mockApi';
 import { addEdge } from 'reactflow';
@@ -17,8 +16,8 @@ export const GraphProvider = ({ children }) => {
   const [selectedResultId, setSelectedResultId] = useState(null);
   const [isResultPathMode, setIsResultPathMode] = useState(false);
   const [resultPathNodes, setResultPathNodes] = useState([]);
-  const [isAnimated, _setIsAnimated] = useState(true);
-  const [isAutoConnect, _setIsAutoConnect] = useState(false);
+  const [isAnimated, setIsAnimated] = useState(true);
+  const [isAutoConnect, setIsAutoConnect] = useState(false);
   const [resultSearchTerm, setResultSearchTerm] = useState('');
   const [backgroundStyle, setBackgroundStyle] = useState('dots');
 
@@ -159,7 +158,6 @@ export const GraphProvider = ({ children }) => {
     else setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, filters } } : e));
   };
 
-  // تعديل لحفظ الكائن الكامل للايقونة (الاسم والمكتبة)
   const updateNodeIcon = (id, iconData) => {
     setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, customIconData: iconData } } : n));
   };
@@ -167,10 +165,15 @@ export const GraphProvider = ({ children }) => {
   const updateEdgeDepth = (id, depth) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, depth: parseInt(depth) || 1 } } : e));
   const updateEdgeLabel = (id, label) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, label } : e));
   const updateEdgeOffset = (id, offset) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset } } : e));
+  
   const deleteElement = (id, isNode) => {
-    if (isNode) { setNodes((nds) => nds.filter((n) => n.id !== id)); setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id)); }
+    if (isNode) { 
+      setNodes((nds) => nds.filter((n) => n.id !== id)); 
+      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id)); 
+    }
     else setEdges((eds) => eds.filter((e) => e.id !== id));
   };
+  
   const clearCanvas = () => { setNodes([]); setEdges([]); };
 
   return (
