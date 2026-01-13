@@ -4,8 +4,9 @@ import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
-import { MapPinned, Maximize2 } from 'lucide-react';
+import { MapPinned, Maximize2, LayoutTemplate } from 'lucide-react';
 import { Button } from './ui/button';
+import dagre from 'dagre';
 
 const nodeTypes = {
   customNode: CustomNode,
@@ -13,6 +14,40 @@ const nodeTypes = {
 
 const edgeTypes = {
   parallel: ParallelEdge,
+};
+
+// وظيفة لحساب مواقع العقد بشكل تلقائي ومنظم
+const getLayoutedElements = (nodes, edges, direction = 'TB') => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  
+  const nodeWidth = 200;
+  const nodeHeight = 120;
+
+  dagreGraph.setGraph({ rankdir: direction, ranksep: 100, nodesep: 80 });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - nodeWidth / 2,
+        y: nodeWithPosition.y - nodeHeight / 2,
+      },
+    };
+  });
+
+  return { nodes: layoutedNodes, edges };
 };
 
 const ResultGraphInner = ({ data }) => {
@@ -60,26 +95,22 @@ const ResultGraphInner = ({ data }) => {
       nodeIdsToShow.add(e._to);
     });
 
-    const finalNodes = allRawNodes.filter(n => nodeIdsToShow.has(n._id));
-    
     return {
-      nodes: finalNodes,
+      nodes: allRawNodes.filter(n => nodeIdsToShow.has(n._id)),
       edges: matchingEdges
     };
   }, [allRawNodes, data.edges, resultSearchTerm]);
 
   useEffect(() => {
-    const initialNodes = filteredData.nodes.map((item, i) => {
-      // استخراج اسم المجموعة من المعرف (مثلاً Users من Users/123)
+    const rawNodes = filteredData.nodes.map((item) => {
       const collectionName = item.label || (item._id && item._id.includes('/') ? item._id.split('/')[0] : "Unknown");
-      
       return {
         id: item._id,
         type: 'customNode',
-        position: { x: (i % 4) * 250, y: Math.floor(i / 4) * 200 },
+        position: { x: 0, y: 0 }, // سيتم تحديثها بواسطة dagre
         data: { 
-          label: collectionName, // يستخدم للألوان والأيقونات والترجمة
-          instanceId: item._id,  // يستخدم لعرض المعرف الفعلي على العقدة
+          label: collectionName,
+          instanceId: item._id,
           type: 'collection',
           metadata: item 
         },
@@ -94,7 +125,7 @@ const ResultGraphInner = ({ data }) => {
       return direction * Math.ceil(pairIdx / 2) * 40;
     };
 
-    const initialEdges = filteredData.edges.map((edge, i) => ({
+    const rawEdges = filteredData.edges.map((edge, i) => ({
       id: edge._id,
       source: edge._from,
       target: edge._to,
@@ -107,10 +138,13 @@ const ResultGraphInner = ({ data }) => {
       },
     }));
 
-    setNodes(initialNodes);
-    setEdges(initialEdges);
+    // تطبيق التخطيط الذكي
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(rawNodes, rawEdges);
+
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
     
-    const timer = setTimeout(() => fitView({ duration: 400, padding: 0.2 }), 100);
+    const timer = setTimeout(() => fitView({ duration: 800, padding: 0.2 }), 200);
     return () => clearTimeout(timer);
   }, [filteredData, setNodes, setEdges, fitView]);
 
@@ -171,6 +205,13 @@ const ResultGraphInner = ({ data }) => {
     }
   }, [isResultPathMode, setSelectedResultId]);
 
+  const reLayout = () => {
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges);
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+    setTimeout(() => fitView({ duration: 800 }), 100);
+  };
+
   return (
     <div className="w-full h-full" dir="ltr">
       <ReactFlow
@@ -190,7 +231,16 @@ const ResultGraphInner = ({ data }) => {
       >
         <Background color="#f1f5f9" gap={20} />
         
-        <Panel position="bottom-right" className="m-4">
+        <Panel position="bottom-right" className="m-4 flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="bg-white/80 backdrop-blur shadow-md gap-2"
+            onClick={reLayout}
+          >
+            <LayoutTemplate size={14} />
+            إعادة التنظيم
+          </Button>
           <Button 
             variant="outline" 
             size="sm" 
@@ -198,7 +248,7 @@ const ResultGraphInner = ({ data }) => {
             onClick={() => fitView({ duration: 800 })}
           >
             <Maximize2 size={14} />
-            إعادة تعيين الموقع
+            تكبير الاحتواء
           </Button>
         </Panel>
 
