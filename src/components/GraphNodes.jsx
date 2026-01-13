@@ -1,6 +1,8 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { icons as LucideIcons } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import * as FaIcons from 'react-icons/fa';
+import * as MdIcons from 'react-icons/md';
 import { cn } from '@/lib/utils';
 import { getArabicName, getIcon, getColorStyles } from '../utils/mapping';
 
@@ -8,14 +10,24 @@ export const CustomNode = memo(({ data, selected }) => {
   const isCategory = data.type === 'category';
   const displayLabel = data.instanceId ? data.instanceId : getArabicName(data.label);
   
-  // التحقق من وجود أيقونة مخصصة وصلاحيتها باستخدام كائن icons
+  // منطق جلب الأيقونة بناءً على المكتبة المحددة
   let icon;
-  const customIconName = data.customIcon;
+  const iconData = data.customIconData;
   
-  if (customIconName && LucideIcons[customIconName]) {
-    const IconComponent = LucideIcons[customIconName];
-    icon = <IconComponent size={20} />;
-  } else {
+  if (iconData) {
+    let Lib;
+    if (iconData.set === 'fa') Lib = FaIcons;
+    else if (iconData.set === 'md') Lib = MdIcons;
+    else Lib = LucideIcons.icons;
+
+    const IconComponent = Lib[iconData.name];
+    if (IconComponent) {
+      icon = <IconComponent size={20} />;
+    }
+  }
+
+  // إذا لم تكن هناك أيقونة مخصصة، استخدم الافتراضي
+  if (!icon) {
     icon = getIcon(data.label, data.type);
   }
 
@@ -26,11 +38,7 @@ export const CustomNode = memo(({ data, selected }) => {
       "group relative flex flex-col items-center transition-all duration-300",
       selected ? "scale-105" : "scale-100"
     )}>
-      <Handle 
-        type="target" 
-        position={Position.Top} 
-        className="!w-3 !h-3 !bg-slate-300 !border-2 !border-white hover:!bg-primary transition-colors" 
-      />
+      <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-slate-300 !border-2 !border-white hover:!bg-primary transition-colors" />
       
       <div className={cn(
         "min-w-[140px] p-3 rounded-xl bg-white shadow-md border-2 transition-all flex flex-col items-center gap-2",
@@ -39,35 +47,19 @@ export const CustomNode = memo(({ data, selected }) => {
           : "border-slate-100 hover:border-slate-300 hover:shadow-lg",
         isCategory ? "border-dashed" : "border-solid"
       )}>
-        <div className={cn(
-          "w-10 h-10 rounded-lg flex items-center justify-center transition-colors",
-          colors.bg,
-          colors.text
-        )}>
+        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center transition-colors", colors.bg, colors.text)}>
           {icon}
         </div>
-
         <div className="flex flex-col items-center text-center w-full overflow-hidden">
-          <span className={cn(
-            "text-[9px] font-bold uppercase tracking-widest mb-0.5",
-            colors.accent
-          )}>
+          <span className={cn("text-[9px] font-bold uppercase tracking-widest mb-0.5", colors.accent)}>
             {isCategory ? 'فئة' : getArabicName(data.label)}
           </span>
-          <span className={cn(
-            "font-bold text-slate-700 truncate w-full px-1",
-            data.instanceId ? "text-[10px] font-mono" : "text-sm"
-          )}>
+          <span className={cn("font-bold text-slate-700 truncate w-full px-1", data.instanceId ? "text-[10px] font-mono" : "text-sm")}>
             {displayLabel}
           </span>
         </div>
       </div>
-
-      <Handle 
-        type="source" 
-        position={Position.Bottom} 
-        className="!w-3 !h-3 !bg-slate-300 !border-2 !border-white hover:!bg-primary transition-colors" 
-      />
+      <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-slate-300 !border-2 !border-white hover:!bg-primary transition-colors" />
     </div>
   );
 });
