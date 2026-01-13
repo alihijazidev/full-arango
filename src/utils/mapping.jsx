@@ -18,6 +18,10 @@ import {
 import * as LucideIcons from 'lucide-react';
 import * as FaIcons from 'react-icons/fa';
 import * as MdIcons from 'react-icons/md';
+import * as HiIcons from 'react-icons/hi';
+import * as BiIcons from 'react-icons/bi';
+import * as SiIcons from 'react-icons/si';
+import * as RiIcons from 'react-icons/ri';
 
 export const nameMapping = {
   "Identity": "الهوية",
@@ -52,13 +56,22 @@ const getDynamicColorName = (name) => {
   return COLOR_PALETTE[index];
 };
 
-// وظيفة مساعدة لجلب مكون الأيقونة من بيانات المخزن
+// وظيفة مساعدة لجلب مكون الأيقونة من بيانات المخزن عبر كافة المكتبات
 const resolveCustomIcon = (iconData, size) => {
   if (!iconData) return null;
-  let Lib;
-  if (iconData.set === 'fa') Lib = FaIcons;
-  else if (iconData.set === 'md') Lib = MdIcons;
-  else Lib = LucideIcons.icons;
+  
+  const libs = {
+    lucide: LucideIcons.icons,
+    fa: FaIcons,
+    md: MdIcons,
+    hi: HiIcons,
+    bi: BiIcons,
+    si: SiIcons,
+    ri: RiIcons
+  };
+
+  const Lib = libs[iconData.set];
+  if (!Lib) return null;
 
   const IconComponent = Lib[iconData.name];
   return IconComponent ? <IconComponent size={size} /> : null;
@@ -66,13 +79,10 @@ const resolveCustomIcon = (iconData, size) => {
 
 export const getArabicName = (name) => nameMapping[name] || name;
 
-// تم تحديثها لتقبل globalIcons
 export const getIcon = (name, type = 'collection', globalIcons = {}) => {
-  // 1. التحقق من وجود أيقونة مخصصة عالمياً لهذه التسمية
   const custom = resolveCustomIcon(globalIcons[name], 20);
   if (custom) return custom;
 
-  // 2. الرجوع للافتراضيات
   const IconComponent = iconConfig[name];
   if (IconComponent) return <IconComponent size={20} />;
   if (type === 'category') return <FolderTree size={20} />;
@@ -80,7 +90,6 @@ export const getIcon = (name, type = 'collection', globalIcons = {}) => {
   return <Database size={20} />;
 };
 
-// تم تحديثها لتقبل globalIcons
 export const getSmallIcon = (name, type = 'collection', globalIcons = {}) => {
   const custom = resolveCustomIcon(globalIcons[name], 14);
   if (custom) return custom;
