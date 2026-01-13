@@ -8,11 +8,17 @@ export const CustomNode = memo(({ data, selected }) => {
   const isCategory = data.type === 'category';
   const displayLabel = data.instanceId ? data.instanceId : getArabicName(data.label);
   
-  // التحقق من وجود أيقونة مخصصة
+  // التحقق من وجود أيقونة مخصصة وصلاحيتها
   let icon;
-  if (data.customIcon && LucideIcons[data.customIcon]) {
-    const IconComponent = LucideIcons[data.customIcon];
-    icon = <IconComponent size={20} />;
+  const customIconName = data.customIcon;
+  
+  if (customIconName && LucideIcons[customIconName] && typeof LucideIcons[customIconName] !== 'string') {
+    try {
+      const IconComponent = LucideIcons[customIconName];
+      icon = <IconComponent size={20} />;
+    } catch (e) {
+      icon = getIcon(data.label, data.type);
+    }
   } else {
     icon = getIcon(data.label, data.type);
   }

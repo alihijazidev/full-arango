@@ -5,15 +5,21 @@ import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
 
-// استخراج كافة أسماء الأيقونات من المكتبة برمجياً
-// نقوم بتصفية العناصر التي تبدأ بحرف كبير وليست من ضمن أدوات المكتبة الداخلية
+// قائمة بالكلمات المحجوزة التي لا تمثل أيقونات
+const EXCLUDED_KEYS = new Set([
+  'LucideIcon',
+  'LucideReact',
+  'createLucideIcon',
+  'default',
+  'icons'
+]);
+
+// استخراج الأسماء التي تبدأ بحرف كبير وليست في قائمة الاستثناءات
 const ALL_LUCIDE_ICONS = Object.keys(LucideIcons).filter(name => 
-  typeof LucideIcons[name] === 'function' || typeof LucideIcons[name] === 'object'
-).filter(name => 
-  /^[A-Z]/.test(name) && // تبدأ بحرف كبير (مكونات React)
-  name !== 'LucideIcon' && 
+  /^[A-Z]/.test(name) && 
+  !EXCLUDED_KEYS.has(name) &&
   !name.startsWith('Lucide') &&
-  name !== 'createLucideIcon'
+  (typeof LucideIcons[name] === 'function' || typeof LucideIcons[name] === 'object')
 );
 
 export const IconPicker = ({ onSelect, onClose }) => {
@@ -41,8 +47,8 @@ export const IconPicker = ({ onSelect, onClose }) => {
       <div className="relative mb-3">
         <Search className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
         <Input 
-          placeholder="ابحث عن أيقونة بالإنجليزية (مثل: User, Home)..." 
-          className="h-10 pr-8 text-xs bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-primary shadow-inner" 
+          placeholder="ابحث بالإنجليزية (مثل: User, Home)..." 
+          className="h-10 pr-8 text-xs bg-slate-50 border-none shadow-inner" 
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           autoFocus
@@ -53,7 +59,8 @@ export const IconPicker = ({ onSelect, onClose }) => {
         <div className="grid grid-cols-5 gap-2 pr-2">
           {filteredIcons.map(name => {
             const IconComponent = LucideIcons[name];
-            // في حال وجود بعض التصديرات التي ليست أيقونات فعلياً
+            
+            // تحقق إضافي قبل الرندر
             if (!IconComponent || typeof IconComponent === 'string') return null;
             
             return (
@@ -72,14 +79,10 @@ export const IconPicker = ({ onSelect, onClose }) => {
         {filteredIcons.length === 0 && (
           <div className="text-center py-16 text-slate-400 flex flex-col items-center gap-3">
             <Search size={32} className="opacity-10" />
-            <p className="text-xs italic">لا توجد نتائج مطابقة لبحثك</p>
+            <p className="text-xs italic">لا توجد نتائج</p>
           </div>
         )}
       </ScrollArea>
-      
-      <div className="mt-3 pt-3 border-t text-[9px] text-slate-400 text-center">
-        استخدم كلمات إنجليزية للبحث في مكتبة Lucide
-      </div>
     </div>
   );
 };
