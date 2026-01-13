@@ -141,16 +141,14 @@ const GraphInner = ({ onSelectElement }) => {
           isNode={menu.isNode}
           onDelete={() => { deleteElement(menu.id, menu.isNode); setMenu(null); }}
           onDetails={() => { onSelectElement(menu.id, menu.isNode); setMenu(null); }}
-          onOpenIconPicker={() => { setIconPicker({ x: menu.x + 100, y: menu.y, nodeId: menu.id }); setMenu(null); }}
+          onOpenIconPicker={() => { setIconPicker({ nodeId: menu.id }); setMenu(null); }}
           onClose={() => setMenu(null)}
         />
       )}
 
+      {/* تثبيت اللوحة على الجانب الأيسر (نفس موقع لوحة التفاصيل) */}
       {iconPicker && (
-        <div 
-          className="fixed z-[110]" 
-          style={{ left: iconPicker.x, top: iconPicker.y, transform: 'translateY(-50%)' }}
-        >
+        <div className="absolute left-0 top-0 h-full z-40 animate-in slide-in-from-left duration-300">
           <IconPicker 
             onSelect={(name) => { updateNodeIcon(iconPicker.nodeId, name); setIconPicker(null); }}
             onClose={() => setIconPicker(null)}

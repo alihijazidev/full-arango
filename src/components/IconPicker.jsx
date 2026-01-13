@@ -28,7 +28,6 @@ import { Badge } from './ui/badge';
 export const IconPicker = ({ onSelect, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // دمج كافة المكتبات في مخزن واحد عملاق
   const allIcons = useMemo(() => {
     const sets = [
       { id: 'fc', name: 'Color', lib: FcIcons },
@@ -53,7 +52,6 @@ export const IconPicker = ({ onSelect, onClose }) => {
     const consolidated = [];
     sets.forEach(set => {
       Object.keys(set.lib).forEach(iconName => {
-        // نتحقق أن العنصر هو بالفعل مكون React
         if (typeof set.lib[iconName] === 'function' || typeof set.lib[iconName] === 'object') {
           consolidated.push({
             name: iconName,
@@ -67,44 +65,39 @@ export const IconPicker = ({ onSelect, onClose }) => {
     return consolidated;
   }, []);
 
-  // فلترة ذكية وسريعة
   const filteredIcons = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    if (!term) return allIcons.slice(0, 150); // عينة أولية متنوعة
-
+    if (!term) return allIcons.slice(0, 100);
     return allIcons
       .filter(icon => icon.name.toLowerCase().includes(term))
-      .slice(0, 250); // تحديد النتائج لضمان سرعة الاستجابة
+      .slice(0, 200);
   }, [searchTerm, allIcons]);
 
   return (
-    <div className="w-[620px] bg-white border rounded-3xl shadow-[0_25px_80px_rgba(0,0,0,0.5)] p-7 animate-in zoom-in-95 duration-200 border-slate-200" dir="rtl">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-black text-slate-900 tracking-tight">المستودع الموحد للأيقونات</span>
+    <div className="w-96 border-r bg-white flex flex-col h-full shadow-2xl" dir="rtl">
+      <div className="p-4 border-b flex items-center justify-between bg-slate-50">
+        <div>
+          <h2 className="font-bold text-lg">مستودع الأيقونات</h2>
+          <div className="flex items-center gap-2 mt-1">
             <Badge variant="outline" className="text-[10px] gap-1 border-primary/20 bg-primary/5 text-primary">
-              <Layers size={10} /> 17 مكتبة عالمية
+              <Layers size={10} /> 17 مكتبة
+            </Badge>
+            <Badge variant="outline" className="text-[10px] gap-1 border-slate-200 text-slate-400">
+              <WifiOff size={10} /> أوفلاين
             </Badge>
           </div>
-          <p className="text-xs text-slate-500 font-medium mt-1">ابحث في +50,000 أيقونة مخزنة محلياً (أوفلاين)</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-[10px] gap-1 border-slate-200 text-slate-400">
-            <WifiOff size={10} /> 100% Offline
-          </Badge>
-          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100" onClick={onClose}>
-            <X size={22} className="text-slate-400" />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X size={20} />
+        </Button>
       </div>
 
-      <div className="flex gap-3 mb-6">
-        <div className="flex-1 relative">
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+      <div className="p-4 border-b space-y-3">
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <Input 
-            placeholder="ابحث عن أي شيء: Heart, User, Check, Facebook, Twitter..." 
-            className="h-14 pr-12 text-base bg-slate-50 border-none rounded-2xl shadow-inner focus-visible:ring-primary/20 text-right" 
+            placeholder="ابحث (Heart, User, Facebook...)" 
+            className="pr-9 h-10 bg-slate-50 border-none text-sm text-right" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             autoFocus
@@ -112,23 +105,17 @@ export const IconPicker = ({ onSelect, onClose }) => {
         </div>
         <Button 
           variant="outline" 
-          className="h-14 px-5 gap-2 border-rose-100 text-rose-600 hover:bg-rose-50 rounded-2xl font-bold transition-all"
+          size="sm"
+          className="w-full gap-2 border-rose-100 text-rose-600 hover:bg-rose-50"
           onClick={() => onSelect(null)}
         >
-          <RotateCcw size={18} />
-          إعادة تعيين
+          <RotateCcw size={14} />
+          إعادة التعيين للأصل
         </Button>
       </div>
 
-      <div className="flex items-center justify-between mb-3 px-1">
-         <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-           <Sparkles size={12} className="text-amber-500" />
-           النتائج المتاحة: {filteredIcons.length}
-         </div>
-      </div>
-
-      <ScrollArea className="h-[420px] -mr-2 pr-2">
-        <div className="grid grid-cols-5 gap-4 p-1">
+      <ScrollArea className="flex-1">
+        <div className="p-4 grid grid-cols-3 gap-3">
           {filteredIcons.map((icon, idx) => {
             const IconComponent = icon.lib[icon.name];
             if (!IconComponent) return null;
@@ -137,17 +124,17 @@ export const IconPicker = ({ onSelect, onClose }) => {
               <button
                 key={`${icon.set}-${icon.name}-${idx}`}
                 onClick={() => onSelect({ name: icon.name, set: icon.set })}
-                className="group flex flex-col items-center justify-center aspect-square rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-2xl hover:border-primary hover:ring-4 hover:ring-primary/5 transition-all p-3 relative overflow-hidden"
+                className="group flex flex-col items-center justify-center aspect-square rounded-xl bg-slate-50 border border-transparent hover:bg-white hover:border-primary hover:shadow-lg transition-all p-2 relative overflow-hidden"
               >
-                <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                   <Badge className="text-[6px] h-3 px-1 bg-primary/10 text-primary border-none">
+                <div className="absolute top-0.5 left-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <span className="text-[5px] font-bold px-1 bg-primary/10 text-primary rounded">
                      {icon.setName}
-                   </Badge>
+                   </span>
                 </div>
-                <div className="transform group-hover:scale-125 transition-transform duration-300 mb-2">
-                  <IconComponent size={36} />
+                <div className="transform group-hover:scale-110 transition-transform mb-1">
+                  <IconComponent size={24} />
                 </div>
-                <span className="text-[7px] font-bold text-slate-400 group-hover:text-slate-900 truncate w-full text-center px-1">
+                <span className="text-[8px] text-slate-400 truncate w-full text-center px-1">
                   {icon.name}
                 </span>
               </button>
@@ -156,21 +143,19 @@ export const IconPicker = ({ onSelect, onClose }) => {
         </div>
         
         {filteredIcons.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-slate-300 py-24 opacity-60">
-            <Search size={64} strokeWidth={1} />
-            <p className="text-base font-bold mt-4">لم نجد أيقونة تطابق هذا البحث في المستودع</p>
+          <div className="h-full flex flex-col items-center justify-center text-slate-300 py-20 opacity-60">
+            <Search size={48} />
+            <p className="text-xs font-bold mt-2">لا توجد نتائج</p>
           </div>
         )}
       </ScrollArea>
       
-      <div className="mt-6 flex items-center justify-between text-[11px] text-slate-400 border-t pt-5">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-          <span className="font-medium">تصفح موحد لجميع المكتبات المثبتة محلياً</span>
-        </div>
-        <div className="flex gap-4 opacity-70">
-          <span>{allIcons.length.toLocaleString()} أيقونة محملة</span>
-        </div>
+      <div className="p-3 border-t bg-slate-50 text-[10px] text-slate-400 flex justify-between items-center">
+        <span>{allIcons.length.toLocaleString()} أيقونة محملة</span>
+        <span className="flex items-center gap-1">
+          <Sparkles size={10} className="text-amber-500" />
+          بحث موحد
+        </span>
       </div>
     </div>
   );
