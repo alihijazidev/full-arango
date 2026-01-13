@@ -241,6 +241,10 @@ export const GraphProvider = ({ children }) => {
     }
   };
 
+  const updateNodeIcon = (id, iconName) => {
+    setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, customIcon: iconName } } : n));
+  };
+
   const updateEdgeDepth = (id, depth) => {
     setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, depth: parseInt(depth) || 1 } } : e));
   };
@@ -270,7 +274,7 @@ export const GraphProvider = ({ children }) => {
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, 
-      addNodeFromMetadata, addEdgeManually, updateFilters, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas,
+      addNodeFromMetadata, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas,
       executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult,
       activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult,
       highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode,

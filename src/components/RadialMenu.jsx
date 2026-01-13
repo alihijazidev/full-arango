@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Info, X } from 'lucide-react';
+import { Trash2, Info, X, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const RingSegment = ({ 
@@ -73,27 +73,57 @@ const RingSegment = ({
   );
 };
 
-export const RadialMenu = ({ x, y, onDelete, onDetails, onClose }) => {
+export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicker, isNode }) => {
   return (
     <div 
       className="fixed z-[100] pointer-events-auto"
       style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}
     >
-      <div className="relative w-56 h-56 animate-in zoom-in-75 duration-200">
+      <div className="relative w-64 h-64 animate-in zoom-in-75 duration-200">
         <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-2xl">
+          {/* حذف - القسم العلوي الأيسر */}
           <RingSegment
             startAngle={225}
-            endAngle={315}
+            endAngle={270}
             innerRadius={45}
             outerRadius={95}
             color="fill-rose-500"
             hoverColor="hover:fill-rose-600"
             onClick={onDelete}
           >
-            <Trash2 size={20} />
-            <span className="text-[8px] font-bold uppercase mt-0.5">حذف</span>
+            <Trash2 size={18} />
+            <span className="text-[7px] font-bold uppercase mt-0.5">حذف</span>
           </RingSegment>
 
+          {/* أيقونة - القسم العلوي الأيمن (للعقد فقط) */}
+          {isNode ? (
+            <RingSegment
+              startAngle={270}
+              endAngle={315}
+              innerRadius={45}
+              outerRadius={95}
+              color="fill-amber-500"
+              hoverColor="hover:fill-amber-600"
+              onClick={onOpenIconPicker}
+            >
+              <ImageIcon size={18} />
+              <span className="text-[7px] font-bold uppercase mt-0.5">أيقونة</span>
+            </RingSegment>
+          ) : (
+             <RingSegment
+              startAngle={270}
+              endAngle={315}
+              innerRadius={45}
+              outerRadius={95}
+              color="fill-slate-400"
+              hoverColor="hover:fill-slate-500"
+              onClick={() => {}}
+            >
+              <span className="text-[7px] font-bold uppercase">N/A</span>
+            </RingSegment>
+          )}
+
+          {/* إغلاق - القسم السفلي الأيمن */}
           <RingSegment
             startAngle={315}
             endAngle={405}
@@ -103,10 +133,11 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose }) => {
             hoverColor="hover:fill-slate-900"
             onClick={onClose}
           >
-            <X size={20} />
-            <span className="text-[8px] font-bold uppercase mt-0.5">إغلاق</span>
+            <X size={18} />
+            <span className="text-[7px] font-bold uppercase mt-0.5">إغلاق</span>
           </RingSegment>
 
+          {/* تفاصيل - النصف السفلي */}
           <RingSegment
             startAngle={45}
             endAngle={225}

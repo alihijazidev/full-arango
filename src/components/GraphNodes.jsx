@@ -2,12 +2,21 @@ import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import { cn } from '@/lib/utils';
 import { getArabicName, getIcon, getColorStyles } from '../utils/mapping';
+import * as LucideIcons from 'lucide-react';
 
 export const CustomNode = memo(({ data, selected }) => {
   const isCategory = data.type === 'category';
-  // في حال كانت العقدة نتيجة بحث، نعرض المعرف (instanceId)، وإلا نعرض الاسم العربي للمجموعة
   const displayLabel = data.instanceId ? data.instanceId : getArabicName(data.label);
-  const icon = getIcon(data.label, data.type);
+  
+  // التحقق من وجود أيقونة مخصصة
+  let icon;
+  if (data.customIcon && LucideIcons[data.customIcon]) {
+    const IconComponent = LucideIcons[data.customIcon];
+    icon = <IconComponent size={20} />;
+  } else {
+    icon = getIcon(data.label, data.type);
+  }
+
   const colors = getColorStyles(data.label, selected);
 
   return (

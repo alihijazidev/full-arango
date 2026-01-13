@@ -12,6 +12,7 @@ import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
 import { RadialMenu } from './RadialMenu';
+import { IconPicker } from './IconPicker';
 import { Maximize2, Trash2, Zap, ZapOff, Activity, LayoutGrid, CircleDot, Square } from 'lucide-react';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
@@ -25,13 +26,14 @@ const GraphInner = ({ onSelectElement }) => {
   const reactFlowWrapper = useRef(null);
   const { 
     nodes, edges, onConnect, setNodes, setEdges, 
-    addNodeFromMetadata, deleteElement, clearCanvas,
+    addNodeFromMetadata, deleteElement, clearCanvas, updateNodeIcon,
     isAnimated, setIsAnimated,
     isAutoConnect, setIsAutoConnect,
     backgroundStyle, setBackgroundStyle
   } = useGraph();
   const { project, fitView } = useReactFlow();
   const [menu, setMenu] = useState(null);
+  const [iconPicker, setIconPicker] = useState(null);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -132,13 +134,28 @@ const GraphInner = ({ onSelectElement }) => {
           </div>
         </Panel>
       </ReactFlow>
+      
       {menu && (
         <RadialMenu 
           x={menu.x} y={menu.y}
+          isNode={menu.isNode}
           onDelete={() => { deleteElement(menu.id, menu.isNode); setMenu(null); }}
           onDetails={() => { onSelectElement(menu.id, menu.isNode); setMenu(null); }}
+          onOpenIconPicker={() => { setIconPicker({ x: menu.x + 100, y: menu.y, nodeId: menu.id }); setMenu(null); }}
           onClose={() => setMenu(null)}
         />
+      )}
+
+      {iconPicker && (
+        <div 
+          className="fixed z-[110]" 
+          style={{ left: iconPicker.x, top: iconPicker.y, transform: 'translateY(-50%)' }}
+        >
+          <IconPicker 
+            onSelect={(name) => { updateNodeIcon(iconPicker.nodeId, name); setIconPicker(null); }}
+            onClose={() => setIconPicker(null)}
+          />
+        </div>
       )}
     </div>
   );
