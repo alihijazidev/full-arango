@@ -37,7 +37,9 @@ export const ResultTable = ({ data }) => {
   const scrollAreaRef = useRef(null);
 
   const allNodes = useMemo(() => [...(data.startnode || []), ...(data.targetnode || [])], [data]);
+  const allEdges = useMemo(() => data.edges || [], [data]);
 
+  // دالة البحث العام
   const matchesSearch = (obj, term) => {
     if (!term) return true;
     const lowerTerm = term.toLowerCase();
@@ -48,14 +50,61 @@ export const ResultTable = ({ data }) => {
     });
   };
 
-  const filteredNodes = useMemo(() => {
-    return allNodes.filter(node => matchesSearch(node, resultSearchTerm));
-  }, [allNodes, resultSearchTerm]);
+  // تطبيق منطق التصفية المزدوج (بحث + تركيز)
+  const filteredData = useMemo(() => {
+    let baseNodes = allNodes;
+    let baseEdges = allEdges;
 
-  const filteredEdges = useMemo(() => {
-    const edges = data.edges || [];
-    return edges.filter(edge => matchesSearch(edge, resultSearchTerm));
-  }, [data.edges, resultSearchTerm]);
+    // 1. التصفية حسب نص البحث
+    if (resultSearchTerm) {
+      baseNodes = baseNodes.filter(node => matchesSearch(node, resultSearchTerm));
+      baseEdges = baseEdges.filter(edge => matchesSearch(edge, resultSearchTerm));
+      
+      // ضمان بقاء العقد المرتبطة بالعلاقات المطابقة ظاهرة في الجدول
+      const nodeIdsFromEdges = new Set();
+      baseEdges.forEach(e => {
+        if (e._from) nodeIdsFromEdges.add(e._from);
+        if (e._to) nodeIdsFromEdges.add(e._to);
+      });
+      
+      const existingNodeIds = new Set(baseNodes.map(n => n._id));
+      const additionalNodes = allNodes.filter(n => nodeIdsFromEdges.has(n._id) && !existingNodeIds.has(n._id));
+      baseNodes = [...baseNodes, ...additionalNodes];
+    }
+
+    // 2. التصفية حسب العنصر المختار (نمط التركيز)
+    if (selectedResultId) {
+      const isSelectedNode = allNodes.some(n => n._id === selectedResultId);
+      const isSelectedEdge = allEdges.some(e => e._id === selectedResultId);
+
+      if (isSelectedNode) {
+        // إذا تم اختيار عقدة: أظهر العقدة + علاقاتها + العقد المرتبطة بها
+        const connectedEdges = allEdges.filter(e => e._from === selectedResultId || e._to === selectedResultId);
+        const neighborNodeIds = new Set([selectedResultId]);
+        connectedEdges.forEach(e => {
+          neighborNodeIds.add(e._from);
+          neighborNodeIds.add(e._to);
+        });
+
+        return {
+          nodes: allNodes.filter(n => neighborNodeIds.has(n._id)),
+          edges: connectedEdges
+        };
+      } else if (isSelectedEdge) {
+        // إذا تم اختيار علاقة: أظهر العلاقة + طرفيها (البداية والنهاية)
+        const targetEdge = allEdges.find(e => e._id === selectedResultId);
+        if (targetEdge) {
+          const edgeNodeIds = new Set([targetEdge._from, targetEdge._to]);
+          return {
+            nodes: allNodes.filter(n => edgeNodeIds.has(n._id)),
+            edges: [targetEdge]
+          };
+        }
+      }
+    }
+
+    return { nodes: baseNodes, edges: baseEdges };
+  }, [allNodes, allEdges, resultSearchTerm, selectedResultId]);
 
   useEffect(() => {
     if (!selectedResultId) return;
@@ -87,11 +136,12 @@ export const ResultTable = ({ data }) => {
           <section>
             <div className="flex items-center justify-between mb-4 px-2">
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
-                العناصر المسترجعة ({filteredNodes.length})
+                العناصر ({filteredData.nodes.length})
+                {selectedResultId && <span className="mr-2 text-primary lowercase font-normal text-xs">(نمط التركيز نشط)</span>}
               </h3>
-              {resultSearchTerm && filteredNodes.length === 0 && (
+              {resultSearchTerm && filteredData.nodes.length === 0 && (
                 <span className="text-xs text-rose-500 flex items-center gap-1">
-                  <FilterX size={12} /> لا توجد نتائج مطابقة
+                  <FilterX size={12} /> لا توجد نتائج
                 </span>
               )}
             </div>
@@ -105,7 +155,7 @@ export const ResultTable = ({ data }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredNodes.map((item) => {
+                  {filteredData.nodes.map((item) => {
                     const colors = getColorStyles(item.label);
                     return (
                       <TableRow 
@@ -154,7 +204,7 @@ export const ResultTable = ({ data }) => {
           <section>
             <div className="flex items-center justify-between mb-4 px-2">
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
-                العلاقات ({filteredEdges.length})
+                العلاقات ({filteredData.edges.length})
               </h3>
             </div>
             <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
@@ -168,7 +218,7 @@ export const ResultTable = ({ data }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredEdges.map((edge) => (
+                  {filteredData.edges.map((edge) => (
                     <TableRow 
                       key={edge._id}
                       id={`row-${edge._id}`}
