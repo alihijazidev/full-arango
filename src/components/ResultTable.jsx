@@ -8,6 +8,24 @@ import { Search, FilterX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getArabicName, getColorStyles } from '../utils/mapping';
 
+// مكون لتمييز النص المطابق
+const HighlightedText = ({ text, highlight }) => {
+  if (!highlight.trim()) return <span>{text}</span>;
+  const regex = new RegExp(`(${highlight})`, 'gi');
+  const parts = String(text).split(regex);
+  return (
+    <span>
+      {parts.map((part, i) => 
+        regex.test(part) ? (
+          <mark key={i} className="bg-amber-200 text-amber-900 rounded-sm px-0.5">{part}</mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </span>
+  );
+};
+
 export const ResultTable = ({ data }) => {
   const { 
     highlightedId, setHighlightedId, 
@@ -28,8 +46,7 @@ export const ResultTable = ({ data }) => {
       const inArabic = getArabicName(node.label).includes(term);
       const inProps = Object.entries(node).some(([key, value]) => {
         if (key.startsWith('_') || key === 'label' || key === 'type' || key === 'designedNodeId') return false;
-        if (value === null || value === undefined) return false;
-        return String(value).toLowerCase().includes(term);
+        return String(value || '').toLowerCase().includes(term);
       });
       return inId || inLabel || inArabic || inProps;
     });
@@ -43,22 +60,20 @@ export const ResultTable = ({ data }) => {
       const inFrom = edge._from ? String(edge._from).toLowerCase().includes(term) : false;
       const inTo = edge._to ? String(edge._to).toLowerCase().includes(term) : false;
       const inLabel = edge.label ? String(edge.label).toLowerCase().includes(term) : false;
-      return inFrom || inTo || inLabel;
+      const inProps = Object.entries(edge).some(([key, value]) => {
+        if (key.startsWith('_') || key === 'label') return false;
+        return String(value || '').toLowerCase().includes(term);
+      });
+      return inFrom || inTo || inLabel || inProps;
     });
   }, [data.edges, resultSearchTerm]);
 
-  // Handle scrolling to the selected row
   useEffect(() => {
     if (!selectedResultId) return;
-    
-    // Use a small timeout to ensure DOM is ready
     const timer = setTimeout(() => {
       const element = document.getElementById(`row-${selectedResultId}`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
-    
     return () => clearTimeout(timer);
   }, [selectedResultId]);
 
@@ -68,7 +83,7 @@ export const ResultTable = ({ data }) => {
         <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <Input 
-            placeholder="بحث في النتائج (المعرف، النوع، أو الخصائص)..." 
+            placeholder="بحث في المعرف، النوع، أو الخصائص..." 
             className="pr-10 h-10 bg-white shadow-sm text-sm text-right" 
             value={resultSearchTerm}
             onChange={(e) => setResultSearchTerm(e.target.value)}
@@ -76,18 +91,13 @@ export const ResultTable = ({ data }) => {
         </div>
       </div>
 
-      <ScrollArea className="flex-1" ref={scrollAreaRef}>
+      <ScrollArea className="flex-1">
         <div className="p-6 space-y-8">
           <section>
             <div className="flex items-center justify-between mb-4 px-2">
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
                 العناصر المسترجعة ({filteredNodes.length})
               </h3>
-              {resultSearchTerm && filteredNodes.length === 0 && (
-                <span className="text-xs text-rose-500 flex items-center gap-1">
-                  <FilterX size={12} /> لا توجد نتائج مطابقة
-                </span>
-              )}
             </div>
             <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
               <Table>
@@ -107,20 +117,18 @@ export const ResultTable = ({ data }) => {
                         id={`row-${item._id}`}
                         className={cn(
                           "cursor-pointer transition-all",
-                          (highlightedId === item._id || selectedResultId === item._id) ? "bg-primary/5 border-primary" : "",
-                          selectedResultId === item._id ? "ring-2 ring-primary/20 ring-inset" : ""
+                          (highlightedId === item._id || selectedResultId === item._id) ? "bg-primary/5 border-primary" : ""
                         )}
                         onMouseEnter={() => setHighlightedId(item._id)}
                         onMouseLeave={() => setHighlightedId(null)}
                         onClick={() => setSelectedResultId(item._id)}
                       >
-                        <TableCell className="font-mono text-xs">{item._id}</TableCell>
+                        <TableCell className="font-mono text-xs">
+                          <HighlightedText text={item._id} highlight={resultSearchTerm} />
+                        </TableCell>
                         <TableCell>
-                          <Badge 
-                            variant="outline" 
-                            className={cn("border-2", colors.border, colors.text, colors.bg)}
-                          >
-                            {getArabicName(item.label)}
+                          <Badge variant="outline" className={cn("border-2", colors.border, colors.text, colors.bg)}>
+                            <HighlightedText text={getArabicName(item.label)} highlight={resultSearchTerm} />
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -129,7 +137,7 @@ export const ResultTable = ({ data }) => {
                               .filter(([key]) => !key.startsWith('_') && !['label', 'type', 'designedNodeId'].includes(key))
                               .map(([key, value]) => (
                                 <Badge key={key} variant="secondary" className="text-[10px] py-0">
-                                  {key}: {value !== null && value !== undefined ? String(value) : '-'}
+                                  {key}: <HighlightedText text={String(value || '-')} highlight={resultSearchTerm} />
                                 </Badge>
                             ))}
                           </div>
@@ -147,11 +155,6 @@ export const ResultTable = ({ data }) => {
               <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
                 العلاقات ({filteredEdges.length})
               </h3>
-              {resultSearchTerm && filteredEdges.length === 0 && (
-                <span className="text-xs text-rose-500 flex items-center gap-1">
-                  <FilterX size={12} /> لا توجد نتائج مطابقة
-                </span>
-              )}
             </div>
             <div className="border rounded-xl overflow-hidden bg-white shadow-sm">
               <Table>
@@ -170,23 +173,28 @@ export const ResultTable = ({ data }) => {
                       id={`row-${edge._id}`}
                       className={cn(
                         "cursor-pointer transition-all",
-                        (highlightedId === edge._id || selectedResultId === edge._id) ? "bg-primary/5 border-primary" : "",
-                        selectedResultId === edge._id ? "ring-2 ring-primary/20 ring-inset" : ""
+                        (highlightedId === edge._id || selectedResultId === edge._id) ? "bg-primary/5 border-primary" : ""
                       )}
                       onMouseEnter={() => setHighlightedId(edge._id)}
                       onMouseLeave={() => setHighlightedId(null)}
                       onClick={() => setSelectedResultId(edge._id)}
                     >
-                      <TableCell className="font-mono text-[10px] text-slate-500">{edge._from}</TableCell>
-                      <TableCell className="font-bold text-xs">{edge.label}</TableCell>
-                      <TableCell className="font-mono text-[10px] text-slate-500">{edge._to}</TableCell>
+                      <TableCell className="font-mono text-[10px] text-slate-500">
+                        <HighlightedText text={edge._from} highlight={resultSearchTerm} />
+                      </TableCell>
+                      <TableCell className="font-bold text-xs">
+                        <HighlightedText text={edge.label} highlight={resultSearchTerm} />
+                      </TableCell>
+                      <TableCell className="font-mono text-[10px] text-slate-500">
+                        <HighlightedText text={edge._to} highlight={resultSearchTerm} />
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {Object.entries(edge)
                             .filter(([key]) => !key.startsWith('_') && key !== 'label')
                             .map(([key, value]) => (
                               <Badge key={key} variant="secondary" className="text-[10px] py-0">
-                                {key}: {value !== null && value !== undefined ? String(value) : '-'}
+                                {key}: <HighlightedText text={String(value || '-')} highlight={resultSearchTerm} />
                               </Badge>
                           ))}
                         </div>
