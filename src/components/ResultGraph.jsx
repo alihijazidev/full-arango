@@ -99,37 +99,63 @@ const ResultGraphInner = ({ data }) => {
   }, [data]);
 
   const filteredData = useMemo(() => {
-    const allEdges = data?.edges || [];
+    let baseNodes = allRawNodes;
+    let baseEdges = data?.edges || [];
 
-    if (!resultSearchTerm) return { nodes: allRawNodes, edges: allEdges };
-    
-    const term = resultSearchTerm.toLowerCase();
-
-    // دالة للتحقق من وجود النص في أي خاصية للكائن
-    const matchesSearch = (obj) => {
-      return Object.entries(obj).some(([key, value]) => {
-        // البحث في المفاتيح والقيم
-        const keyMatch = String(key).toLowerCase().includes(term);
-        const valueMatch = value !== null && value !== undefined && String(value).toLowerCase().includes(term);
-        return keyMatch || valueMatch;
+    // 1. تطبيق البحث أولاً إذا وُجد
+    if (resultSearchTerm) {
+      const term = resultSearchTerm.toLowerCase();
+      const matchesSearch = (obj) => {
+        return Object.entries(obj).some(([key, value]) => {
+          const keyMatch = String(key).toLowerCase().includes(term);
+          const valueMatch = value !== null && value !== undefined && String(value).toLowerCase().includes(term);
+          return keyMatch || valueMatch;
+        });
+      };
+      const matchingNodes = baseNodes.filter(node => matchesSearch(node));
+      const matchingEdges = baseEdges.filter(edge => matchesSearch(edge));
+      const nodeIdsToShow = new Set(matchingNodes.map(n => n._id));
+      matchingEdges.forEach(e => { 
+        if (e._from) nodeIdsToShow.add(e._from); 
+        if (e._to) nodeIdsToShow.add(e._to); 
       });
-    };
+      baseNodes = baseNodes.filter(n => nodeIdsToShow.has(n._id));
+      baseEdges = matchingEdges;
+    }
 
-    const matchingNodes = allRawNodes.filter(node => matchesSearch(node));
-    const matchingEdges = allEdges.filter(edge => matchesSearch(edge));
+    // 2. تطبيق التركيز (Selection Focus) إذا تم اختيار عنصر
+    if (selectedResultId) {
+      const isSelectedNode = allRawNodes.some(n => n._id === selectedResultId);
+      const isSelectedEdge = baseEdges.some(e => e._id === selectedResultId);
 
-    // لضمان ظهور العقد المرتبطة بالعلاقات المطابقة
-    const nodeIdsToShow = new Set(matchingNodes.map(n => n._id));
-    matchingEdges.forEach(e => { 
-      if (e._from) nodeIdsToShow.add(e._from); 
-      if (e._to) nodeIdsToShow.add(e._to); 
-    });
+      if (isSelectedNode) {
+        // إذا كانت عقدة: أظهر العقدة + علاقاتها + الجيران
+        const connectedEdges = baseEdges.filter(e => e._from === selectedResultId || e._to === selectedResultId);
+        const neighborNodeIds = new Set([selectedResultId]);
+        connectedEdges.forEach(e => {
+          neighborNodeIds.add(e._from);
+          neighborNodeIds.add(e._to);
+        });
+        
+        return {
+          nodes: allRawNodes.filter(n => neighborNodeIds.has(n._id)),
+          edges: connectedEdges
+        };
+      } else if (isSelectedEdge) {
+        // إذا كانت علاقة: أظهر العلاقة + طرفيها فقط
+        const targetEdge = baseEdges.find(e => e._id === selectedResultId);
+        if (targetEdge) {
+          const edgeNodeIds = new Set([targetEdge._from, targetEdge._to]);
+          return {
+            nodes: allRawNodes.filter(n => edgeNodeIds.has(n._id)),
+            edges: [targetEdge]
+          };
+        }
+      }
+    }
 
-    return {
-      nodes: allRawNodes.filter(n => nodeIdsToShow.has(n._id)),
-      edges: matchingEdges
-    };
-  }, [allRawNodes, data?.edges, resultSearchTerm]);
+    return { nodes: baseNodes, edges: baseEdges };
+  }, [allRawNodes, data?.edges, resultSearchTerm, selectedResultId]);
 
   const applyLayout = useCallback((mode = layoutMode) => {
     const rawNodes = filteredData.nodes.map((item) => ({
@@ -187,8 +213,8 @@ const ResultGraphInner = ({ data }) => {
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onNodeClick={(_, node) => isResultPathMode ? setResultPathNodes(prev => [...prev, node.id].length === 2 ? (executeShortestPath(prev[0], node.id), []) : [...prev, node.id]) : setSelectedResultId(node.id)}
-        onEdgeClick={(_, edge) => !isResultPathMode && setSelectedResultId(edge.id)}
+        onNodeClick={(_, node) => isResultPathMode ? setResultPathNodes(prev => [...prev, node.id].length === 2 ? (executeShortestPath(prev[0], node.id), []) : [...prev, node.id]) : setSelectedResultId(prev => prev === node.id ? null : node.id)}
+        onEdgeClick={(_, edge) => !isResultPathMode && setSelectedResultId(prev => prev === edge.id ? null : edge.id)}
         onNodeMouseEnter={(_, node) => setHighlightedId(node.id)}
         onNodeMouseLeave={() => setHighlightedId(null)}
         onEdgeMouseEnter={(_, edge) => setHighlightedId(edge.id)}

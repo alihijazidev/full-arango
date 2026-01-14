@@ -118,7 +118,7 @@ export const ResultTable = ({ data }) => {
                         )}
                         onMouseEnter={() => setHighlightedId(item._id)}
                         onMouseLeave={() => setHighlightedId(null)}
-                        onClick={() => setSelectedResultId(item._id)}
+                        onClick={() => setSelectedResultId(prev => prev === item._id ? null : item._id)}
                       >
                         <TableCell className="font-mono text-xs">
                           <HighlightText text={item._id} term={resultSearchTerm} />
@@ -179,7 +179,7 @@ export const ResultTable = ({ data }) => {
                       )}
                       onMouseEnter={() => setHighlightedId(edge._id)}
                       onMouseLeave={() => setHighlightedId(null)}
-                      onClick={() => setSelectedResultId(edge._id)}
+                      onClick={() => setSelectedResultId(prev => prev === edge._id ? null : edge._id)}
                     >
                       <TableCell className="font-mono text-[10px] text-slate-500">
                         <HighlightText text={edge._from} term={resultSearchTerm} />
