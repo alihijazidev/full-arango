@@ -104,19 +104,21 @@ const ResultGraphInner = ({ data }) => {
     if (!resultSearchTerm) return { nodes: allRawNodes, edges: allEdges };
     
     const term = resultSearchTerm.toLowerCase();
-    const matchingNodes = allRawNodes.filter(node => {
-      const inId = node._id ? String(node._id).toLowerCase().includes(term) : false;
-      const inLabel = node.label ? String(node.label).toLowerCase().includes(term) : false;
-      return inId || inLabel;
-    });
 
-    const matchingEdges = allEdges.filter(edge => {
-      const from = String(edge._from || '').toLowerCase();
-      const to = String(edge._to || '').toLowerCase();
-      const label = String(edge.label || '').toLowerCase();
-      return from.includes(term) || to.includes(term) || label.includes(term);
-    });
+    // دالة للتحقق من وجود النص في أي خاصية للكائن
+    const matchesSearch = (obj) => {
+      return Object.entries(obj).some(([key, value]) => {
+        // البحث في المفاتيح والقيم
+        const keyMatch = String(key).toLowerCase().includes(term);
+        const valueMatch = value !== null && value !== undefined && String(value).toLowerCase().includes(term);
+        return keyMatch || valueMatch;
+      });
+    };
 
+    const matchingNodes = allRawNodes.filter(node => matchesSearch(node));
+    const matchingEdges = allEdges.filter(edge => matchesSearch(edge));
+
+    // لضمان ظهور العقد المرتبطة بالعلاقات المطابقة
     const nodeIdsToShow = new Set(matchingNodes.map(n => n._id));
     matchingEdges.forEach(e => { 
       if (e._from) nodeIdsToShow.add(e._from); 
