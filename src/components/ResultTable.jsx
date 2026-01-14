@@ -36,8 +36,27 @@ export const ResultTable = ({ data }) => {
   
   const scrollAreaRef = useRef(null);
 
-  const allNodes = useMemo(() => [...(data.startnode || []), ...(data.targetnode || [])], [data]);
-  const allEdges = useMemo(() => data.edges || [], [data]);
+  // تصفية العقد لضمان فرادة المعرف _id
+  const allNodes = useMemo(() => {
+    const combined = [...(data.startnode || []), ...(data.targetnode || [])];
+    const seen = new Set();
+    return combined.filter(node => {
+      if (seen.has(node._id)) return false;
+      seen.add(node._id);
+      return true;
+    });
+  }, [data]);
+
+  // تصفية الروابط لضمان فرادة المعرف _id
+  const allEdges = useMemo(() => {
+    const edges = data.edges || [];
+    const seen = new Set();
+    return edges.filter(edge => {
+      if (seen.has(edge._id)) return false;
+      seen.add(edge._id);
+      return true;
+    });
+  }, [data]);
 
   // دالة البحث العام
   const matchesSearch = (obj, term) => {
@@ -60,7 +79,6 @@ export const ResultTable = ({ data }) => {
       baseNodes = baseNodes.filter(node => matchesSearch(node, resultSearchTerm));
       baseEdges = baseEdges.filter(edge => matchesSearch(edge, resultSearchTerm));
       
-      // ضمان بقاء العقد المرتبطة بالعلاقات المطابقة ظاهرة في الجدول
       const nodeIdsFromEdges = new Set();
       baseEdges.forEach(e => {
         if (e._from) nodeIdsFromEdges.add(e._from);
@@ -78,7 +96,6 @@ export const ResultTable = ({ data }) => {
       const isSelectedEdge = allEdges.some(e => e._id === selectedResultId);
 
       if (isSelectedNode) {
-        // إذا تم اختيار عقدة: أظهر العقدة + علاقاتها + العقد المرتبطة بها
         const connectedEdges = allEdges.filter(e => e._from === selectedResultId || e._to === selectedResultId);
         const neighborNodeIds = new Set([selectedResultId]);
         connectedEdges.forEach(e => {
@@ -91,7 +108,6 @@ export const ResultTable = ({ data }) => {
           edges: connectedEdges
         };
       } else if (isSelectedEdge) {
-        // إذا تم اختيار علاقة: أظهر العلاقة + طرفيها (البداية والنهاية)
         const targetEdge = allEdges.find(e => e._id === selectedResultId);
         if (targetEdge) {
           const edgeNodeIds = new Set([targetEdge._from, targetEdge._to]);

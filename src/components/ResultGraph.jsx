@@ -94,13 +94,31 @@ const ResultGraphInner = ({ data }) => {
   const { fitView } = useReactFlow();
   const [layoutMode, setLayoutMode] = useState('grid'); 
 
+  // تصفية العقد لضمان فرادة المعرف _id
   const allRawNodes = useMemo(() => {
-    return [...(data?.startnode || []), ...(data?.targetnode || [])];
+    const combined = [...(data?.startnode || []), ...(data?.targetnode || [])];
+    const seen = new Set();
+    return combined.filter(node => {
+      if (seen.has(node._id)) return false;
+      seen.add(node._id);
+      return true;
+    });
+  }, [data]);
+
+  // تصفية الروابط لضمان فرادة المعرف _id
+  const allRawEdges = useMemo(() => {
+    const edges = data?.edges || [];
+    const seen = new Set();
+    return edges.filter(edge => {
+      if (seen.has(edge._id)) return false;
+      seen.add(edge._id);
+      return true;
+    });
   }, [data]);
 
   const filteredData = useMemo(() => {
     let baseNodes = allRawNodes;
-    let baseEdges = data?.edges || [];
+    let baseEdges = allRawEdges;
 
     // 1. تطبيق البحث أولاً إذا وُجد
     if (resultSearchTerm) {
@@ -126,11 +144,10 @@ const ResultGraphInner = ({ data }) => {
     // 2. تطبيق التركيز (Selection Focus) إذا تم اختيار عنصر
     if (selectedResultId) {
       const isSelectedNode = allRawNodes.some(n => n._id === selectedResultId);
-      const isSelectedEdge = baseEdges.some(e => e._id === selectedResultId);
+      const isSelectedEdge = allRawEdges.some(e => e._id === selectedResultId);
 
       if (isSelectedNode) {
-        // إذا كانت عقدة: أظهر العقدة + علاقاتها + الجيران
-        const connectedEdges = baseEdges.filter(e => e._from === selectedResultId || e._to === selectedResultId);
+        const connectedEdges = allRawEdges.filter(e => e._from === selectedResultId || e._to === selectedResultId);
         const neighborNodeIds = new Set([selectedResultId]);
         connectedEdges.forEach(e => {
           neighborNodeIds.add(e._from);
@@ -142,8 +159,7 @@ const ResultGraphInner = ({ data }) => {
           edges: connectedEdges
         };
       } else if (isSelectedEdge) {
-        // إذا كانت علاقة: أظهر العلاقة + طرفيها فقط
-        const targetEdge = baseEdges.find(e => e._id === selectedResultId);
+        const targetEdge = allRawEdges.find(e => e._id === selectedResultId);
         if (targetEdge) {
           const edgeNodeIds = new Set([targetEdge._from, targetEdge._to]);
           return {
@@ -155,7 +171,7 @@ const ResultGraphInner = ({ data }) => {
     }
 
     return { nodes: baseNodes, edges: baseEdges };
-  }, [allRawNodes, data?.edges, resultSearchTerm, selectedResultId]);
+  }, [allRawNodes, allRawEdges, resultSearchTerm, selectedResultId]);
 
   const applyLayout = useCallback((mode = layoutMode) => {
     const rawNodes = filteredData.nodes.map((item) => ({
