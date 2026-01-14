@@ -4,30 +4,14 @@ import { cn } from '@/lib/utils';
 import { useGraph } from '../store/GraphContext';
 import { getArabicName, getIcon, getColorStyles } from '../utils/mapping';
 
-// مكون لتمييز النص المطابق داخل العقدة
-const HighlightedLabel = ({ text, highlight }) => {
-  if (!highlight || !highlight.trim()) return <span>{text}</span>;
-  const regex = new RegExp(`(${highlight})`, 'gi');
-  const parts = String(text).split(regex);
-  return (
-    <span>
-      {parts.map((part, i) => 
-        regex.test(part) ? (
-          <mark key={i} className="bg-amber-200 text-amber-900 rounded-sm px-0.5">{part}</mark>
-        ) : (
-          <span key={i}>{part}</span>
-        )
-      )}
-    </span>
-  );
-};
-
 export const CustomNode = memo(({ data, selected }) => {
-  const { globalIcons, resultSearchTerm } = useGraph();
+  const { globalIcons } = useGraph();
   const isCategory = data.type === 'category';
   const displayLabel = data.instanceId ? data.instanceId : getArabicName(data.label);
   
+  // جلب الأيقونة (ستتحقق تلقائياً من وجود تخصيص عالمي للاسم)
   const icon = getIcon(data.label, data.type, globalIcons);
+
   const colors = getColorStyles(data.label, selected);
 
   return (
@@ -49,10 +33,10 @@ export const CustomNode = memo(({ data, selected }) => {
         </div>
         <div className="flex flex-col items-center text-center w-full overflow-hidden">
           <span className={cn("text-[9px] font-bold uppercase tracking-widest mb-0.5", colors.accent)}>
-            {isCategory ? 'فئة' : <HighlightedLabel text={getArabicName(data.label)} highlight={resultSearchTerm} />}
+            {isCategory ? 'فئة' : getArabicName(data.label)}
           </span>
           <span className={cn("font-bold text-slate-700 truncate w-full px-1", data.instanceId ? "text-[10px] font-mono" : "text-sm")}>
-            <HighlightedLabel text={displayLabel} highlight={resultSearchTerm} />
+            {displayLabel}
           </span>
         </div>
       </div>
