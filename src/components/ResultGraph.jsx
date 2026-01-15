@@ -4,7 +4,7 @@ import 'reactflow/dist/style.css';
 import { useGraph } from '../store/GraphContext';
 import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
-import { MapPinned, Maximize2, LayoutGrid, Network, GitGraph } from 'lucide-react';
+import { MapPinned, Maximize2, LayoutGrid, Network, GitGraph, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from './ui/button';
 import dagre from 'dagre';
 
@@ -18,8 +18,8 @@ const edgeTypes = {
 
 // --- Grid Layout Logic ---
 const getGridLayoutedElements = (nodes, edges) => {
-  const spacingX = 300; 
-  const spacingY = 200; 
+  const spacingX = 350; // زيادة المسافة الأفقية قليلاً
+  const spacingY = 250; // زيادة المسافة الرأسية قليلاً
   const columns = Math.ceil(Math.sqrt(nodes.length)); 
 
   const sortedNodes = [...nodes].sort((a, b) => {
@@ -52,10 +52,10 @@ const getTreeLayoutedElements = (nodes, edges, direction = 'TB') => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  const nodeWidth = 180;
-  const nodeHeight = 100;
+  const nodeWidth = 200;
+  const nodeHeight = 120;
 
-  dagreGraph.setGraph({ rankdir: direction, nodesep: 70, ranksep: 120 });
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 100, ranksep: 150 });
 
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
@@ -91,10 +91,9 @@ const ResultGraphInner = ({ data }) => {
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { fitView } = useReactFlow();
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
   const [layoutMode, setLayoutMode] = useState('grid'); 
 
-  // تصفية العقد لضمان فرادة المعرف _id
   const allRawNodes = useMemo(() => {
     const combined = [...(data?.startnode || []), ...(data?.targetnode || [])];
     const seen = new Set();
@@ -105,7 +104,6 @@ const ResultGraphInner = ({ data }) => {
     });
   }, [data]);
 
-  // تصفية الروابط لضمان فرادة المعرف _id
   const allRawEdges = useMemo(() => {
     const edges = data?.edges || [];
     const seen = new Set();
@@ -120,7 +118,6 @@ const ResultGraphInner = ({ data }) => {
     let baseNodes = allRawNodes;
     let baseEdges = allRawEdges;
 
-    // 1. تطبيق البحث أولاً إذا وُجد
     if (resultSearchTerm) {
       const term = resultSearchTerm.toLowerCase();
       const matchesSearch = (obj) => {
@@ -141,7 +138,6 @@ const ResultGraphInner = ({ data }) => {
       baseEdges = matchingEdges;
     }
 
-    // 2. تطبيق التركيز (Selection Focus) إذا تم اختيار عنصر
     if (selectedResultId) {
       const isSelectedNode = allRawNodes.some(n => n._id === selectedResultId);
       const isSelectedEdge = allRawEdges.some(e => e._id === selectedResultId);
@@ -236,42 +232,55 @@ const ResultGraphInner = ({ data }) => {
         onEdgeMouseEnter={(_, edge) => setHighlightedId(edge.id)}
         onEdgeMouseLeave={() => setHighlightedId(null)}
         fitView
+        minZoom={0.05} // السماح بتصغير كبير جداً لرؤية المخطط كاملاً
+        maxZoom={4}
       >
         <Background color="#f1f5f9" gap={20} />
         
-        <Panel position="bottom-right" className="m-4 flex gap-2">
-          <div className="bg-white/90 backdrop-blur p-1 rounded-lg border shadow-sm flex items-center gap-1">
-            <Button 
-              variant={layoutMode === 'grid' ? 'default' : 'ghost'} 
-              size="sm" 
-              className="h-8 gap-2"
-              onClick={() => setLayoutMode('grid')}
-            >
-              <LayoutGrid size={14} />
-              شبكة (Grid)
+        <Panel position="bottom-right" className="m-4 flex flex-col gap-2">
+          {/* أدوات الزووم */}
+          <div className="bg-white/90 backdrop-blur p-1 rounded-lg border shadow-sm flex flex-col items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomIn()} title="تكبير">
+              <ZoomIn size={16} />
             </Button>
-            <Button 
-              variant={layoutMode === 'tree' ? 'default' : 'ghost'} 
-              size="sm" 
-              className="h-8 gap-2"
-              onClick={() => setLayoutMode('tree')}
-            >
-              <GitGraph size={14} />
-              شجري (Tree)
+            <div className="h-px w-6 bg-slate-200" />
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomOut()} title="تصغير">
+              <ZoomOut size={16} />
             </Button>
           </div>
 
-          <div className="h-8 w-px bg-slate-200 mx-1 self-center" />
+          <div className="flex gap-2">
+            <div className="bg-white/90 backdrop-blur p-1 rounded-lg border shadow-sm flex items-center gap-1">
+              <Button 
+                variant={layoutMode === 'grid' ? 'default' : 'ghost'} 
+                size="sm" 
+                className="h-8 gap-2"
+                onClick={() => setLayoutMode('grid')}
+              >
+                <LayoutGrid size={14} />
+                شبكة
+              </Button>
+              <Button 
+                variant={layoutMode === 'tree' ? 'default' : 'ghost'} 
+                size="sm" 
+                className="h-8 gap-2"
+                onClick={() => setLayoutMode('tree')}
+              >
+                <GitGraph size={14} />
+                شجري
+              </Button>
+            </div>
 
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="bg-white/80 backdrop-blur shadow-md gap-2 h-10"
-            onClick={() => fitView({ duration: 800 })}
-          >
-            <Maximize2 size={14} />
-            احتواء
-          </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-white/80 backdrop-blur shadow-md gap-2 h-10 px-3"
+              onClick={() => fitView({ duration: 800 })}
+            >
+              <Maximize2 size={14} />
+              احتواء
+            </Button>
+          </div>
         </Panel>
 
         {isResultPathMode && (
