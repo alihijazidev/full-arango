@@ -7,28 +7,36 @@ import { Input } from './ui/input';
 import { cn } from '@/lib/utils';
 import { getArabicName, getSmallIcon, getColorStyles } from '../utils/mapping';
 import { AnalysisTab } from './AnalysisTab';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 const SidebarRailItem = ({ icon: Icon, label, isActive, onClick }) => (
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <button
-        onClick={onClick}
-        className={cn(
-          "w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-300 relative group",
-          isActive 
-            ? "bg-primary text-white shadow-lg shadow-primary/20 scale-110" 
-            : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-        )}
-      >
-        <Icon size={20} />
-        {isActive && (
-          <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-l-full" />
-        )}
-      </button>
-    </TooltipTrigger>
-    <TooltipContent side="left" className="font-bold text-xs">{label}</TooltipContent>
-  </Tooltip>
+  <button
+    onClick={onClick}
+    className={cn(
+      "w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-300 relative group mb-2 outline-none",
+      isActive 
+        ? "bg-primary text-white shadow-lg shadow-primary/20 scale-105" 
+        : "text-slate-400 hover:text-slate-900 hover:bg-white hover:shadow-md border border-transparent hover:border-slate-200"
+    )}
+  >
+    <Icon size={20} className="transition-transform duration-300 group-hover:scale-110 z-10" />
+    
+    {/* ملصق التسمية المنبثق عند التمرير */}
+    <div className="absolute right-14 bg-slate-900 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 group-hover:right-16 transition-all duration-300 pointer-events-none shadow-xl z-50 flex items-center gap-2 border border-white/10">
+      {label}
+      <div className="absolute top-1/2 -translate-y-1/2 -right-1 w-2 h-2 bg-slate-900 rotate-45 border-r border-t border-white/10" />
+    </div>
+
+    {/* مؤشر الحالة النشطة / التمرير */}
+    <div className={cn(
+      "absolute -right-1 top-1/2 -translate-y-1/2 w-1 rounded-l-full bg-primary transition-all duration-300",
+      isActive ? "h-7 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-40"
+    )} />
+
+    {/* تأثير هالة خفيفة عند النشاط */}
+    {isActive && (
+      <div className="absolute inset-0 rounded-xl bg-primary/20 animate-pulse pointer-events-none" />
+    )}
+  </button>
 );
 
 export const Sidebar = () => {
@@ -65,7 +73,7 @@ export const Sidebar = () => {
   return (
     <div className="flex h-full border-l bg-white shadow-sm" dir="rtl">
       {/* الشريط الجانبي النحيف للتنقل (Rail) */}
-      <div className="w-16 border-l flex flex-col items-center py-6 gap-4 bg-slate-50/50 shrink-0">
+      <div className="w-16 border-l flex flex-col items-center py-6 gap-2 bg-slate-50/50 shrink-0">
         <SidebarRailItem 
           icon={Database} 
           label="بيانات المخطط" 
@@ -93,7 +101,7 @@ export const Sidebar = () => {
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                 <Input 
                   placeholder="بحث في المجموعات..." 
-                  className="pr-9 h-9 bg-slate-50 border-none text-xs text-right shadow-inner" 
+                  className="pr-9 h-9 bg-slate-50 border-none text-xs text-right shadow-inner focus-visible:ring-1 focus-visible:ring-primary/20" 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
