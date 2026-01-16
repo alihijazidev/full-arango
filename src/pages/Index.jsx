@@ -13,7 +13,9 @@ import {
   Settings, 
   Wifi, 
   FileDown,
-  FileUp
+  FileUp,
+  PlusCircle,
+  Save
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,13 +29,20 @@ const HeaderActions = () => {
   const { 
     executeStructuredQuery, 
     exportGraph, 
-    importGraph 
+    importGraph,
+    saveCurrentState 
   } = useGraph();
   
   const fileInputRef = useRef(null);
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleQuickSave = () => {
+    const randomSuffix = Math.floor(Math.random() * 9000) + 1000;
+    const randomName = `حفظ سريع #${randomSuffix}`;
+    saveCurrentState(randomName);
   };
 
   const handleFileChange = (event) => {
@@ -92,11 +101,26 @@ const HeaderActions = () => {
       <div className="h-6 w-px bg-slate-200 mx-1" />
 
       <div className="flex items-center gap-2">
-        <SavedStatesManager />
+        <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
+          <SavedStatesManager iconOnly={true} />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-blue-600 hover:bg-blue-100" 
+                onClick={handleQuickSave}
+              >
+                <PlusCircle size={18} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>حفظ سريع باسم عشوائي</TooltipContent>
+          </Tooltip>
+        </div>
 
         <Button 
           onClick={executeStructuredQuery}
-          className="gap-2 bg-emerald-600 hover:bg-emerald-700 h-9 font-bold text-white shadow-sm shadow-emerald-200"
+          className="gap-2 bg-emerald-600 hover:bg-emerald-700 h-9 font-bold text-white shadow-sm shadow-emerald-200 px-4"
         >
           <PlayCircle size={18} />
           تنفيذ الاستعلام
@@ -106,13 +130,24 @@ const HeaderActions = () => {
       <div className="h-6 w-px bg-slate-200 mx-1" />
 
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500">
-          <Settings size={20} />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 relative">
-          <BellIcon size={20} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500">
+              <Settings size={20} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>الإعدادات</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 relative">
+              <BellIcon size={20} />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>التنبيهات</TooltipContent>
+        </Tooltip>
         
         <div className="mr-2 flex items-center gap-3 pr-3 border-r">
           <div className="flex flex-col items-end hidden lg:flex">

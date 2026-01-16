@@ -13,8 +13,9 @@ import { Input } from "./ui/input";
 import { ScrollArea } from "./ui/scroll-area";
 import { History, Save, Trash2, Clock, Check, GripHorizontal } from 'lucide-react';
 import { Badge } from './ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
-export const SavedStatesManager = () => {
+export const SavedStatesManager = ({ iconOnly = false }) => {
   const { savedStates, saveCurrentState, loadSpecificState, deleteSavedState } = useGraph();
   const [saveName, setSaveName] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -25,26 +26,34 @@ export const SavedStatesManager = () => {
     setSaveName('');
   };
 
+  const triggerButton = (
+    <Button variant={iconOnly ? "ghost" : "outline"} size={iconOnly ? "icon" : "default"} className={iconOnly ? "h-8 w-8" : "gap-2 h-9 border-slate-200 text-slate-600"}>
+      <History size={18} />
+      {!iconOnly && "إدارة النسخ"}
+    </Button>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 h-9 border-slate-200 text-slate-600">
-          <History size={16} />
-          إدارة النسخ
-        </Button>
+        {iconOnly ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {triggerButton}
+            </TooltipTrigger>
+            <TooltipContent>إدارة واستعادة النسخ</TooltipContent>
+          </Tooltip>
+        ) : triggerButton}
       </DialogTrigger>
       
-      {/* نستخدم Draggable لتغليف المحتوى، مع تحديد nodeRef لتجنب تحذيرات StrictMode */}
       <Draggable nodeRef={nodeRef} handle=".drag-handle">
         <DialogContent 
           ref={nodeRef}
           className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl bg-transparent" 
           dir="rtl"
-          // نلغي خاصية التمركز التلقائي المتعارضة مع السحب
           style={{ top: '20%', left: '35%', transform: 'none' }}
         >
           <div className="bg-white rounded-lg border shadow-xl flex flex-col w-full">
-            {/* مقبض السحب (Drag Handle) */}
             <div className="drag-handle w-full h-6 bg-slate-100 flex items-center justify-center cursor-move hover:bg-slate-200 transition-colors">
               <GripHorizontal size={14} className="text-slate-400" />
             </div>
@@ -57,7 +66,6 @@ export const SavedStatesManager = () => {
             </DialogHeader>
 
             <div className="p-6 space-y-6 text-right">
-              {/* قسم حفظ نسخة جديدة */}
               <div className="space-y-3">
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">حفظ نسخة جديدة</h3>
                 <div className="flex gap-2">
@@ -74,7 +82,6 @@ export const SavedStatesManager = () => {
                 </div>
               </div>
 
-              {/* قائمة النسخ المحفوظة */}
               <div className="space-y-3">
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">النسخ السابقة ({savedStates.length})</h3>
                 <ScrollArea className="h-[250px] border rounded-lg p-2 bg-slate-50/50">
