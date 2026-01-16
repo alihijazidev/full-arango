@@ -7,15 +7,10 @@ import { GraphProvider, useGraph } from '../store/GraphContext';
 import { SavedStatesManager } from '../components/SavedStatesManager';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { 
-  Bell as BellIcon, 
-  User as UserIcon, 
   PlayCircle, 
-  Settings, 
-  Wifi, 
   FileDown,
   FileUp,
-  PlusCircle,
-  Save
+  PlusCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,16 +63,6 @@ const HeaderActions = () => {
         onChange={handleFileChange} 
       />
 
-      <div className="hidden md:flex items-center gap-2 ml-4 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
-        <div className="relative">
-          <Wifi size={14} className="text-emerald-500" />
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
-        </div>
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">متصل بـ ArangoDB</span>
-      </div>
-
-      <div className="h-6 w-px bg-slate-200 mx-1" />
-
       <div className="flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -125,39 +110,6 @@ const HeaderActions = () => {
           <PlayCircle size={18} />
           تنفيذ الاستعلام
         </Button>
-      </div>
-      
-      <div className="h-6 w-px bg-slate-200 mx-1" />
-
-      <div className="flex items-center gap-1">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500">
-              <Settings size={20} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>الإعدادات</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 relative">
-              <BellIcon size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>التنبيهات</TooltipContent>
-        </Tooltip>
-        
-        <div className="mr-2 flex items-center gap-3 pr-3 border-r">
-          <div className="flex flex-col items-end hidden lg:flex">
-            <span className="text-[11px] font-bold text-slate-700 leading-tight">عبدالرحمن محمد</span>
-            <span className="text-[9px] text-slate-400">مسؤول النظام</span>
-          </div>
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary/10 to-primary/30 border border-primary/20 flex items-center justify-center cursor-pointer hover:shadow-md transition-all">
-            <UserIcon size={18} className="text-primary" />
-          </div>
-        </div>
       </div>
     </div>
   );
