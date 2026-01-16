@@ -10,7 +10,8 @@ import {
   PlayCircle, 
   FileDown,
   FileUp,
-  PlusCircle
+  PlusCircle,
+  Share
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -70,28 +71,40 @@ const HeaderActions = () => {
         onChange={handleFileChange} 
       />
 
-      <div className="flex items-center gap-1">
+      {/* مجموعة أزرار الملفات (استيراد/تصدير) */}
+      <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 hover:text-blue-600" onClick={handleImportClick}>
-              <FileUp size={18} />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" 
+              onClick={handleImportClick}
+            >
+              <FileUp size={16} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>استيراد JSON</TooltipContent>
+          <TooltipContent>استيراد ملف JSON</TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 hover:text-blue-600" onClick={exportGraph}>
-              <FileDown size={18} />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" 
+              onClick={exportGraph}
+            >
+              <FileDown size={16} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>تصدير JSON</TooltipContent>
+          <TooltipContent>تصدير ملف JSON</TooltipContent>
         </Tooltip>
       </div>
 
       <div className="h-6 w-px bg-slate-200 mx-1" />
 
+      {/* مجموعة الحفظ والنسخ */}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
           <SavedStatesManager iconOnly={true} />
