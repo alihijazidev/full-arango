@@ -30,6 +30,7 @@ const RingSegment = ({
   
   const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
 
+  // إضافة تقوس بسيط عند الحواف لجعل التصميم أكثر نعومة
   const d = [
     "M", startOuter.x, startOuter.y,
     "A", outerRadius, outerRadius, 0, largeArcFlag, 1, endOuter.x, endOuter.y,
@@ -43,24 +44,27 @@ const RingSegment = ({
 
   return (
     <g 
-      className={cn("cursor-pointer group", disabled && "pointer-events-none opacity-40", className)} 
+      className={cn("cursor-pointer group select-none", disabled && "pointer-events-none opacity-20 grayscale", className)} 
       onClick={(e) => { e.stopPropagation(); if(!disabled) onClick(); }}
     >
       <path 
         d={d} 
-        className={cn("transition-colors duration-200", color, hoverColor)} 
-        stroke="white" 
-        strokeWidth="1.5"
+        className={cn("transition-all duration-300", color, hoverColor, "stroke-white/10 stroke-[0.5]")} 
       />
       <foreignObject 
-        x={labelPos.x - 25} 
-        y={labelPos.y - 25} 
-        width="50" 
-        height="50" 
+        x={labelPos.x - 20} 
+        y={labelPos.y - 20} 
+        width="40" 
+        height="40" 
         className="pointer-events-none"
       >
-        <div className="w-full h-full flex flex-col items-center justify-center text-white group-hover:scale-110 transition-transform">
-          {children}
+        <div className="w-full h-full flex flex-col items-center justify-center text-white drop-shadow-md group-hover:scale-110 transition-transform duration-300">
+          <div className="opacity-90 group-hover:opacity-100">
+            {children[0]}
+          </div>
+          <span className="text-[6px] font-black mt-0.5 tracking-tighter uppercase whitespace-nowrap opacity-80 group-hover:opacity-100">
+            {children.slice(1)}
+          </span>
         </div>
       </foreignObject>
     </g>
@@ -70,13 +74,12 @@ const RingSegment = ({
 export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicker, isNode, onFocus, onToggleTarget, onAddToPath }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // تقسيم الدائرة إلى 5 أقسام متساوية (360 / 5 = 72 درجة لكل قسم)
   const segments = [
-    { label: "تفاصيل", icon: <Info size={18} />, color: "fill-blue-600", hover: "hover:fill-blue-700", action: onDetails },
-    { label: "المسار", icon: <MapPinned size={18} />, color: "fill-amber-500", hover: "hover:fill-amber-600", action: onAddToPath },
-    { label: "أدوات", icon: <Zap size={18} />, color: "fill-violet-600", hover: "hover:fill-violet-700", action: () => setShowAdvanced(!showAdvanced), isTools: true },
-    { label: "أيقونة", icon: <ImageIcon size={18} />, color: "fill-teal-500", hover: "hover:fill-teal-600", action: onOpenIconPicker },
-    { label: "حذف", icon: <Trash2 size={18} />, color: "fill-rose-500", hover: "hover:fill-rose-600", action: onDelete },
+    { label: "تفاصيل", icon: <Info size={16} />, color: "fill-indigo-600", hover: "hover:fill-indigo-500", action: onDetails },
+    { label: "المسار", icon: <MapPinned size={16} />, color: "fill-amber-500", hover: "hover:fill-amber-400", action: onAddToPath },
+    { label: "أدوات", icon: <Zap size={16} />, color: "fill-slate-800", hover: "hover:fill-slate-700", action: () => setShowAdvanced(!showAdvanced), isTools: true },
+    { label: "أيقونة", icon: <ImageIcon size={16} />, color: "fill-teal-500", hover: "hover:fill-teal-400", action: onOpenIconPicker },
+    { label: "حذف", icon: <Trash2 size={16} />, color: "fill-rose-500", hover: "hover:fill-rose-400", action: onDelete },
   ];
 
   return (
@@ -84,42 +87,43 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
       className="fixed z-[100] pointer-events-auto"
       style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}
     >
-      <div className="relative w-[320px] h-[320px] animate-in zoom-in-75 duration-200">
-        <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-2xl overflow-visible">
-          {/* حلقة الأدوات المتقدمة (الخارجية) تظهر عند الضغط على "أدوات" */}
+      <div className="relative w-[240px] h-[240px] animate-in zoom-in-90 fade-in duration-200 ease-out">
+        <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-[0_10px_25px_rgba(0,0,0,0.3)] overflow-visible">
+          {/* خلفية دائرية خفيفة */}
+          <circle cx="100" cy="100" r="105" fill="black" fillOpacity="0.03" />
+
+          {/* حلقة الأدوات المتقدمة (تظهر عند تفعيل زر الأدوات) */}
           {showAdvanced && isNode && (
-            <g className="animate-in zoom-in-90 fade-in duration-300">
-               {/* تركيز */}
+            <g className="animate-in zoom-in-95 slide-in-from-top-2 duration-300">
                <RingSegment
                 startAngle={144}
                 endAngle={180}
-                innerRadius={105}
-                outerRadius={140}
-                color="fill-indigo-500"
-                hoverColor="hover:fill-indigo-600"
+                innerRadius={102}
+                outerRadius={135}
+                color="fill-violet-500"
+                hoverColor="hover:fill-violet-400"
                 onClick={onFocus}
               >
-                <Eye size={16} />
-                <span className="text-[6px] font-bold mt-0.5">تركيز</span>
+                <Eye size={14} />
+                تركيز
               </RingSegment>
 
-              {/* استهداف */}
               <RingSegment
                 startAngle={180}
                 endAngle={216}
-                innerRadius={105}
-                outerRadius={140}
+                innerRadius={102}
+                outerRadius={135}
                 color="fill-rose-600"
-                hoverColor="hover:fill-rose-700"
+                hoverColor="hover:fill-rose-500"
                 onClick={onToggleTarget}
               >
-                <Target size={16} />
-                <span className="text-[6px] font-bold mt-0.5">هدف</span>
+                <Target size={14} />
+                هدف
               </RingSegment>
             </g>
           )}
 
-          {/* الحلقة الأساسية المكونة من 5 أقسام متساوية */}
+          {/* الحلقات الأساسية */}
           {segments.map((seg, i) => {
             const startAngle = i * 72;
             const endAngle = (i + 1) * 72;
@@ -130,7 +134,7 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
                 key={seg.label}
                 startAngle={startAngle}
                 endAngle={endAngle}
-                innerRadius={45}
+                innerRadius={48}
                 outerRadius={100}
                 color={seg.color}
                 hoverColor={seg.hover}
@@ -138,20 +142,21 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
                 disabled={isDisabled}
               >
                 {seg.icon}
-                <span className="text-[7px] font-bold uppercase mt-1">{seg.label}</span>
-                {seg.isTools && <ChevronRight size={8} className={cn("mt-0.5 transition-transform", showAdvanced ? "rotate-90" : "")} />}
+                {seg.label}
               </RingSegment>
             );
           })}
 
-          {/* زر الإغلاق المركزي */}
+          {/* زر الإغلاق المركزي المطور */}
           <g className="cursor-pointer group" onClick={onClose}>
-            <circle cx="100" cy="100" r="43" fill="white" className="shadow-lg group-hover:fill-slate-50 transition-colors" />
-            <circle cx="100" cy="100" r="38" fill="white" stroke="#e2e8f0" strokeWidth="1" />
+            <circle cx="100" cy="100" r="46" className="fill-white drop-shadow-sm transition-all duration-300 group-hover:fill-slate-50" />
+            <circle cx="100" cy="100" r="40" className="fill-white stroke-slate-100 stroke-[1]" />
             <foreignObject x="80" y="80" width="40" height="40">
-              <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 group-hover:text-rose-500 group-hover:scale-110 transition-all">
-                <X size={20} />
-                <span className="text-[6px] font-bold mt-0.5 uppercase">إغلاق</span>
+              <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 group-hover:text-rose-500 transition-all duration-300">
+                <div className="group-hover:rotate-90 transition-transform duration-300">
+                  <X size={18} />
+                </div>
+                <span className="text-[5px] font-black mt-0.5 tracking-widest opacity-60">إغلاق</span>
               </div>
             </foreignObject>
           </g>
