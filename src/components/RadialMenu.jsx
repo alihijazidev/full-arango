@@ -87,6 +87,7 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
     <div 
       className="fixed z-[100] pointer-events-auto"
       style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}
+      onMouseLeave={() => setShowAdvanced(false)}
     >
       <div className="relative w-[220px] h-[220px] animate-in zoom-in-90 fade-in duration-200 ease-out">
         <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-[0_12px_30px_rgba(0,0,0,0.3)] overflow-visible">
