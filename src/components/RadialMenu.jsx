@@ -53,17 +53,17 @@ const RingSegment = ({
         className={cn("transition-all duration-300", color, hoverColor, "stroke-white/10 stroke-[0.5]")} 
       />
       <foreignObject 
-        x={labelPos.x - 20} 
-        y={labelPos.y - 20} 
-        width="40" 
-        height="40" 
+        x={labelPos.x - 25} 
+        y={labelPos.y - 25} 
+        width="50" 
+        height="50" 
         className="pointer-events-none"
       >
-        <div className="w-full h-full flex flex-col items-center justify-center text-white drop-shadow-md transition-all duration-300">
-          <div className="transform transition-transform duration-300 group-hover:-translate-y-1">
+        <div className="w-full h-full flex flex-col items-center justify-center text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)] transition-all duration-300">
+          <div className="transform transition-transform duration-300 group-hover:-translate-y-1.5">
             {children[0]}
           </div>
-          <span className="text-[7px] font-black mt-1 tracking-tighter uppercase whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 absolute bottom-1">
+          <span className="text-[10px] font-bold mt-1 tracking-wide uppercase whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 absolute bottom-1">
             {children.slice(1)}
           </span>
         </div>
@@ -76,11 +76,11 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const segments = [
-    { label: "تفاصيل", icon: <Info size={16} />, color: "fill-indigo-600", hover: "hover:fill-indigo-500", action: onDetails },
-    { label: "المسار", icon: <MapPinned size={16} />, color: "fill-amber-500", hover: "hover:fill-amber-400", action: onAddToPath },
-    { label: "أدوات", icon: <Zap size={16} />, color: "fill-slate-800", hover: "hover:fill-slate-700", action: () => setShowAdvanced(!showAdvanced), isTools: true },
-    { label: "أيقونة", icon: <ImageIcon size={16} />, color: "fill-teal-500", hover: "hover:fill-teal-400", action: onOpenIconPicker },
-    { label: "حذف", icon: <Trash2 size={16} />, color: "fill-rose-500", hover: "hover:fill-rose-400", action: onDelete },
+    { label: "تفاصيل", icon: <Info size={18} />, color: "fill-indigo-600", hover: "hover:fill-indigo-500", action: onDetails },
+    { label: "المسار", icon: <MapPinned size={18} />, color: "fill-amber-500", hover: "hover:fill-amber-400", action: onAddToPath },
+    { label: "أدوات", icon: <Zap size={18} />, color: "fill-slate-800", hover: "hover:fill-slate-700", action: () => setShowAdvanced(!showAdvanced), isTools: true },
+    { label: "أيقونة", icon: <ImageIcon size={18} />, color: "fill-teal-500", hover: "hover:fill-teal-400", action: onOpenIconPicker },
+    { label: "حذف", icon: <Trash2 size={18} />, color: "fill-rose-500", hover: "hover:fill-rose-400", action: onDelete },
   ];
 
   return (
@@ -89,8 +89,8 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
       style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}
       onMouseLeave={() => setShowAdvanced(false)}
     >
-      <div className="relative w-[220px] h-[220px] animate-in zoom-in-90 fade-in duration-200 ease-out">
-        <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-[0_12px_30px_rgba(0,0,0,0.3)] overflow-visible">
+      <div className="relative w-[240px] h-[240px] animate-in zoom-in-90 fade-in duration-200 ease-out">
+        <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-[0_12px_40px_rgba(0,0,0,0.4)] overflow-visible">
           <circle cx="100" cy="100" r="105" fill="black" fillOpacity="0.02" />
 
           {showAdvanced && isNode && (
@@ -104,7 +104,7 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
                 hoverColor="hover:fill-violet-400"
                 onClick={onFocus}
               >
-                <Eye size={14} />
+                <Eye size={16} />
                 تركيز
               </RingSegment>
 
@@ -117,7 +117,7 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
                 hoverColor="hover:fill-rose-500"
                 onClick={onToggleTarget}
               >
-                <Target size={14} />
+                <Target size={16} />
                 هدف
               </RingSegment>
             </g>
@@ -150,12 +150,12 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
           <g className="cursor-pointer group" onClick={onClose} onMouseEnter={() => setShowAdvanced(false)}>
             <circle cx="100" cy="100" r="46" className="fill-white drop-shadow-sm transition-all duration-300 group-hover:fill-slate-50" />
             <circle cx="100" cy="100" r="40" className="fill-white stroke-slate-100 stroke-[1]" />
-            <foreignObject x="80" y="80" width="40" height="40">
+            <foreignObject x="75" y="75" width="50" height="50">
               <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 group-hover:text-rose-500 transition-all duration-300">
                 <div className="group-hover:rotate-90 transition-transform duration-300">
-                  <X size={18} />
+                  <X size={20} />
                 </div>
-                <span className="text-[5px] font-black mt-0.5 tracking-widest opacity-60">إغلاق</span>
+                <span className="text-[10px] font-bold mt-0.5 tracking-wider">إغلاق</span>
               </div>
             </foreignObject>
           </g>
