@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { fetchMetadata } from '../services/mockApi';
 import { addEdge } from 'reactflow';
 import { toast } from "sonner";
+import { getGridLayout, getCircularLayout, getTreeLayout, getForceLayout } from '../utils/layouts';
 
 const GraphContext = createContext(undefined);
 
@@ -30,8 +31,25 @@ export const GraphProvider = ({ children }) => {
     if (saved) setSavedStates(JSON.parse(saved));
   }, []);
 
+  // --- دوال التخطيط ---
+  const applyLayout = useCallback((type) => {
+    if (nodes.length === 0) return;
+    
+    let layoutedNodes = [];
+    switch (type) {
+      case 'grid': layoutedNodes = getGridLayout(nodes); break;
+      case 'circular': layoutedNodes = getCircularLayout(nodes); break;
+      case 'tree-tb': layoutedNodes = getTreeLayout(nodes, edges, 'TB'); break;
+      case 'tree-lr': layoutedNodes = getTreeLayout(nodes, edges, 'LR'); break;
+      case 'force': layoutedNodes = getForceLayout(nodes, edges); break;
+      default: return;
+    }
+    
+    setNodes(layoutedNodes);
+    toast.success(`تم تطبيق التخطيط ${type}`);
+  }, [nodes, edges]);
+
   // --- وظائف الحفظ المتعدد ---
-  
   const saveCurrentState = useCallback((name) => {
     const newState = {
       id: Date.now().toString(),
@@ -39,7 +57,6 @@ export const GraphProvider = ({ children }) => {
       timestamp: new Date().toISOString(),
       data: { nodes, edges, globalIcons }
     };
-    
     const updatedStates = [newState, ...savedStates];
     setSavedStates(updatedStates);
     localStorage.setItem('arango_saved_states', JSON.stringify(updatedStates));
@@ -67,13 +84,11 @@ export const GraphProvider = ({ children }) => {
   const exportGraph = useCallback(() => {
     const dataStr = JSON.stringify({ nodes, edges, globalIcons, exportedAt: new Date().toISOString() }, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = `graph-export-${new Date().getTime()}.json`;
-
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.setAttribute('download', `graph-${Date.now()}.json`);
     linkElement.click();
-    toast.success("بدأ تصدير المخطط كملف JSON");
+    toast.success("بدأ تصدير المخطط");
   }, [nodes, edges, globalIcons]);
 
   const importGraph = useCallback((jsonData) => {
@@ -84,15 +99,11 @@ export const GraphProvider = ({ children }) => {
         setEdges(data.edges);
         setGlobalIcons(data.globalIcons || {});
         toast.success("تم استيراد المخطط بنجاح");
-      } else {
-        throw new Error("تنسيق الملف غير صحيح");
       }
     } catch (error) {
-      toast.error("فشل استيراد الملف: تأكد من صحة تنسيق JSON");
+      toast.error("فشل استيراد الملف");
     }
   }, []);
-
-  // --- منطق الرسم الأساسي ---
 
   const getParallelEdgeOffset = (source, target, existingEdges) => {
     const parallelEdges = existingEdges.filter(
@@ -246,7 +257,7 @@ export const GraphProvider = ({ children }) => {
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons,
-      savedStates, saveCurrentState, loadSpecificState, deleteSavedState, exportGraph, importGraph
+      savedStates, saveCurrentState, loadSpecificState, deleteSavedState, exportGraph, importGraph, applyLayout
     }}>
       {children}
     </GraphContext.Provider>

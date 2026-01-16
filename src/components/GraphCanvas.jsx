@@ -13,11 +13,25 @@ import { CustomNode } from './GraphNodes';
 import { ParallelEdge } from './ParallelEdge';
 import { RadialMenu } from './RadialMenu';
 import { IconPicker } from './IconPicker';
-import { Maximize2, Trash2, Zap, ZapOff, Activity, LayoutGrid, CircleDot, Square } from 'lucide-react';
+import { 
+  Maximize2, 
+  Trash2, 
+  Zap, 
+  ZapOff, 
+  Activity, 
+  LayoutGrid, 
+  CircleDot, 
+  Square,
+  GitGraph,
+  Share2,
+  Table2,
+  Circle
+} from 'lucide-react';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 const nodeTypes = { customNode: CustomNode };
 const edgeTypes = { parallel: ParallelEdge };
@@ -29,7 +43,8 @@ const GraphInner = ({ onSelectElement }) => {
     addNodeFromMetadata, deleteElement, clearCanvas, updateNodeIcon,
     isAnimated, setIsAnimated,
     isAutoConnect, setIsAutoConnect,
-    backgroundStyle, setBackgroundStyle
+    backgroundStyle, setBackgroundStyle,
+    applyLayout
   } = useGraph();
   const { project, fitView } = useReactFlow();
   const [menu, setMenu] = useState(null);
@@ -106,7 +121,46 @@ const GraphInner = ({ onSelectElement }) => {
           />
         )}
         
-        <Panel position="top-right" className="flex items-center gap-4 bg-white/90 backdrop-blur-md p-3 rounded-xl border shadow-lg">
+        <Panel position="top-right" className="flex items-center gap-4 bg-white/90 backdrop-blur-md p-2 rounded-xl border shadow-lg">
+          {/* قسم التخطيط التلقائي */}
+          <div className="flex items-center gap-1 border-r pr-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-indigo-600 hover:bg-indigo-50" onClick={() => applyLayout('tree-tb')}>
+                  <GitGraph size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>تخطيط شجري</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={() => applyLayout('grid')}>
+                  <Table2 size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>تخطيط شبكي</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:bg-amber-50" onClick={() => applyLayout('circular')}>
+                  <Circle size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>تخطيط دائري</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => applyLayout('force')}>
+                  <Share2 size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>تخطيط حر (Force)</TooltipContent>
+            </Tooltip>
+          </div>
+
           <div className="flex items-center gap-3 border-r pr-3">
             <div className="flex items-center gap-2">
               <Activity size={14} className={isAnimated ? "text-primary animate-pulse" : "text-slate-400"} />
@@ -119,6 +173,7 @@ const GraphInner = ({ onSelectElement }) => {
               <Switch id="auto-mode" checked={isAutoConnect} onCheckedChange={setIsAutoConnect} />
             </div>
           </div>
+          
           <div className="flex items-center gap-1">
              <Button 
                variant="ghost" 
@@ -133,7 +188,7 @@ const GraphInner = ({ onSelectElement }) => {
              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={clearCanvas} title="مسح"><Trash2 size={14} /></Button>
           </div>
         </Panel>
-      </ReactFlow>
+      </Flow>
       
       {menu && (
         <RadialMenu 
@@ -146,7 +201,6 @@ const GraphInner = ({ onSelectElement }) => {
         />
       )}
 
-      {/* تثبيت اللوحة على الجانب الأيسر (نفس موقع لوحة التفاصيل) */}
       {iconPicker && (
         <div className="absolute left-0 top-0 h-full z-40 animate-in slide-in-from-left duration-300">
           <IconPicker 
