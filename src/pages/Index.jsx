@@ -20,12 +20,25 @@ import {
   TooltipTrigger 
 } from '@/components/ui/tooltip';
 
-const FileActions = () => {
-  const { exportGraph, importGraph } = useGraph();
+const HeaderActionsLeft = () => {
+  const { exportGraph, importGraph, saveCurrentState } = useGraph();
   const fileInputRef = useRef(null);
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleQuickSave = () => {
+    const now = new Date().toLocaleString('ar-EG', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    const saveName = `حفظ سريع - ${now}`;
+    saveCurrentState(saveName);
   };
 
   const handleFileChange = (event) => {
@@ -42,7 +55,7 @@ const FileActions = () => {
   };
 
   return (
-    <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
+    <div className="flex items-center gap-2">
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -50,58 +63,39 @@ const FileActions = () => {
         accept=".json" 
         onChange={handleFileChange} 
       />
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" 
-            onClick={handleImportClick}
-          >
-            <FileUp size={16} />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>استيراد ملف JSON</TooltipContent>
-      </Tooltip>
+      
+      {/* مجموعة الملفات */}
+      <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" 
+              onClick={handleImportClick}
+            >
+              <FileUp size={16} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>استيراد ملف JSON</TooltipContent>
+        </Tooltip>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" 
-            onClick={exportGraph}
-          >
-            <FileDown size={16} />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>تصدير ملف JSON</TooltipContent>
-      </Tooltip>
-    </div>
-  );
-};
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" 
+              onClick={exportGraph}
+            >
+              <FileDown size={16} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>تصدير ملف JSON</TooltipContent>
+        </Tooltip>
+      </div>
 
-const HeaderMainActions = () => {
-  const { 
-    executeStructuredQuery, 
-    saveCurrentState 
-  } = useGraph();
-
-  const handleQuickSave = () => {
-    const now = new Date().toLocaleString('ar-EG', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-    const saveName = `حفظ سريع - ${now}`;
-    saveCurrentState(saveName);
-  };
-
-  return (
-    <div className="flex items-center gap-2">
+      {/* مجموعة إدارة الحالات */}
       <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
         <SavedStatesManager iconOnly={true} />
         <Tooltip>
@@ -115,18 +109,24 @@ const HeaderMainActions = () => {
               <PlusCircle size={18} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>حفظ سريع بالتوقيت الحالي</TooltipContent>
+          <TooltipContent>حفظ سريع للرسم الحالي</TooltipContent>
         </Tooltip>
       </div>
-
-      <Button 
-        onClick={executeStructuredQuery}
-        className="gap-2 bg-emerald-600 hover:bg-emerald-700 h-9 font-bold text-white shadow-sm shadow-emerald-200 px-4"
-      >
-        <PlayCircle size={18} />
-        تنفيذ الاستعلام
-      </Button>
     </div>
+  );
+};
+
+const HeaderMainActions = () => {
+  const { executeStructuredQuery } = useGraph();
+
+  return (
+    <Button 
+      onClick={executeStructuredQuery}
+      className="gap-2 bg-emerald-600 hover:bg-emerald-700 h-9 font-bold text-white shadow-sm shadow-emerald-200 px-4"
+    >
+      <PlayCircle size={18} />
+      تنفيذ الاستعلام
+    </Button>
   );
 };
 
@@ -153,7 +153,7 @@ const IndexContent = () => {
 
           <div className="h-6 w-px bg-slate-200" />
           
-          <FileActions />
+          <HeaderActionsLeft />
         </div>
 
         <HeaderMainActions />
