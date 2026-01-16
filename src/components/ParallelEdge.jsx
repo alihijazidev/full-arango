@@ -19,19 +19,16 @@ export const ParallelEdge = ({
   animated,
   data
 }) => {
-  const { updateEdgeOffset, nodes, shortestPathSelection } = useGraph();
+  const { updateEdgeOffset, nodes, shortestPathSelection, activePathElements } = useGraph();
   const { screenToFlowPosition, setEdges: setLocalEdges } = useReactFlow();
   
   const sourceNode = useMemo(() => nodes.find(n => n.id === source), [nodes, source]);
   const targetNode = useMemo(() => nodes.find(n => n.id === target), [nodes, target]);
 
-  // التحقق مما إذا كان الرابط جزءاً من المسار المختار (رابط افتراضي أو رابط حقيقي بين عقدتي المسار)
+  // التحقق مما إذا كان الرابط جزءاً من المسار المكتشف
   const isPartOfPath = useMemo(() => {
-    if (data?.isVirtual) return true;
-    if (shortestPathSelection.length < 2) return false;
-    const pathIds = shortestPathSelection.map(n => n.id);
-    return pathIds.includes(source) && pathIds.includes(target);
-  }, [shortestPathSelection, source, target, data]);
+    return data?.isVirtual || activePathElements.edges.has(id);
+  }, [activePathElements, id, data]);
 
   const gradientStyle = useMemo(() => {
     if (!sourceNode || !targetNode) return {};
@@ -91,7 +88,7 @@ export const ParallelEdge = ({
         className={cn(
           "react-flow__edge-path fill-none transition-all cursor-pointer",
           isPartOfPath ? "stroke-amber-400 stroke-[3px] drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]" : (selected ? "stroke-primary stroke-[3px]" : "stroke-slate-400 stroke-2"),
-          (animated || data?.isVirtual) && "animate-dash",
+          (animated || isPartOfPath) && "animate-dash",
           data?.isVirtual && "stroke-dasharray-5"
         )}
         d={path}

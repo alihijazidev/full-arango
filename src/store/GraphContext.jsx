@@ -29,6 +29,7 @@ export const GraphProvider = ({ children }) => {
   const [focusedNodeId, setFocusedNodeId] = useState(null);
   const [targetNodeIds, setTargetNodeIds] = useState(new Set());
   const [shortestPathSelection, setShortestPathSelection] = useState([]);
+  const [activePathElements, setActivePathElements] = useState({ nodes: new Set(), edges: new Set() });
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
@@ -39,6 +40,49 @@ export const GraphProvider = ({ children }) => {
   useEffect(() => {
     setEdges((eds) => eds.map(edge => ({ ...edge, animated: isAnimated })));
   }, [isAnimated]);
+
+  // خوارزمية البحث عن أقصر مسار في المخطط الحالي (BFS)
+  const findPathInGraph = (startId, endId) => {
+    const adjacency = {};
+    edges.forEach(edge => {
+      if (!adjacency[edge.source]) adjacency[edge.source] = [];
+      adjacency[edge.source].push({ node: edge.target, edge: edge.id });
+      // جعل البحث ثنائي الاتجاه للسهولة البصرية (أو أحادي الاتجاه حسب الرغبة)
+      if (!adjacency[edge.target]) adjacency[edge.target] = [];
+      adjacency[edge.target].push({ node: edge.source, edge: edge.id });
+    });
+
+    const queue = [startId];
+    const visited = new Set([startId]);
+    const predecessors = {};
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (current === endId) {
+        const pathNodes = new Set();
+        const pathEdges = new Set();
+        let step = endId;
+        while (step !== startId) {
+          pathNodes.add(step);
+          const pred = predecessors[step];
+          pathEdges.add(pred.edgeId);
+          step = pred.prevNodeId;
+        }
+        pathNodes.add(startId);
+        return { nodes: pathNodes, edges: pathEdges };
+      }
+
+      const neighbors = adjacency[current] || [];
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor.node)) {
+          visited.add(neighbor.node);
+          predecessors[neighbor.node] = { prevNodeId: current, edgeId: neighbor.edge };
+          queue.push(neighbor.node);
+        }
+      }
+    }
+    return null;
+  };
 
   const toggleFocus = (nodeId) => {
     setFocusedNodeId(prev => prev === nodeId ? null : nodeId);
@@ -55,10 +99,7 @@ export const GraphProvider = ({ children }) => {
   };
 
   const addToShortestPath = (node) => {
-    if (shortestPathSelection.find(n => n.id === node.id)) {
-      toast.warning("العقدة مضافة بالفعل");
-      return;
-    }
+    if (shortestPathSelection.find(n => n.id === node.id)) return;
     if (shortestPathSelection.length >= 2) {
       toast.error("يمكنك اختيار عقدتين فقط لمسار واحد");
       return;
@@ -66,41 +107,37 @@ export const GraphProvider = ({ children }) => {
 
     const newSelection = [...shortestPathSelection, node];
     setShortestPathSelection(newSelection);
-    toast.success(`تمت إضافة ${node.data.label} للمسار`);
+    toast.success(`تم اختيار ${node.data.label}`);
 
-    // إذا تم اختيار عقدتين، تحقق من وجود رابط
     if (newSelection.length === 2) {
       const [nodeA, nodeB] = newSelection;
-      const existingEdge = edges.find(e => 
-        (e.source === nodeA.id && e.target === nodeB.id) || 
-        (e.source === nodeB.id && e.target === nodeA.id)
-      );
+      const path = findPathInGraph(nodeA.id, nodeB.id);
 
-      if (!existingEdge) {
-        // إنشاء رابط افتراضي (Empty Edge)
-        const edgeId = `virtual-path-${nodeA.id}-${nodeB.id}`;
+      if (path) {
+        setActivePathElements(path);
+        toast.info("تم اكتشاف مسار موجود بين العقدتين");
+      } else {
+        // إذا لم يوجد مسار، أضف رابطاً يدوياً
+        const edgeId = `manual-path-${nodeA.id}-${nodeB.id}`;
         setEdges(eds => [...eds, {
           id: edgeId,
           source: nodeA.id,
           target: nodeB.id,
-          label: 'مسار مستهدف',
+          label: 'رابط مسار يدوي',
           type: 'parallel',
           animated: true,
-          data: { 
-            isVirtual: true,
-            filters: [], 
-            offset: 0, 
-            depth: 1 
-          }
+          data: { isVirtual: true, filters: [], offset: 0, depth: 1 }
         }]);
+        setActivePathElements({ nodes: new Set([nodeA.id, nodeB.id]), edges: new Set([edgeId]) });
+        toast.warning("لا يوجد مسار مباشر؛ تم إنشاء رابط يدوي");
       }
     }
   };
 
   const removeFromShortestPath = (nodeId) => {
     setShortestPathSelection(prev => prev.filter(n => n.id !== nodeId));
-    // حذف أي روابط افتراضية مرتبطة بهذه العقدة
-    setEdges(eds => eds.filter(e => !e.id.startsWith('virtual-path-') || (e.source !== nodeId && e.target !== nodeId)));
+    setEdges(eds => eds.filter(e => !e.id.startsWith('manual-path-') || (e.source !== nodeId && e.target !== nodeId)));
+    setActivePathElements({ nodes: new Set(), edges: new Set() });
   };
 
   const applyLayout = useCallback((type) => {
@@ -123,13 +160,7 @@ export const GraphProvider = ({ children }) => {
       id: Date.now().toString(),
       name: name || `نسخة ${new Date().toLocaleString('ar-EG')}`,
       timestamp: new Date().toISOString(),
-      data: { 
-        nodes, 
-        edges, 
-        globalIcons,
-        targetNodeIds: Array.from(targetNodeIds),
-        focusedNodeId
-      }
+      data: { nodes, edges, globalIcons, targetNodeIds: Array.from(targetNodeIds), focusedNodeId }
     };
     const updatedStates = [newState, ...savedStates];
     setSavedStates(updatedStates);
@@ -158,14 +189,7 @@ export const GraphProvider = ({ children }) => {
   }, [savedStates]);
 
   const exportGraph = useCallback(() => {
-    const dataStr = JSON.stringify({ 
-      nodes, 
-      edges, 
-      globalIcons, 
-      targetNodeIds: Array.from(targetNodeIds),
-      focusedNodeId,
-      exportedAt: new Date().toISOString() 
-    }, null, 2);
+    const dataStr = JSON.stringify({ nodes, edges, globalIcons, targetNodeIds: Array.from(targetNodeIds), focusedNodeId, exportedAt: new Date().toISOString() }, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -191,9 +215,7 @@ export const GraphProvider = ({ children }) => {
   }, []);
 
   const getParallelEdgeOffset = (source, target, existingEdges) => {
-    const parallelEdges = existingEdges.filter(
-      (e) => (e.source === source && e.target === target) || (e.source === target && e.target === source)
-    );
+    const parallelEdges = existingEdges.filter((e) => (e.source === source && e.target === target) || (e.source === target && e.target === source));
     const count = parallelEdges.length;
     if (count === 0) return 0;
     const step = 40;
@@ -211,16 +233,11 @@ export const GraphProvider = ({ children }) => {
           const targetPath = targetNode.data.fullPath;
           const edgeFromStr = Array.isArray(edgeMeta.fromcol) ? edgeMeta.fromcol.join('/') : edgeMeta.fromcol;
           const edgeToStr = Array.isArray(edgeMeta.tocol) ? edgeMeta.tocol.join('/') : edgeMeta.tocol;
-          if ((edgeFromStr === sourcePath || edgeFromStr.startsWith(sourcePath + '/')) && 
-              (edgeToStr === targetPath || edgeToStr.startsWith(targetPath + '/'))) {
+          if ((edgeFromStr === sourcePath || edgeFromStr.startsWith(sourcePath + '/')) && (edgeToStr === targetPath || edgeToStr.startsWith(targetPath + '/'))) {
             const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.label}`;
             if (!currentEdges.some(e => e.id === edgeId) && !newEdges.some(e => e.id === edgeId)) {
               const offset = getParallelEdgeOffset(sourceNode.id, targetNode.id, [...currentEdges, ...newEdges]);
-              newEdges.push({
-                id: edgeId, source: sourceNode.id, target: targetNode.id,
-                label: edgeMeta.label, type: 'parallel', animated: isAnimated,
-                data: { metadata: edgeMeta, filters: [], offset, depth: 1 }
-              });
+              newEdges.push({ id: edgeId, source: sourceNode.id, target: targetNode.id, label: edgeMeta.label, type: 'parallel', animated: isAnimated, data: { metadata: edgeMeta, filters: [], offset, depth: 1 } });
             }
           }
         });
@@ -238,14 +255,10 @@ export const GraphProvider = ({ children }) => {
       const edgeMeta = metadata.edges.find(e => {
         const fromStr = Array.isArray(e.fromcol) ? e.fromcol.join('/') : e.fromcol;
         const toStr = Array.isArray(e.tocol) ? e.tocol.join('/') : e.tocol;
-        return (fromStr === sourcePath || fromStr.startsWith(sourcePath + '/')) && 
-               (toStr === targetPath || toStr.startsWith(targetPath + '/'));
+        return (fromStr === sourcePath || fromStr.startsWith(sourcePath + '/')) && (toStr === targetPath || toStr.startsWith(targetPath + '/'));
       });
       const offset = getParallelEdgeOffset(params.source, params.target, eds);
-      return addEdge({ 
-        ...params, label: edgeMeta?.label || 'رابط يدوي', animated: isAnimated, type: 'parallel',
-        data: { metadata: edgeMeta || { fromcol: sourcePath.split('/'), tocol: targetPath.split('/'), label: 'رابط يدوي', attributes: [], isManual: true }, filters: [], offset, depth: 1 }
-      }, eds);
+      return addEdge({ ...params, label: edgeMeta?.label || 'رابط يدوي', animated: isAnimated, type: 'parallel', data: { metadata: edgeMeta || { fromcol: sourcePath.split('/'), tocol: targetPath.split('/'), label: 'رابط يدوي', attributes: [], isManual: true }, filters: [], offset, depth: 1 } }, eds);
     });
   }, [isAnimated, nodes, metadata.edges]);
 
@@ -322,10 +335,8 @@ export const GraphProvider = ({ children }) => {
   const addMetadataToShortestPath = (type, name, categoryName = null) => {
     const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
     const existingNode = nodes.find(n => n.data.fullPath === fullPath);
-    
-    if (existingNode) {
-      addToShortestPath(existingNode);
-    } else {
+    if (existingNode) addToShortestPath(existingNode);
+    else {
       const newNode = addNodeFromMetadata(type, name, { x: 100, y: 100 }, categoryName);
       addToShortestPath(newNode);
     }
@@ -360,13 +371,14 @@ export const GraphProvider = ({ children }) => {
     setShortestPathSelection([]);
     setFocusedNodeId(null);
     setTargetNodeIds(new Set());
+    setActivePathElements({ nodes: new Set(), edges: new Set() });
   };
 
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addMetadataToShortestPath, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons,
       savedStates, saveCurrentState, loadSpecificState, deleteSavedState, exportGraph, importGraph, applyLayout,
-      focusedNodeId, targetNodeIds, shortestPathSelection, toggleFocus, toggleTarget, addToShortestPath, removeFromShortestPath
+      focusedNodeId, targetNodeIds, shortestPathSelection, activePathElements, toggleFocus, toggleTarget, addToShortestPath, removeFromShortestPath
     }}>
       {children}
     </GraphContext.Provider>

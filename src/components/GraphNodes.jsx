@@ -6,7 +6,7 @@ import { getArabicName, getIcon, getColorStyles } from '../utils/mapping';
 import { Target, MapPinned } from 'lucide-react';
 
 export const CustomNode = memo(({ id, data, selected }) => {
-  const { globalIcons, focusedNodeId, edges, targetNodeIds, shortestPathSelection } = useGraph();
+  const { globalIcons, focusedNodeId, edges, targetNodeIds, shortestPathSelection, activePathElements } = useGraph();
   const isCategory = data.type === 'category';
   const displayLabel = data.instanceId ? data.instanceId : getArabicName(data.label);
   
@@ -15,9 +15,9 @@ export const CustomNode = memo(({ id, data, selected }) => {
 
   const isTarget = targetNodeIds.has(id);
   
-  // التحقق مما إذا كانت العقدة جزءاً من تحليل المسار
+  // التحقق مما إذا كانت العقدة جزءاً من المسار المختار (نقطة بداية/نهاية أو عقدة وسطية)
   const pathIndex = shortestPathSelection.findIndex(n => n.id === id);
-  const isInPath = pathIndex !== -1;
+  const isInPath = activePathElements.nodes.has(id) || pathIndex !== -1;
 
   // منطق التركيز
   const isDimmed = useMemo(() => {
@@ -47,7 +47,7 @@ export const CustomNode = memo(({ id, data, selected }) => {
         </div>
       )}
 
-      {isInPath && (
+      {pathIndex !== -1 && (
         <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-2 py-0.5 rounded-full text-[8px] font-bold shadow-lg animate-bounce flex items-center gap-1">
           <MapPinned size={10} />
           {pathIndex === 0 ? 'نقطة A' : 'نقطة B'}
