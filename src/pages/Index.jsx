@@ -35,9 +35,16 @@ const HeaderActions = () => {
   };
 
   const handleQuickSave = () => {
-    const randomSuffix = Math.floor(Math.random() * 9000) + 1000;
-    const randomName = `حفظ سريع #${randomSuffix}`;
-    saveCurrentState(randomName);
+    const now = new Date().toLocaleString('ar-EG', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    const saveName = `حفظ سريع - ${now}`;
+    saveCurrentState(saveName);
   };
 
   const handleFileChange = (event) => {
@@ -99,7 +106,7 @@ const HeaderActions = () => {
                 <PlusCircle size={18} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>حفظ سريع باسم عشوائي</TooltipContent>
+            <TooltipContent>حفظ سريع بالتوقيت الحالي</TooltipContent>
           </Tooltip>
         </div>
 
