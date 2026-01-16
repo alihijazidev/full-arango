@@ -27,7 +27,12 @@ export const SavedStatesManager = ({ iconOnly = false }) => {
   };
 
   const triggerButton = (
-    <Button variant={iconOnly ? "ghost" : "outline"} size={iconOnly ? "icon" : "default"} className={iconOnly ? "h-8 w-8" : "gap-2 h-9 border-slate-200 text-slate-600"}>
+    <Button 
+      variant={iconOnly ? "ghost" : "outline"} 
+      size={iconOnly ? "icon" : "default"} 
+      className={iconOnly ? "h-8 w-8" : "gap-2 h-9 border-slate-200 text-slate-600"}
+      onClick={() => setIsOpen(true)}
+    >
       <History size={18} />
       {!iconOnly && "إدارة النسخ"}
     </Button>
@@ -35,16 +40,15 @@ export const SavedStatesManager = ({ iconOnly = false }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {iconOnly ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              {triggerButton}
-            </TooltipTrigger>
-            <TooltipContent>إدارة واستعادة النسخ</TooltipContent>
-          </Tooltip>
-        ) : triggerButton}
-      </DialogTrigger>
+      {/* تحسين الزر ليعمل بشكل مستقل عن DialogTrigger لتجنب مشاكل التداخل */}
+      {iconOnly ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {triggerButton}
+          </TooltipTrigger>
+          <TooltipContent>إدارة واستعادة النسخ</TooltipContent>
+        </Tooltip>
+      ) : triggerButton}
       
       <Draggable nodeRef={nodeRef} handle=".drag-handle">
         <DialogContent 
