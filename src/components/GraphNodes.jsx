@@ -9,38 +9,65 @@ export const CustomNode = memo(({ data, selected }) => {
   const isCategory = data.type === 'category';
   const displayLabel = data.instanceId ? data.instanceId : getArabicName(data.label);
   
-  // جلب الأيقونة (ستتحقق تلقائياً من وجود تخصيص عالمي للاسم)
+  // جلب الأيقونة
   const icon = getIcon(data.label, data.type, globalIcons);
-
   const colors = getColorStyles(data.label, selected);
 
   return (
     <div className={cn(
       "group relative flex flex-col items-center transition-all duration-300",
-      selected ? "scale-105" : "scale-100"
+      selected ? "scale-110" : "scale-100 hover:scale-105"
     )}>
-      <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-slate-300 !border-2 !border-white hover:!bg-primary transition-colors" />
+      {/* مقابض التوصيل مخفية جزئياً وتظهر عند الحاجة أو الاختيار */}
+      <Handle 
+        type="target" 
+        position={Position.Top} 
+        className={cn(
+          "!w-2 !h-2 !bg-slate-300 !border-none transition-opacity",
+          selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )} 
+      />
       
-      <div className={cn(
-        "min-w-[140px] p-3 rounded-xl bg-white shadow-md border-2 transition-all flex flex-col items-center gap-2",
-        selected 
-          ? cn("shadow-lg ring-4", colors.border, colors.ring, colors.shadow) 
-          : "border-slate-100 hover:border-slate-300 hover:shadow-lg",
-        isCategory ? "border-dashed" : "border-solid"
-      )}>
-        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center transition-colors", colors.bg, colors.text)}>
-          {icon}
+      <div className="flex flex-col items-center gap-1.5 p-2">
+        {/* حاوية الأيقونة - بدون خلفية بيضاء */}
+        <div className={cn(
+          "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300",
+          selected 
+            ? cn(colors.bg, colors.text, "ring-4 ring-offset-2 shadow-xl", colors.ring) 
+            : cn("bg-transparent", colors.text, "group-hover:scale-110")
+        )}>
+          {/* نزيد حجم الأيقونة قليلاً لتكون أوضح */}
+          <div className="transform scale-125">
+            {icon}
+          </div>
         </div>
-        <div className="flex flex-col items-center text-center w-full overflow-hidden">
-          <span className={cn("text-[9px] font-bold uppercase tracking-widest mb-0.5", colors.accent)}>
+
+        {/* تسمية العقدة */}
+        <div className="flex flex-col items-center text-center max-w-[120px]">
+          <span className={cn(
+            "text-[8px] font-bold uppercase tracking-widest mb-0.5 transition-colors",
+            selected ? colors.accent : "text-slate-400"
+          )}>
             {isCategory ? 'فئة' : getArabicName(data.label)}
           </span>
-          <span className={cn("font-bold text-slate-700 truncate w-full px-1", data.instanceId ? "text-[10px] font-mono" : "text-sm")}>
+          <span className={cn(
+            "font-bold truncate w-full px-1 transition-all",
+            selected ? "text-slate-900 scale-105" : "text-slate-600",
+            data.instanceId ? "text-[9px] font-mono" : "text-xs"
+          )}>
             {displayLabel}
           </span>
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-slate-300 !border-2 !border-white hover:!bg-primary transition-colors" />
+
+      <Handle 
+        type="source" 
+        position={Position.Bottom} 
+        className={cn(
+          "!w-2 !h-2 !bg-slate-300 !border-none transition-opacity",
+          selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )} 
+      />
     </div>
   );
 });
