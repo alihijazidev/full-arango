@@ -8,9 +8,10 @@ import { cn } from '@/lib/utils';
 import { getArabicName, getSmallIcon, getColorStyles } from '../utils/mapping';
 import { AnalysisTab } from './AnalysisTab';
 
-const SidebarRailItem = ({ icon: Icon, label, isActive, onClick }) => (
+const SidebarRailItem = ({ icon: Icon, label, isActive, onClick, onDragOver }) => (
   <button
     onClick={onClick}
+    onDragOver={onDragOver}
     className={cn(
       "w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-300 relative group mb-2 outline-none",
       isActive 
@@ -20,26 +21,23 @@ const SidebarRailItem = ({ icon: Icon, label, isActive, onClick }) => (
   >
     <Icon size={20} className="transition-transform duration-300 group-hover:scale-110 z-10" />
     
-    {/* ملصق التسمية المنبثق عند التمرير */}
     <div className="absolute right-14 bg-slate-900 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 group-hover:right-16 transition-all duration-300 pointer-events-none shadow-xl z-50 flex items-center gap-2 border border-white/10">
       {label}
       <div className="absolute top-1/2 -translate-y-1/2 -right-1 w-2 h-2 bg-slate-900 rotate-45 border-r border-t border-white/10" />
     </div>
 
-    {/* مؤشر الحالة النشطة / التمرير */}
     <div className={cn(
       "absolute -right-1 top-1/2 -translate-y-1/2 w-1 rounded-l-full bg-primary transition-all duration-300",
       isActive ? "h-7 opacity-100" : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-40"
     )} />
 
-    {/* تأثير هالة خفيفة عند النشاط */}
     {isActive && (
       <div className="absolute inset-0 rounded-xl bg-primary/20 animate-pulse pointer-events-none" />
     )}
   </button>
 );
 
-export const Sidebar = () => {
+export const Sidebar = ({ onSelectElement }) => {
   const { metadata, nodes, addEdgeManually, globalIcons } = useGraph();
   const [activeTab, setActiveTab] = useState('data');
   const [searchTerm, setSearchTerm] = useState('');
@@ -70,9 +68,15 @@ export const Sidebar = () => {
     event.dataTransfer.effectAllowed = 'move';
   };
 
+  const handleDragOverAnalysis = (e) => {
+    e.preventDefault();
+    if (activeTab !== 'analysis') {
+      setActiveTab('analysis');
+    }
+  };
+
   return (
     <div className="flex h-full border-l bg-white shadow-sm" dir="rtl">
-      {/* الشريط الجانبي النحيف للتنقل (Rail) */}
       <div className="w-16 border-l flex flex-col items-center py-6 gap-2 bg-slate-50/50 shrink-0">
         <SidebarRailItem 
           icon={Database} 
@@ -84,11 +88,11 @@ export const Sidebar = () => {
           icon={Activity} 
           label="أدوات التحليل" 
           isActive={activeTab === 'analysis'} 
-          onClick={() => setActiveTab('analysis')} 
+          onClick={() => setActiveTab('analysis')}
+          onDragOver={handleDragOverAnalysis}
         />
       </div>
 
-      {/* منطقة محتوى التبويب المختار */}
       <div className="w-[264px] flex flex-col overflow-hidden">
         {activeTab === 'data' ? (
           <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-2 duration-300">
@@ -195,7 +199,7 @@ export const Sidebar = () => {
                 تحليل المخطط
               </h2>
             </div>
-            <AnalysisTab />
+            <AnalysisTab onSelectElement={onSelectElement} />
           </div>
         )}
       </div>

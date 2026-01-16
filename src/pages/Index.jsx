@@ -64,14 +64,13 @@ const HeaderActionsLeft = () => {
         onChange={handleFileChange} 
       />
       
-      {/* مجموعة الملفات */}
       <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" 
+              className="h-8 w-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50" 
               onClick={handleImportClick}
             >
               <FileUp size={16} />
@@ -85,7 +84,7 @@ const HeaderActionsLeft = () => {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" 
+              className="h-8 w-8 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50" 
               onClick={exportGraph}
             >
               <FileDown size={16} />
@@ -95,7 +94,6 @@ const HeaderActionsLeft = () => {
         </Tooltip>
       </div>
 
-      {/* مجموعة إدارة الحالات */}
       <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
         <SavedStatesManager iconOnly={true} />
         <Tooltip>
@@ -148,7 +146,7 @@ const IndexContent = () => {
           </div>
           
           <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-blue-100 font-mono text-[10px] px-2">
-            V 1.0.4
+            V 1.0.5
           </Badge>
 
           <div className="h-6 w-px bg-slate-200" />
@@ -160,7 +158,7 @@ const IndexContent = () => {
       </header>
 
       <div className="flex flex-1 overflow-hidden relative">
-        <Sidebar />
+        <Sidebar onSelectElement={(id, isNode) => setSelectedElement({ id, isNode })} />
         
         <main className="flex-1 relative bg-slate-100 overflow-hidden">
           <GraphCanvas onSelectElement={(id, isNode) => setSelectedElement({ id, isNode })} />
