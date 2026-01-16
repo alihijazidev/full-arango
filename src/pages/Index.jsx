@@ -3,7 +3,7 @@ import { Sidebar } from '../components/Sidebar';
 import { GraphCanvas } from '../components/GraphCanvas';
 import { DetailsPanel } from '../components/DetailsPanel';
 import { ResultView } from '../components/ResultView';
-import { GraphProvider, useGraph } from '../store/GraphContext';
+import { useGraph } from '../store/GraphContext';
 import { SavedStatesManager } from '../components/SavedStatesManager';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { 
@@ -128,7 +128,7 @@ const HeaderMainActions = () => {
   );
 };
 
-const IndexContent = () => {
+const Index = () => {
   const [selectedElement, setSelectedElement] = useState(null);
 
   return (
@@ -181,14 +181,6 @@ const IndexContent = () => {
         <MadeWithDyad />
       </footer>
     </div>
-  );
-};
-
-const Index = () => {
-  return (
-    <GraphProvider>
-      <IndexContent />
-    </GraphProvider>
   );
 };
 
