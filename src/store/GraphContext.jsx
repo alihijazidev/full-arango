@@ -31,6 +31,11 @@ export const GraphProvider = ({ children }) => {
     if (saved) setSavedStates(JSON.parse(saved));
   }, []);
 
+  // مزامنة حالة التحريك مع الروابط الموجودة
+  useEffect(() => {
+    setEdges((eds) => eds.map(edge => ({ ...edge, animated: isAnimated })));
+  }, [isAnimated]);
+
   // --- دوال التخطيط ---
   const applyLayout = useCallback((type) => {
     if (nodes.length === 0) return;
