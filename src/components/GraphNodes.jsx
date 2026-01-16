@@ -18,7 +18,6 @@ export const CustomNode = memo(({ id, data, selected }) => {
   // منطق التركيز: إذا كان هناك عقدة مفوكس عليها، هل أنا هي أو هل أنا متصل بها؟
   const isDimmed = useMemo(() => {
     if (!focusedNodeId || focusedNodeId === id) return false;
-    // التحقق من الاتصال
     return !edges.some(e => (e.source === id && e.target === focusedNodeId) || (e.target === id && e.source === focusedNodeId));
   }, [focusedNodeId, id, edges]);
 
@@ -29,29 +28,36 @@ export const CustomNode = memo(({ id, data, selected }) => {
       isDimmed ? "opacity-20 blur-[1px] grayscale pointer-events-none" : "opacity-100",
       focusedNodeId === id && "ring-4 ring-indigo-400 ring-offset-4 rounded-full"
     )}>
+      
+      {/* دمج المقابض في نقطة مركزية واحدة */}
+      {/* المقبض الخاص بالهدف (Target) */}
+      <Handle 
+        type="target" 
+        position={Position.Top} 
+        style={{ top: '33%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }}
+      />
+      
+      {/* المقبض الخاص بالمصدر (Source) */}
+      <Handle 
+        type="source" 
+        position={Position.Bottom} 
+        style={{ top: '33%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }}
+      />
+
       {/* تأثير "الهدف" المتقدم */}
       {isTarget && (
-        <div className="absolute inset-0 -m-4">
+        <div className="absolute top-[6px] w-12 h-12">
           <div className="absolute inset-0 bg-rose-500/20 rounded-full animate-ping" />
           <div className="absolute inset-0 border-2 border-rose-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.5)]" />
-          <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-rose-500 text-white p-1 rounded-full shadow-lg z-[60]">
-            <Target size={12} className="animate-spin-slow" />
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-rose-500 text-white p-1 rounded-full shadow-lg z-[60]">
+            <Target size={10} className="animate-spin-slow" />
           </div>
         </div>
       )}
 
-      <Handle 
-        type="target" 
-        position={Position.Top} 
-        className={cn(
-          "!w-2 !h-2 !bg-slate-300 !border-none transition-opacity",
-          selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-        )} 
-      />
-      
       <div className="flex flex-col items-center gap-1.5 p-2">
         <div className={cn(
-          "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300",
+          "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 relative z-10",
           selected 
             ? cn(colors.bg, colors.text, "ring-4 ring-offset-2 shadow-xl", colors.ring) 
             : cn("bg-transparent", colors.text, "group-hover:scale-110")
@@ -77,15 +83,6 @@ export const CustomNode = memo(({ id, data, selected }) => {
           </span>
         </div>
       </div>
-
-      <Handle 
-        type="source" 
-        position={Position.Bottom} 
-        className={cn(
-          "!w-2 !h-2 !bg-slate-300 !border-none transition-opacity",
-          selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-        )} 
-      />
     </div>
   );
 });
