@@ -19,14 +19,23 @@ export const ParallelEdge = ({
   animated,
   data
 }) => {
-  const { updateEdgeOffset, nodes } = useGraph();
+  const { updateEdgeOffset, nodes, shortestPathSelection } = useGraph();
   const { screenToFlowPosition, setEdges: setLocalEdges } = useReactFlow();
   
   const sourceNode = useMemo(() => nodes.find(n => n.id === source), [nodes, source]);
   const targetNode = useMemo(() => nodes.find(n => n.id === target), [nodes, target]);
 
+  // التحقق مما إذا كان الرابط يربط بين عقدتين في تحديد أقصر مسار
+  const isPathEdge = useMemo(() => {
+    if (shortestPathSelection.length < 2) return false;
+    const pathNodeIds = shortestPathSelection.map(n => n.id);
+    return pathNodeIds.includes(source) && pathNodeIds.includes(target);
+  }, [shortestPathSelection, source, target]);
+
   const gradientStyle = useMemo(() => {
     if (!sourceNode || !targetNode) return {};
+    if (isPathEdge) return { backgroundColor: '#f59e0b', color: 'white', border: 'none' };
+    
     const startColor = getHexColor(sourceNode.data.label);
     const endColor = getHexColor(targetNode.data.label);
     return {
@@ -34,9 +43,8 @@ export const ParallelEdge = ({
       color: 'white',
       border: 'none'
     };
-  }, [sourceNode, targetNode]);
+  }, [sourceNode, targetNode, isPathEdge]);
 
-  // The offset for the handle and label relative to the straight line
   const offset = data?.offset ?? 0;
   
   const midX = (sourceX + targetX) / 2;
@@ -46,16 +54,13 @@ export const ParallelEdge = ({
   const dy = targetY - sourceY;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
   
-  // Normal unit vector
   const nx = -dy / len;
   const ny = dx / len;
   
-  // Control point for quadratic curve
   const controlOffset = offset * 2;
   const cx = midX + nx * controlOffset;
   const cy = midY + ny * controlOffset;
 
-  // Actual label/handle position
   const labelX = midX + nx * offset;
   const labelY = midY + ny * offset;
 
@@ -74,10 +79,8 @@ export const ParallelEdge = ({
       const vx = flowPos.x - midX;
       const vy = flowPos.y - midY;
       
-      // Calculate new perpendicular offset
       const newOffset = vx * nx + vy * ny;
       
-      // Update the edge in the state
       updateEdgeOffset(id, newOffset);
       
       if (setLocalEdges) {
@@ -103,13 +106,22 @@ export const ParallelEdge = ({
         style={style}
         className={cn(
           "react-flow__edge-path stroke-2 fill-none transition-all cursor-pointer",
-          selected ? "stroke-primary stroke-[3px]" : "stroke-slate-400",
-          animated && "animate-dash"
+          isPathEdge ? "stroke-amber-500 stroke-[4px] opacity-100" : (selected ? "stroke-primary stroke-[3px]" : "stroke-slate-400"),
+          (animated || isPathEdge) && "animate-dash"
         )}
         d={path}
-        markerEnd={markerEnd}
+        markerEnd={isPathEdge ? "url(#arrow-amber)" : markerEnd}
       />
       
+      {/* سهم ذهبي مخصص للمسار */}
+      {isPathEdge && (
+        <defs>
+          <marker id="arrow-amber" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+          </marker>
+        </defs>
+      )}
+
       <path
         d={path}
         fill="none"
@@ -142,7 +154,7 @@ export const ParallelEdge = ({
               style={gradientStyle}
               className={cn(
                 "px-3 py-1 rounded-full border shadow-md text-[10px] font-bold transition-all whitespace-nowrap select-none",
-                selected ? "scale-110 ring-2 ring-white/50" : "opacity-90"
+                isPathEdge ? "scale-110 ring-2 ring-amber-300 shadow-amber-200" : (selected ? "scale-110 ring-2 ring-white/50" : "opacity-90")
               )}
             >
               {label}

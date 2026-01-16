@@ -3,10 +3,10 @@ import { Handle, Position } from 'reactflow';
 import { cn } from '@/lib/utils';
 import { useGraph } from '../store/GraphContext';
 import { getArabicName, getIcon, getColorStyles } from '../utils/mapping';
-import { Target } from 'lucide-react';
+import { Target, MapPinned } from 'lucide-react';
 
 export const CustomNode = memo(({ id, data, selected }) => {
-  const { globalIcons, focusedNodeId, edges, targetNodeIds } = useGraph();
+  const { globalIcons, focusedNodeId, edges, targetNodeIds, shortestPathSelection } = useGraph();
   const isCategory = data.type === 'category';
   const displayLabel = data.instanceId ? data.instanceId : getArabicName(data.label);
   
@@ -14,8 +14,12 @@ export const CustomNode = memo(({ id, data, selected }) => {
   const colors = getColorStyles(data.label, selected);
 
   const isTarget = targetNodeIds.has(id);
+  
+  // التحقق مما إذا كانت العقدة جزءاً من تحديد أقصر مسار
+  const pathNodeIndex = shortestPathSelection.findIndex(n => n.id === id);
+  const isPathNode = pathNodeIndex !== -1;
 
-  // منطق التركيز: إذا كان هناك عقدة مفوكس عليها، هل أنا هي أو هل أنا متصل بها؟
+  // منطق التركيز
   const isDimmed = useMemo(() => {
     if (!focusedNodeId || focusedNodeId === id) return false;
     return !edges.some(e => (e.source === id && e.target === focusedNodeId) || (e.target === id && e.source === focusedNodeId));
@@ -26,7 +30,8 @@ export const CustomNode = memo(({ id, data, selected }) => {
       "group relative flex flex-col items-center transition-all duration-500",
       selected ? "scale-110 z-50" : "scale-100 hover:scale-105",
       isDimmed ? "opacity-20 blur-[1px] grayscale pointer-events-none" : "opacity-100",
-      focusedNodeId === id && "ring-4 ring-indigo-400 ring-offset-4 rounded-full"
+      focusedNodeId === id && "ring-4 ring-indigo-400 ring-offset-4 rounded-full",
+      isPathNode && "z-[60]"
     )}>
       
       <Handle 
@@ -41,6 +46,7 @@ export const CustomNode = memo(({ id, data, selected }) => {
         style={{ top: '33%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }}
       />
 
+      {/* تمييز عقدة الهدف */}
       {isTarget && (
         <div className="absolute top-[6px] w-12 h-12">
           <div className="absolute inset-0 bg-rose-500/20 rounded-full animate-ping" />
@@ -51,14 +57,28 @@ export const CustomNode = memo(({ id, data, selected }) => {
         </div>
       )}
 
+      {/* تمييز عقدة المسار (A/B) */}
+      {isPathNode && (
+        <div className="absolute top-[2px] w-16 h-16">
+          <div className="absolute inset-0 border-4 border-amber-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(245,158,11,0.6)]" />
+          <div className="absolute -top-5 -right-2 bg-amber-500 text-white w-7 h-7 rounded-lg shadow-xl z-[70] flex items-center justify-center font-black text-sm border-2 border-white rotate-12">
+            {pathNodeIndex === 0 ? 'A' : 'B'}
+          </div>
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white text-amber-600 p-0.5 rounded-full shadow-md z-[70] border border-amber-200">
+            <MapPinned size={10} />
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col items-center gap-2 p-2">
         <div className={cn(
           "w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 relative z-10",
           selected 
             ? cn(colors.bg, colors.text, "ring-4 ring-offset-2 shadow-xl", colors.ring) 
-            : cn("bg-white border-2", colors.border, colors.text, "group-hover:scale-110 shadow-sm")
+            : cn("bg-white border-2", colors.border, colors.text, "group-hover:scale-110 shadow-sm"),
+          isPathNode && "border-amber-400 bg-amber-50 shadow-inner"
         )}>
-          <div className="transform scale-125">
+          <div className={cn("transform scale-125 transition-transform", isPathNode && "scale-110")}>
             {icon}
           </div>
         </div>
@@ -66,14 +86,16 @@ export const CustomNode = memo(({ id, data, selected }) => {
         <div className="flex flex-col items-center text-center max-w-[140px]">
           <span className={cn(
             "text-[10px] font-bold uppercase tracking-wider mb-0.5 transition-colors",
-            selected ? colors.accent : "text-slate-500"
+            selected ? colors.accent : "text-slate-500",
+            isPathNode && "text-amber-700"
           )}>
             {isCategory ? 'فئة' : getArabicName(data.label)}
           </span>
           <span className={cn(
             "font-extrabold truncate w-full px-1 transition-all",
             selected ? "text-slate-900 scale-105" : "text-slate-700",
-            data.instanceId ? "text-[10px] font-mono" : "text-[13px]"
+            data.instanceId ? "text-[10px] font-mono" : "text-[13px]",
+            isPathNode && "text-amber-900"
           )}>
             {displayLabel}
           </span>
