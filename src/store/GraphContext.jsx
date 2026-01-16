@@ -29,7 +29,6 @@ export const GraphProvider = ({ children }) => {
   const [focusedNodeId, setFocusedNodeId] = useState(null);
   const [targetNodeIds, setTargetNodeIds] = useState(new Set());
   const [shortestPathSelection, setShortestPathSelection] = useState([]);
-  const [calculatedPathElements, setCalculatedPathElements] = useState({ nodes: new Set(), edges: new Set() });
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
@@ -41,49 +40,9 @@ export const GraphProvider = ({ children }) => {
     setEdges((eds) => eds.map(edge => ({ ...edge, animated: isAnimated })));
   }, [isAnimated]);
 
-  // خوارزمية البحث عن أقصر مسار في التصميم الحالي
-  const findPathInDesign = (startId, endId) => {
-    const adj = {};
-    edges.forEach(e => {
-      if (!adj[e.source]) adj[e.source] = [];
-      adj[e.source].push({ to: e.target, edgeId: e.id });
-      // جعل البحث ثنائي الاتجاه للتحليل المرئي
-      if (!adj[e.target]) adj[e.target] = [];
-      adj[e.target].push({ to: e.source, edgeId: e.id });
-    });
-
-    const queue = [[startId]];
-    const visited = new Set([startId]);
-    
-    while (queue.length > 0) {
-      const path = queue.shift();
-      const node = path[path.length - 1];
-
-      if (node === endId) {
-        const pathNodes = new Set(path);
-        const pathEdges = new Set();
-        for (let i = 0; i < path.length - 1; i++) {
-          const edge = edges.find(e => 
-            (e.source === path[i] && e.target === path[i+1]) || 
-            (e.target === path[i] && e.source === path[i+1])
-          );
-          if (edge) pathEdges.add(edge.id);
-        }
-        return { nodes: pathNodes, edges: pathEdges };
-      }
-
-      for (const neighbor of (adj[node] || [])) {
-        if (!visited.has(neighbor.to)) {
-          visited.add(neighbor.to);
-          queue.push([...path, neighbor.to]);
-        }
-      }
-    }
-    return null;
-  };
-
   const toggleFocus = (nodeId) => {
     setFocusedNodeId(prev => prev === nodeId ? null : nodeId);
+    if (focusedNodeId !== nodeId) toast.info("نمط التركيز نشط");
   };
 
   const toggleTarget = (nodeId) => {
@@ -96,44 +55,52 @@ export const GraphProvider = ({ children }) => {
   };
 
   const addToShortestPath = (node) => {
-    if (shortestPathSelection.find(n => n.id === node.id)) return;
+    if (shortestPathSelection.find(n => n.id === node.id)) {
+      toast.warning("العقدة مضافة بالفعل");
+      return;
+    }
     if (shortestPathSelection.length >= 2) {
-      toast.error("يمكنك اختيار عقدتين فقط");
+      toast.error("يمكنك اختيار عقدتين فقط لمسار واحد");
       return;
     }
 
     const newSelection = [...shortestPathSelection, node];
     setShortestPathSelection(newSelection);
+    toast.success(`تمت إضافة ${node.data.label} للمسار`);
 
+    // إذا تم اختيار عقدتين، تحقق من وجود رابط
     if (newSelection.length === 2) {
       const [nodeA, nodeB] = newSelection;
-      const pathResult = findPathInDesign(nodeA.id, nodeB.id);
+      const existingEdge = edges.find(e => 
+        (e.source === nodeA.id && e.target === nodeB.id) || 
+        (e.source === nodeB.id && e.target === nodeA.id)
+      );
 
-      if (pathResult) {
-        setCalculatedPathElements(pathResult);
-        toast.success("تم اكتشاف مسار مترابط بين العقدتين");
-      } else {
-        // لا يوجد مسار -> إضافة رابط يدوي افتراضي
+      if (!existingEdge) {
+        // إنشاء رابط افتراضي (Empty Edge)
         const edgeId = `virtual-path-${nodeA.id}-${nodeB.id}`;
         setEdges(eds => [...eds, {
           id: edgeId,
           source: nodeA.id,
           target: nodeB.id,
-          label: 'رابط يدوي (مسار)',
+          label: 'مسار مستهدف',
           type: 'parallel',
           animated: true,
-          data: { isVirtual: true, filters: [], offset: 0, depth: 1 }
+          data: { 
+            isVirtual: true,
+            filters: [], 
+            offset: 0, 
+            depth: 1 
+          }
         }]);
-        setCalculatedPathElements({ nodes: new Set([nodeA.id, nodeB.id]), edges: new Set([edgeId]) });
-        toast.info("لا يوجد مسار مباشر، تم إنشاء رابط يدوي");
       }
     }
   };
 
   const removeFromShortestPath = (nodeId) => {
     setShortestPathSelection(prev => prev.filter(n => n.id !== nodeId));
+    // حذف أي روابط افتراضية مرتبطة بهذه العقدة
     setEdges(eds => eds.filter(e => !e.id.startsWith('virtual-path-') || (e.source !== nodeId && e.target !== nodeId)));
-    setCalculatedPathElements({ nodes: new Set(), edges: new Set() });
   };
 
   const applyLayout = useCallback((type) => {
@@ -148,6 +115,7 @@ export const GraphProvider = ({ children }) => {
       default: return;
     }
     setNodes(layoutedNodes);
+    toast.success(`تم تطبيق التخطيط ${type}`);
   }, [nodes, edges]);
 
   const saveCurrentState = useCallback((name) => {
@@ -155,12 +123,18 @@ export const GraphProvider = ({ children }) => {
       id: Date.now().toString(),
       name: name || `نسخة ${new Date().toLocaleString('ar-EG')}`,
       timestamp: new Date().toISOString(),
-      data: { nodes, edges, globalIcons, targetNodeIds: Array.from(targetNodeIds), focusedNodeId }
+      data: { 
+        nodes, 
+        edges, 
+        globalIcons,
+        targetNodeIds: Array.from(targetNodeIds),
+        focusedNodeId
+      }
     };
     const updatedStates = [newState, ...savedStates];
     setSavedStates(updatedStates);
     localStorage.setItem('arango_saved_states', JSON.stringify(updatedStates));
-    toast.success("تم حفظ النسخة");
+    toast.success(`تم حفظ النسخة "${newState.name}" بنجاح`);
   }, [nodes, edges, globalIcons, savedStates, targetNodeIds, focusedNodeId]);
 
   const loadSpecificState = useCallback((stateId) => {
@@ -172,6 +146,7 @@ export const GraphProvider = ({ children }) => {
       setGlobalIcons(i || {});
       setTargetNodeIds(new Set(t || []));
       setFocusedNodeId(f || null);
+      toast.success(`تم استعادة النسخة: ${target.name}`);
     }
   }, [savedStates]);
 
@@ -179,16 +154,25 @@ export const GraphProvider = ({ children }) => {
     const updated = savedStates.filter(s => s.id !== stateId);
     setSavedStates(updated);
     localStorage.setItem('arango_saved_states', JSON.stringify(updated));
+    toast.info("تم حذف النسخة المحفوظة");
   }, [savedStates]);
 
   const exportGraph = useCallback(() => {
-    const dataStr = JSON.stringify({ nodes, edges, globalIcons, exportedAt: new Date().toISOString() }, null, 2);
+    const dataStr = JSON.stringify({ 
+      nodes, 
+      edges, 
+      globalIcons, 
+      targetNodeIds: Array.from(targetNodeIds),
+      focusedNodeId,
+      exportedAt: new Date().toISOString() 
+    }, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', `graph-${Date.now()}.json`);
     linkElement.click();
-  }, [nodes, edges, globalIcons]);
+    toast.success("بدأ تصدير المخطط");
+  }, [nodes, edges, globalIcons, targetNodeIds, focusedNodeId]);
 
   const importGraph = useCallback((jsonData) => {
     try {
@@ -197,10 +181,12 @@ export const GraphProvider = ({ children }) => {
         setNodes(data.nodes);
         setEdges(data.edges);
         setGlobalIcons(data.globalIcons || {});
-        toast.success("تم الاستيراد بنجاح");
+        if (data.targetNodeIds) setTargetNodeIds(new Set(data.targetNodeIds));
+        if (data.focusedNodeId) setFocusedNodeId(data.focusedNodeId);
+        toast.success("تم استيراد المخطط بنجاح");
       }
     } catch (error) {
-      toast.error("فشل الاستيراد");
+      toast.error("فشل استيراد الملف");
     }
   }, []);
 
@@ -364,6 +350,7 @@ export const GraphProvider = ({ children }) => {
     if (isNode) { 
       setNodes((nds) => nds.filter((n) => n.id !== id)); 
       setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id)); 
+      setShortestPathSelection(prev => prev.filter(n => n.id !== id));
     }
     else setEdges((eds) => eds.filter((e) => e.id !== id));
   };
@@ -373,14 +360,13 @@ export const GraphProvider = ({ children }) => {
     setShortestPathSelection([]);
     setFocusedNodeId(null);
     setTargetNodeIds(new Set());
-    setCalculatedPathElements({ nodes: new Set(), edges: new Set() });
   };
 
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addMetadataToShortestPath, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons,
       savedStates, saveCurrentState, loadSpecificState, deleteSavedState, exportGraph, importGraph, applyLayout,
-      focusedNodeId, targetNodeIds, shortestPathSelection, calculatedPathElements, toggleFocus, toggleTarget, addToShortestPath, removeFromShortestPath
+      focusedNodeId, targetNodeIds, shortestPathSelection, toggleFocus, toggleTarget, addToShortestPath, removeFromShortestPath
     }}>
       {children}
     </GraphContext.Provider>
