@@ -155,24 +155,26 @@ export const GraphProvider = ({ children }) => {
         edges, 
         globalIcons,
         targetNodeIds: Array.from(targetNodeIds),
-        focusedNodeId
+        focusedNodeId,
+        shortestPathSelection // حفظ اختيار المسار
       }
     };
     const updatedStates = [newState, ...savedStates];
     setSavedStates(updatedStates);
     localStorage.setItem('arango_saved_states', JSON.stringify(updatedStates));
     toast.success(`تم حفظ النسخة "${newState.name}" بنجاح`);
-  }, [nodes, edges, globalIcons, savedStates, targetNodeIds, focusedNodeId]);
+  }, [nodes, edges, globalIcons, savedStates, targetNodeIds, focusedNodeId, shortestPathSelection]);
 
   const loadSpecificState = useCallback((stateId) => {
     const target = savedStates.find(s => s.id === stateId);
     if (target) {
-      const { nodes: n, edges: e, globalIcons: i, targetNodeIds: t, focusedNodeId: f } = target.data;
+      const { nodes: n, edges: e, globalIcons: i, targetNodeIds: t, focusedNodeId: f, shortestPathSelection: s } = target.data;
       setNodes(n || []);
       setEdges(e || []);
       setGlobalIcons(i || {});
       setTargetNodeIds(new Set(t || []));
       setFocusedNodeId(f || null);
+      setShortestPathSelection(s || []); // استعادة اختيار المسار
       toast.success(`تم استعادة النسخة: ${target.name}`);
     }
   }, [savedStates]);
@@ -191,6 +193,7 @@ export const GraphProvider = ({ children }) => {
       globalIcons, 
       targetNodeIds: Array.from(targetNodeIds),
       focusedNodeId,
+      shortestPathSelection, // تضمين اختيار المسار في التصدير
       exportedAt: new Date().toISOString() 
     }, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
@@ -199,7 +202,7 @@ export const GraphProvider = ({ children }) => {
     linkElement.setAttribute('download', `graph-${Date.now()}.json`);
     linkElement.click();
     toast.success("بدأ تصدير المخطط");
-  }, [nodes, edges, globalIcons, targetNodeIds, focusedNodeId]);
+  }, [nodes, edges, globalIcons, targetNodeIds, focusedNodeId, shortestPathSelection]);
 
   const importGraph = useCallback((jsonData) => {
     try {
@@ -210,6 +213,7 @@ export const GraphProvider = ({ children }) => {
         setGlobalIcons(data.globalIcons || {});
         if (data.targetNodeIds) setTargetNodeIds(new Set(data.targetNodeIds));
         if (data.focusedNodeId) setFocusedNodeId(data.focusedNodeId);
+        if (data.shortestPathSelection) setShortestPathSelection(data.shortestPathSelection);
         toast.success("تم استيراد المخطط بنجاح");
       }
     } catch (error) {
@@ -379,7 +383,6 @@ export const GraphProvider = ({ children }) => {
       setNodes((nds) => nds.filter((n) => n.id !== id)); 
       setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
       
-      // تنظيف قوائم التحليل عند حذف العقدة
       setShortestPathSelection(prev => prev.filter(n => n.id !== id));
       if (focusedNodeId === id) setFocusedNodeId(null);
       setTargetNodeIds(prev => {
