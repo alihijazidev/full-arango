@@ -40,7 +40,6 @@ export const GraphProvider = ({ children }) => {
     setEdges((eds) => eds.map(edge => ({ ...edge, animated: isAnimated })));
   }, [isAnimated]);
 
-  // خوارزمية البحث في المخطط الحالي
   const findPathInCanvas = (startId, endId, currentEdges) => {
     const adjacency = {};
     currentEdges.forEach(edge => {
@@ -80,16 +79,28 @@ export const GraphProvider = ({ children }) => {
     return null;
   };
 
-  // خوارزمية البحث في الـ Metadata (الهيكل الكلي)
   const findPathInSchema = (startPath, endPath) => {
     const schemaAdj = {};
+    const addAdj = (from, to, label, meta, isHierarchy = false) => {
+      if (!schemaAdj[from]) schemaAdj[from] = [];
+      schemaAdj[from].push({ to, label, meta, isHierarchy });
+      if (!schemaAdj[to]) schemaAdj[to] = [];
+      schemaAdj[to].push({ to: from, label, meta, isHierarchy });
+    };
+
+    // 1. إضافة علاقات المخطط (Edges)
     metadata.edges.forEach(e => {
       const from = Array.isArray(e.fromcol) ? e.fromcol.join('/') : e.fromcol;
       const to = Array.isArray(e.tocol) ? e.tocol.join('/') : e.tocol;
-      if (!schemaAdj[from]) schemaAdj[from] = [];
-      schemaAdj[from].push({ to, label: e.label, meta: e });
-      if (!schemaAdj[to]) schemaAdj[to] = [];
-      schemaAdj[to].push({ to: from, label: e.label, meta: e });
+      addAdj(from, to, e.label, e);
+    });
+
+    // 2. إضافة العلاقات الهرمية (فئة <-> مجموعات تابعة)
+    metadata.collections.forEach(cat => {
+      cat.entities.forEach(entity => {
+        const fullEntityPath = `${cat.name}/${entity.name}`;
+        addAdj(cat.name, fullEntityPath, 'يحتوي', null, true);
+      });
     });
 
     const queue = [startPath];
@@ -103,7 +114,7 @@ export const GraphProvider = ({ children }) => {
         let step = endPath;
         while (step !== startPath) {
           const pred = predecessors[step];
-          path.unshift({ from: pred.prev, to: step, label: pred.label, meta: pred.meta });
+          path.unshift({ from: pred.prev, to: step, label: pred.label, meta: pred.meta, isHierarchy: pred.isHierarchy });
           step = pred.prev;
         }
         return path;
@@ -111,7 +122,7 @@ export const GraphProvider = ({ children }) => {
       (schemaAdj[current] || []).forEach(edge => {
         if (!visited.has(edge.to)) {
           visited.add(edge.to);
-          predecessors[edge.to] = { prev: current, label: edge.label, meta: edge.meta };
+          predecessors[edge.to] = { prev: current, label: edge.label, meta: edge.meta, isHierarchy: edge.isHierarchy };
           queue.push(edge.to);
         }
       });
@@ -149,8 +160,6 @@ export const GraphProvider = ({ children }) => {
 
     if (newSelection.length === 2) {
       const [nodeA, nodeB] = newSelection;
-      
-      // 1. محاولة البحث في المخطط الحالي أولاً
       const canvasPath = findPathInCanvas(nodeA.id, nodeB.id, currentEdges);
       if (canvasPath) {
         setActivePathElements(canvasPath);
@@ -158,45 +167,56 @@ export const GraphProvider = ({ children }) => {
         return;
       }
 
-      // 2. محاولة البحث في الـ Metadata (الـ Schema)
       const schemaPath = findPathInSchema(nodeA.data.fullPath, nodeB.data.fullPath);
       if (schemaPath) {
-        toast.loading("جاري جلب المسار من قاعدة البيانات...", { id: 'path-fetch' });
+        toast.loading("جاري جلب المسار من هيكل البيانات...", { id: 'path-fetch' });
         
         let lastNodeId = nodeA.id;
-        const newEdges = [];
         const finalPathNodes = new Set([nodeA.id, nodeB.id]);
         const finalPathEdges = new Set();
+        const newNodesToAdd = [];
+        const newEdgesToAdd = [];
 
         schemaPath.forEach((step, idx) => {
-          // العقدة المستهدفة في هذه الخطوة
           let stepNode;
           if (idx === schemaPath.length - 1) {
             stepNode = nodeB;
           } else {
-            const [cat, name] = step.to.includes('/') ? step.to.split('/') : [null, step.to];
-            stepNode = addNodeFromMetadata(cat ? 'collection' : 'category', name, { x: 300 * (idx + 1), y: 100 }, cat);
+            const pathParts = step.to.split('/');
+            const type = pathParts.length > 1 ? 'collection' : 'category';
+            const name = pathParts.pop();
+            const catName = pathParts.length > 0 ? pathParts[0] : null;
+            
+            stepNode = nodes.find(n => n.data.fullPath === step.to);
+            if (!stepNode) {
+              stepNode = addNodeFromMetadata(type, name, { x: 400 * (idx + 1), y: 150 }, catName);
+              newNodesToAdd.push(stepNode);
+            }
           }
           
           finalPathNodes.add(stepNode.id);
-          const edgeId = `schema-path-${lastNodeId}-${stepNode.id}-${step.label}`;
-          const newEdge = { 
-            id: edgeId, source: lastNodeId, target: stepNode.id, label: step.label, 
-            type: 'parallel', animated: true, data: { metadata: step.meta, filters: [], offset: 0, depth: 1 } 
-          };
-          newEdges.push(newEdge);
-          finalPathEdges.add(edgeId);
+          
+          // لا ننشئ روابط للعلاقات الهرمية (Hierarchy) إلا إذا أردنا تمثيلها كروابط مرئية
+          if (!step.isHierarchy) {
+            const edgeId = `schema-path-${lastNodeId}-${stepNode.id}-${step.label}`;
+            const newEdge = { 
+              id: edgeId, source: lastNodeId, target: stepNode.id, label: step.label, 
+              type: 'parallel', animated: true, data: { metadata: step.meta, filters: [], offset: 0, depth: 1 } 
+            };
+            newEdgesToAdd.push(newEdge);
+            finalPathEdges.add(edgeId);
+          }
+          
           lastNodeId = stepNode.id;
         });
 
-        setEdges(eds => [...eds, ...newEdges]);
+        setEdges(eds => [...eds, ...newEdgesToAdd]);
         setActivePathElements({ nodes: finalPathNodes, edges: finalPathEdges });
         toast.success("تم استكمال المسار آلياً من هيكل البيانات", { id: 'path-fetch' });
       } else {
-        // 3. إذا لم يوجد مسار إطلاقاً، أضف رابطاً يدوياً
         const edgeId = `manual-path-${nodeA.id}-${nodeB.id}`;
         setEdges(eds => [...eds, {
-          id: edgeId, source: nodeA.id, target: nodeB.id, label: 'رابط يدوي (لا يوجد مسار)',
+          id: edgeId, source: nodeA.id, target: nodeB.id, label: 'رابط يدوي',
           type: 'parallel', animated: true, data: { isVirtual: true, filters: [], offset: 0, depth: 1 }
         }]);
         setActivePathElements({ nodes: new Set([nodeA.id, nodeB.id]), edges: new Set([edgeId]) });
@@ -208,10 +228,8 @@ export const GraphProvider = ({ children }) => {
   const addMetadataToShortestPath = (type, name, categoryName = null) => {
     const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
     let targetNode = nodes.find(n => n.data.fullPath === fullPath);
-    
     if (!targetNode) {
       targetNode = addNodeFromMetadata(type, name, { x: 100, y: 100 }, categoryName);
-      // استخدام setTimeout لضمان تحديث الـ state للـ nodes قبل استدعاء التحليل
       setTimeout(() => addToShortestPath(targetNode), 10);
     } else {
       addToShortestPath(targetNode);
