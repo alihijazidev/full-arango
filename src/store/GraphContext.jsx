@@ -25,21 +25,54 @@ export const GraphProvider = ({ children }) => {
   const [globalIcons, setGlobalIcons] = useState({});
   const [savedStates, setSavedStates] = useState([]);
 
+  // حالات التحليل المتقدمة
+  const [focusedNodeId, setFocusedNodeId] = useState(null);
+  const [targetNodeIds, setTargetNodeIds] = useState(new Set());
+  const [shortestPathSelection, setShortestPathSelection] = useState([]);
+
   useEffect(() => {
     fetchMetadata().then(setMetadata);
     const saved = localStorage.getItem('arango_saved_states');
     if (saved) setSavedStates(JSON.parse(saved));
   }, []);
 
-  // مزامنة حالة التحريك مع الروابط الموجودة
   useEffect(() => {
     setEdges((eds) => eds.map(edge => ({ ...edge, animated: isAnimated })));
   }, [isAnimated]);
 
-  // --- دوال التخطيط ---
+  const toggleFocus = (nodeId) => {
+    setFocusedNodeId(prev => prev === nodeId ? null : nodeId);
+    if (focusedNodeId !== nodeId) toast.info("نمط التركيز نشط");
+  };
+
+  const toggleTarget = (nodeId) => {
+    setTargetNodeIds(prev => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return next;
+    });
+  };
+
+  const addToShortestPath = (node) => {
+    if (shortestPathSelection.find(n => n.id === node.id)) {
+      toast.warning("العقدة مضافة بالفعل");
+      return;
+    }
+    if (shortestPathSelection.length >= 2) {
+      toast.error("يمكنك اختيار عقدتين فقط لمسار واحد");
+      return;
+    }
+    setShortestPathSelection(prev => [...prev, node]);
+    toast.success("تمت الإضافة لقائمة المسار");
+  };
+
+  const removeFromShortestPath = (nodeId) => {
+    setShortestPathSelection(prev => prev.filter(n => n.id !== nodeId));
+  };
+
   const applyLayout = useCallback((type) => {
     if (nodes.length === 0) return;
-    
     let layoutedNodes = [];
     switch (type) {
       case 'grid': layoutedNodes = getGridLayout(nodes); break;
@@ -49,12 +82,10 @@ export const GraphProvider = ({ children }) => {
       case 'force': layoutedNodes = getForceLayout(nodes, edges); break;
       default: return;
     }
-    
     setNodes(layoutedNodes);
     toast.success(`تم تطبيق التخطيط ${type}`);
   }, [nodes, edges]);
 
-  // --- وظائف الحفظ المتعدد ---
   const saveCurrentState = useCallback((name) => {
     const newState = {
       id: Date.now().toString(),
@@ -262,7 +293,8 @@ export const GraphProvider = ({ children }) => {
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons,
-      savedStates, saveCurrentState, loadSpecificState, deleteSavedState, exportGraph, importGraph, applyLayout
+      savedStates, saveCurrentState, loadSpecificState, deleteSavedState, exportGraph, importGraph, applyLayout,
+      focusedNodeId, targetNodeIds, shortestPathSelection, toggleFocus, toggleTarget, addToShortestPath, removeFromShortestPath
     }}>
       {children}
     </GraphContext.Provider>

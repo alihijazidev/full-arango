@@ -44,7 +44,8 @@ const GraphInner = ({ onSelectElement }) => {
     isAnimated, setIsAnimated,
     isAutoConnect, setIsAutoConnect,
     backgroundStyle, setBackgroundStyle,
-    applyLayout
+    applyLayout,
+    toggleFocus, toggleTarget, addToShortestPath
   } = useGraph();
   const { project, fitView } = useReactFlow();
   const [menu, setMenu] = useState(null);
@@ -122,7 +123,6 @@ const GraphInner = ({ onSelectElement }) => {
         )}
         
         <Panel position="top-right" className="flex items-center gap-4 bg-white/90 backdrop-blur-md p-2 rounded-xl border shadow-lg">
-          {/* قسم التخطيط التلقائي */}
           <div className="flex items-center gap-1 border-r pr-3">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -197,6 +197,13 @@ const GraphInner = ({ onSelectElement }) => {
           onDelete={() => { deleteElement(menu.id, menu.isNode); setMenu(null); }}
           onDetails={() => { onSelectElement(menu.id, menu.isNode); setMenu(null); }}
           onOpenIconPicker={() => { setIconPicker({ nodeId: menu.id }); setMenu(null); }}
+          onFocus={() => { toggleFocus(menu.id); setMenu(null); }}
+          onToggleTarget={() => { toggleTarget(menu.id); setMenu(null); }}
+          onAddToPath={() => { 
+            const node = nodes.find(n => n.id === menu.id);
+            if (node) addToShortestPath(node);
+            setMenu(null); 
+          }}
           onClose={() => setMenu(null)}
         />
       )}
