@@ -1,24 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import { useGraph } from '../store/GraphContext';
-import { Database, FolderTree, ChevronLeft, Share2, Plus, Search, MapPinned, Trash2, PlayCircle, Info, Layers, Activity } from 'lucide-react';
+import { Database, FolderTree, ChevronLeft, Share2, Plus, Search, Activity } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { ScrollArea } from './ui/scroll-area';
 import { Input } from './ui/input';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { cn } from '@/lib/utils';
 import { getArabicName, getSmallIcon, getColorStyles } from '../utils/mapping';
 import { AnalysisTab } from './AnalysisTab';
 
 export const Sidebar = () => {
-  const { 
-    metadata, nodes, addEdgeManually, globalIcons, 
-    shortestPathSelection, removeFromShortestPath,
-    addMetadataToShortestPath
-  } = useGraph();
+  const { metadata, nodes, addEdgeManually, globalIcons } = useGraph();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isPathDraggingOver, setIsPathDraggingOver] = useState(false);
 
   const filteredCategories = useMemo(() => {
     if (!searchTerm) return metadata.collections;
@@ -46,20 +39,6 @@ export const Sidebar = () => {
   const onDragStart = (event, nodeType, nodeName, categoryName = null) => {
     event.dataTransfer.setData('application/reactflow', JSON.stringify({ nodeType, nodeName, categoryName }));
     event.dataTransfer.effectAllowed = 'move';
-  };
-
-  const onPathDrop = (event) => {
-    event.preventDefault();
-    setIsPathDraggingOver(false);
-    const dropData = event.dataTransfer.getData('application/reactflow');
-    if (!dropData) return;
-    const data = JSON.parse(dropData);
-    addMetadataToShortestPath(data.nodeType, data.nodeName, data.categoryName);
-  };
-
-  const onPathDragOver = (event) => {
-    event.preventDefault();
-    setIsPathDraggingOver(true);
   };
 
   return (
@@ -175,66 +154,6 @@ export const Sidebar = () => {
           <AnalysisTab />
         </TabsContent>
       </Tabs>
-
-      {/* الجزء السفلي: أقصر مسار (ثابت ودائم) */}
-      <div 
-        className={cn(
-          "shrink-0 bg-slate-50 border-t shadow-[0_-4px_12px_rgba(0,0,0,0.03)] z-10 transition-all",
-          isPathDraggingOver ? "bg-amber-50 ring-2 ring-inset ring-amber-400" : ""
-        )}
-        onDragOver={onPathDragOver}
-        onDragLeave={() => setIsPathDraggingOver(false)}
-        onDrop={onPathDrop}
-      >
-        <div className="p-4 flex items-center justify-between bg-white border-b">
-          <h3 className="font-bold text-xs flex items-center gap-2 text-slate-700">
-            <MapPinned size={16} className="text-amber-500" />
-            تحليل أقصر مسار
-          </h3>
-          <Badge variant={shortestPathSelection.length === 2 ? "default" : "outline"} className={cn(shortestPathSelection.length === 2 ? "bg-emerald-500" : "")}>
-            {shortestPathSelection.length}/2
-          </Badge>
-        </div>
-
-        <div className="p-4 space-y-4">
-          {shortestPathSelection.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-center p-4 border-2 border-dashed rounded-xl bg-slate-100/50 gap-2">
-              <Layers size={24} className="text-slate-300" />
-              <p className="text-[10px] text-slate-500 leading-relaxed px-2">
-                قم بسحب فئة أو مجموعة من الأعلى وأفلتها هنا، أو اختر عقدتين من المخطط عبر قائمة <b>"أدوات"</b> لبدء تحليل المسار.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {shortestPathSelection.map((node, index) => {
-                const colors = getColorStyles(node.data.label);
-                return (
-                  <div key={node.id} className="relative flex items-center gap-3 p-2 bg-white border rounded-lg group shadow-sm">
-                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-slate-50", colors.text)}>
-                      {getSmallIcon(node.data.label, node.data.type, globalIcons)}
-                    </div>
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-[11px] font-bold truncate">{getArabicName(node.data.label)}</span>
-                      <span className="text-[8px] text-slate-400 font-mono truncate">{node.id.split('-').pop()}</span>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7 text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity" 
-                      onClick={() => removeFromShortestPath(node.id)}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-800 text-white text-[8px] flex items-center justify-center font-bold shadow-sm">
-                      {index === 0 ? 'A' : 'B'}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 };
