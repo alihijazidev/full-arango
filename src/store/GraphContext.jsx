@@ -373,11 +373,33 @@ export const GraphProvider = ({ children }) => {
   const updateEdgeDepth = (id, depth) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, depth: parseInt(depth) || 1 } } : e));
   const updateEdgeLabel = (id, label) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, label } : e));
   const updateEdgeOffset = (id, offset) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset } } : e));
+  
   const deleteElement = (id, isNode) => {
-    if (isNode) { setNodes((nds) => nds.filter((n) => n.id !== id)); setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id)); }
-    else setEdges((eds) => eds.filter((e) => e.id !== id));
+    if (isNode) { 
+      setNodes((nds) => nds.filter((n) => n.id !== id)); 
+      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+      
+      // تنظيف قوائم التحليل عند حذف العقدة
+      setShortestPathSelection(prev => prev.filter(n => n.id !== id));
+      if (focusedNodeId === id) setFocusedNodeId(null);
+      setTargetNodeIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+    else {
+      setEdges((eds) => eds.filter((e) => e.id !== id));
+    }
   };
-  const clearCanvas = () => { setNodes([]); setEdges([]); };
+
+  const clearCanvas = () => { 
+    setNodes([]); 
+    setEdges([]); 
+    setShortestPathSelection([]);
+    setFocusedNodeId(null);
+    setTargetNodeIds(new Set());
+  };
 
   return (
     <GraphContext.Provider value={{ 
