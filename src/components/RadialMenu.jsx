@@ -10,6 +10,7 @@ const RingSegment = ({
   color, 
   hoverColor, 
   onClick, 
+  onMouseEnter,
   children,
   className,
   disabled = false
@@ -44,7 +45,8 @@ const RingSegment = ({
   return (
     <g 
       className={cn("cursor-pointer group select-none outline-none", disabled && "pointer-events-none opacity-20 grayscale", className)} 
-      onClick={(e) => { e.stopPropagation(); if(!disabled) onClick(); }}
+      onClick={(e) => { e.stopPropagation(); if(!disabled) onClick?.(); }}
+      onMouseEnter={() => { if(!disabled) onMouseEnter?.(); }}
     >
       <path 
         d={d} 
@@ -135,6 +137,7 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
                 color={seg.color}
                 hoverColor={seg.hover}
                 onClick={seg.action}
+                onMouseEnter={seg.isTools ? () => setShowAdvanced(true) : undefined}
                 disabled={isDisabled}
               >
                 {seg.icon}
