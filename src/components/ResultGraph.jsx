@@ -16,9 +16,10 @@ const edgeTypes = {
   parallel: ParallelEdge,
 };
 
+// --- Grid Layout Logic ---
 const getGridLayoutedElements = (nodes, edges) => {
-  const spacingX = 350;
-  const spacingY = 250;
+  const spacingX = 350; // زيادة المسافة الأفقية قليلاً
+  const spacingY = 250; // زيادة المسافة الرأسية قليلاً
   const columns = Math.ceil(Math.sqrt(nodes.length)); 
 
   const sortedNodes = [...nodes].sort((a, b) => {
@@ -33,25 +34,50 @@ const getGridLayoutedElements = (nodes, edges) => {
   const layoutedNodes = sortedNodes.map((node, index) => {
     const row = Math.floor(index / columns);
     const col = index % columns;
-    return { ...node, position: { x: col * spacingX, y: row * spacingY } };
+    
+    return {
+      ...node,
+      position: {
+        x: col * spacingX,
+        y: row * spacingY,
+      },
+    };
   });
 
   return { nodes: layoutedNodes, edges };
 };
 
+// --- Tree (Hierarchical) Layout Logic using Dagre ---
 const getTreeLayoutedElements = (nodes, edges, direction = 'TB') => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
+
   const nodeWidth = 200;
   const nodeHeight = 120;
+
   dagreGraph.setGraph({ rankdir: direction, nodesep: 100, ranksep: 150 });
-  nodes.forEach((node) => { dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight }); });
-  edges.forEach((edge) => { dagreGraph.setEdge(edge.source, edge.target); });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
   dagre.layout(dagreGraph);
+
   const layoutedNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
-    return { ...node, position: { x: (nodeWithPosition?.x || 0) - nodeWidth / 2, y: (nodeWithPosition?.y || 0) - nodeHeight / 2 } };
+    return {
+      ...node,
+      position: {
+        x: (nodeWithPosition?.x || 0) - nodeWidth / 2,
+        y: (nodeWithPosition?.y || 0) - nodeHeight / 2,
+      },
+    };
   });
+
   return { nodes: layoutedNodes, edges };
 };
 
@@ -59,7 +85,6 @@ const ResultGraphInner = ({ data }) => {
   const { 
     highlightedId, setHighlightedId, 
     selectedResultId, setSelectedResultId,
-    activeResultType,
     isResultPathMode, resultPathNodes, setResultPathNodes, executeShortestPath,
     resultSearchTerm
   } = useGraph();
@@ -95,11 +120,20 @@ const ResultGraphInner = ({ data }) => {
 
     if (resultSearchTerm) {
       const term = resultSearchTerm.toLowerCase();
-      const matchesSearch = (obj) => Object.entries(obj).some(([key, value]) => String(key).toLowerCase().includes(term) || (value !== null && value !== undefined && String(value).toLowerCase().includes(term)));
+      const matchesSearch = (obj) => {
+        return Object.entries(obj).some(([key, value]) => {
+          const keyMatch = String(key).toLowerCase().includes(term);
+          const valueMatch = value !== null && value !== undefined && String(value).toLowerCase().includes(term);
+          return keyMatch || valueMatch;
+        });
+      };
       const matchingNodes = baseNodes.filter(node => matchesSearch(node));
       const matchingEdges = baseEdges.filter(edge => matchesSearch(edge));
       const nodeIdsToShow = new Set(matchingNodes.map(n => n._id));
-      matchingEdges.forEach(e => { if (e._from) nodeIdsToShow.add(e._from); if (e._to) nodeIdsToShow.add(e._to); });
+      matchingEdges.forEach(e => { 
+        if (e._from) nodeIdsToShow.add(e._from); 
+        if (e._to) nodeIdsToShow.add(e._to); 
+      });
       baseNodes = baseNodes.filter(n => nodeIdsToShow.has(n._id));
       baseEdges = matchingEdges;
     }
@@ -107,14 +141,28 @@ const ResultGraphInner = ({ data }) => {
     if (selectedResultId) {
       const isSelectedNode = allRawNodes.some(n => n._id === selectedResultId);
       const isSelectedEdge = allRawEdges.some(e => e._id === selectedResultId);
+
       if (isSelectedNode) {
         const connectedEdges = allRawEdges.filter(e => e._from === selectedResultId || e._to === selectedResultId);
         const neighborNodeIds = new Set([selectedResultId]);
-        connectedEdges.forEach(e => { neighborNodeIds.add(e._from); neighborNodeIds.add(e._to); });
-        return { nodes: allRawNodes.filter(n => neighborNodeIds.has(n._id)), edges: connectedEdges };
+        connectedEdges.forEach(e => {
+          neighborNodeIds.add(e._from);
+          neighborNodeIds.add(e._to);
+        });
+        
+        return {
+          nodes: allRawNodes.filter(n => neighborNodeIds.has(n._id)),
+          edges: connectedEdges
+        };
       } else if (isSelectedEdge) {
         const targetEdge = allRawEdges.find(e => e._id === selectedResultId);
-        if (targetEdge) return { nodes: allRawNodes.filter(n => n._id === targetEdge._from || n._id === targetEdge._to), edges: [targetEdge] };
+        if (targetEdge) {
+          const edgeNodeIds = new Set([targetEdge._from, targetEdge._to]);
+          return {
+            nodes: allRawNodes.filter(n => edgeNodeIds.has(n._id)),
+            edges: [targetEdge]
+          };
+        }
       }
     }
 
@@ -122,7 +170,6 @@ const ResultGraphInner = ({ data }) => {
   }, [allRawNodes, allRawEdges, resultSearchTerm, selectedResultId]);
 
   const applyLayout = useCallback((mode = layoutMode) => {
-    const isShortestPathMode = activeResultType === 'shortestPath';
     const rawNodes = filteredData.nodes.map((item) => ({
       id: item._id,
       type: 'customNode',
@@ -131,8 +178,7 @@ const ResultGraphInner = ({ data }) => {
         label: item.label || (item._id && String(item._id).includes('/') ? String(item._id).split('/')[0] : "Unknown"),
         instanceId: item._id,
         type: 'collection',
-        metadata: item,
-        isPath: isShortestPathMode
+        metadata: item 
       },
     }));
 
@@ -143,16 +189,25 @@ const ResultGraphInner = ({ data }) => {
       label: edge.label,
       type: 'parallel',
       animated: true,
-      data: { offset: 0, metadata: edge, isPath: isShortestPathMode },
+      data: { offset: 0, metadata: edge },
     }));
 
-    let result = mode === 'tree' ? getTreeLayoutedElements(rawNodes, rawEdges) : getGridLayoutedElements(rawNodes, rawEdges);
+    let result;
+    if (mode === 'tree') {
+      result = getTreeLayoutedElements(rawNodes, rawEdges);
+    } else {
+      result = getGridLayoutedElements(rawNodes, rawEdges);
+    }
+
     setNodes(result.nodes);
     setEdges(result.edges);
+    
     setTimeout(() => fitView({ duration: 800, padding: 0.2 }), 50);
-  }, [filteredData, layoutMode, activeResultType, setNodes, setEdges, fitView]);
+  }, [filteredData, layoutMode, setNodes, setEdges, fitView]);
 
-  useEffect(() => { applyLayout(); }, [applyLayout, layoutMode]);
+  useEffect(() => {
+    applyLayout();
+  }, [applyLayout, layoutMode]);
 
   useEffect(() => {
     setNodes((nds) => nds.map((node) => ({
@@ -177,27 +232,63 @@ const ResultGraphInner = ({ data }) => {
         onEdgeMouseEnter={(_, edge) => setHighlightedId(edge.id)}
         onEdgeMouseLeave={() => setHighlightedId(null)}
         fitView
-        minZoom={0.05}
+        minZoom={0.05} // السماح بتصغير كبير جداً لرؤية المخطط كاملاً
         maxZoom={4}
       >
         <Background color="#f1f5f9" gap={20} />
+        
         <Panel position="bottom-right" className="m-4 flex flex-col gap-2">
+          {/* أدوات الزووم */}
           <div className="bg-white/90 backdrop-blur p-1 rounded-lg border shadow-sm flex flex-col items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomIn()} title="تكبير"><ZoomIn size={16} /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomIn()} title="تكبير">
+              <ZoomIn size={16} />
+            </Button>
             <div className="h-px w-6 bg-slate-200" />
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomOut()} title="تصغير"><ZoomOut size={16} /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomOut()} title="تصغير">
+              <ZoomOut size={16} />
+            </Button>
           </div>
+
           <div className="flex gap-2">
             <div className="bg-white/90 backdrop-blur p-1 rounded-lg border shadow-sm flex items-center gap-1">
-              <Button variant={layoutMode === 'grid' ? 'default' : 'ghost'} size="sm" className="h-8 gap-2" onClick={() => setLayoutMode('grid')}><LayoutGrid size={14} />شبكة</Button>
-              <Button variant={layoutMode === 'tree' ? 'default' : 'ghost'} size="sm" className="h-8 gap-2" onClick={() => setLayoutMode('tree')}><GitGraph size={14} />شجري</Button>
+              <Button 
+                variant={layoutMode === 'grid' ? 'default' : 'ghost'} 
+                size="sm" 
+                className="h-8 gap-2"
+                onClick={() => setLayoutMode('grid')}
+              >
+                <LayoutGrid size={14} />
+                شبكة
+              </Button>
+              <Button 
+                variant={layoutMode === 'tree' ? 'default' : 'ghost'} 
+                size="sm" 
+                className="h-8 gap-2"
+                onClick={() => setLayoutMode('tree')}
+              >
+                <GitGraph size={14} />
+                شجري
+              </Button>
             </div>
-            <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur shadow-md gap-2 h-10 px-3" onClick={() => fitView({ duration: 800 })}><Maximize2 size={14} />احتواء</Button>
+
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-white/80 backdrop-blur shadow-md gap-2 h-10 px-3"
+              onClick={() => fitView({ duration: 800 })}
+            >
+              <Maximize2 size={14} />
+              احتواء
+            </Button>
           </div>
         </Panel>
+
         {isResultPathMode && (
           <Panel position="top-center" className="bg-amber-500 text-white px-4 py-1.5 rounded-full shadow-lg animate-pulse">
-            <p className="text-[10px] font-bold flex items-center gap-2"><MapPinned size={14} />{resultPathNodes.length === 0 ? 'اختر نقطة البداية' : 'اختر نقطة النهاية'}</p>
+            <p className="text-[10px] font-bold flex items-center gap-2">
+              <MapPinned size={14} />
+              {resultPathNodes.length === 0 ? 'اختر نقطة البداية' : 'اختر نقطة النهاية'}
+            </p>
           </Panel>
         )}
       </ReactFlow>
