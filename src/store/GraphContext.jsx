@@ -25,10 +25,10 @@ export const GraphProvider = ({ children }) => {
   const [globalIcons, setGlobalIcons] = useState({});
   const [savedStates, setSavedStates] = useState([]);
 
+  // حالات التحليل المتقدمة
   const [focusedNodeId, setFocusedNodeId] = useState(null);
   const [targetNodeIds, setTargetNodeIds] = useState(new Set());
   const [shortestPathSelection, setShortestPathSelection] = useState([]);
-  const [activePathElements, setActivePathElements] = useState({ nodes: new Set(), edges: new Set() });
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
@@ -40,203 +40,11 @@ export const GraphProvider = ({ children }) => {
     setEdges((eds) => eds.map(edge => ({ ...edge, animated: isAnimated })));
   }, [isAnimated]);
 
-  const findPathInCanvas = (startId, endId, currentEdges) => {
-    const adjacency = {};
-    currentEdges.forEach(edge => {
-      if (!adjacency[edge.source]) adjacency[edge.source] = [];
-      adjacency[edge.source].push({ node: edge.target, edge: edge.id });
-      if (!adjacency[edge.target]) adjacency[edge.target] = [];
-      adjacency[edge.target].push({ node: edge.source, edge: edge.id });
-    });
-
-    const queue = [startId];
-    const visited = new Set([startId]);
-    const predecessors = {};
-
-    while (queue.length > 0) {
-      const current = queue.shift();
-      if (current === endId) {
-        const pathNodes = new Set();
-        const pathEdges = new Set();
-        let step = endId;
-        while (step !== startId) {
-          pathNodes.add(step);
-          const pred = predecessors[step];
-          pathEdges.add(pred.edgeId);
-          step = pred.prevNodeId;
-        }
-        pathNodes.add(startId);
-        return { nodes: pathNodes, edges: pathEdges };
-      }
-      (adjacency[current] || []).forEach(neighbor => {
-        if (!visited.has(neighbor.node)) {
-          visited.add(neighbor.node);
-          predecessors[neighbor.node] = { prevNodeId: current, edgeId: neighbor.edge };
-          queue.push(neighbor.node);
-        }
-      });
-    }
-    return null;
+  const toggleFocus = (nodeId) => {
+    setFocusedNodeId(prev => prev === nodeId ? null : nodeId);
+    if (focusedNodeId !== nodeId) toast.info("نمط التركيز نشط");
   };
 
-  const findPathInSchema = (startPath, endPath) => {
-    const schemaAdj = {};
-    const addAdj = (from, to, label, meta, isHierarchy = false) => {
-      if (!schemaAdj[from]) schemaAdj[from] = [];
-      schemaAdj[from].push({ to, label, meta, isHierarchy });
-      if (!schemaAdj[to]) schemaAdj[to] = [];
-      schemaAdj[to].push({ to: from, label, meta, isHierarchy });
-    };
-
-    // 1. إضافة علاقات المخطط (Edges)
-    metadata.edges.forEach(e => {
-      const from = Array.isArray(e.fromcol) ? e.fromcol.join('/') : e.fromcol;
-      const to = Array.isArray(e.tocol) ? e.tocol.join('/') : e.tocol;
-      addAdj(from, to, e.label, e);
-    });
-
-    // 2. إضافة العلاقات الهرمية (فئة <-> مجموعات تابعة)
-    metadata.collections.forEach(cat => {
-      cat.entities.forEach(entity => {
-        const fullEntityPath = `${cat.name}/${entity.name}`;
-        addAdj(cat.name, fullEntityPath, 'يحتوي', null, true);
-      });
-    });
-
-    const queue = [startPath];
-    const visited = new Set([startPath]);
-    const predecessors = {};
-
-    while (queue.length > 0) {
-      const current = queue.shift();
-      if (current === endPath) {
-        const path = [];
-        let step = endPath;
-        while (step !== startPath) {
-          const pred = predecessors[step];
-          path.unshift({ from: pred.prev, to: step, label: pred.label, meta: pred.meta, isHierarchy: pred.isHierarchy });
-          step = pred.prev;
-        }
-        return path;
-      }
-      (schemaAdj[current] || []).forEach(edge => {
-        if (!visited.has(edge.to)) {
-          visited.add(edge.to);
-          predecessors[edge.to] = { prev: current, label: edge.label, meta: edge.meta, isHierarchy: edge.isHierarchy };
-          queue.push(edge.to);
-        }
-      });
-    }
-    return null;
-  };
-
-  const addNodeFromMetadata = (type, name, position, categoryName = null) => {
-    const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
-    const existing = nodes.find(n => n.data.fullPath === fullPath);
-    if (existing) return existing;
-
-    const id = `${type}-${name}-${Date.now()}`;
-    let nodeMetadata = null;
-    if (type === 'category') nodeMetadata = metadata.collections.find(c => c.name === name);
-    else {
-      const cat = metadata.collections.find(c => c.name === categoryName);
-      nodeMetadata = cat?.entities.find(e => e.name === name);
-    }
-    const newNode = { id, type: 'customNode', position, data: { label: name, type, fullPath, categoryName, metadata: nodeMetadata, filters: [] } };
-    setNodes(nds => [...nds, newNode]);
-    return newNode;
-  };
-
-  const addToShortestPath = (node, currentNodes = nodes, currentEdges = edges) => {
-    if (shortestPathSelection.find(n => n.id === node.id)) return;
-    if (shortestPathSelection.length >= 2) {
-      toast.error("يمكنك اختيار عقدتين فقط لمسار واحد");
-      return;
-    }
-
-    const newSelection = [...shortestPathSelection, node];
-    setShortestPathSelection(newSelection);
-    toast.success(`تم اختيار ${node.data.label}`);
-
-    if (newSelection.length === 2) {
-      const [nodeA, nodeB] = newSelection;
-      const canvasPath = findPathInCanvas(nodeA.id, nodeB.id, currentEdges);
-      if (canvasPath) {
-        setActivePathElements(canvasPath);
-        toast.info("تم اكتشاف مسار مباشر في التصميم");
-        return;
-      }
-
-      const schemaPath = findPathInSchema(nodeA.data.fullPath, nodeB.data.fullPath);
-      if (schemaPath) {
-        toast.loading("جاري جلب المسار من هيكل البيانات...", { id: 'path-fetch' });
-        
-        let lastNodeId = nodeA.id;
-        const finalPathNodes = new Set([nodeA.id, nodeB.id]);
-        const finalPathEdges = new Set();
-        const newNodesToAdd = [];
-        const newEdgesToAdd = [];
-
-        schemaPath.forEach((step, idx) => {
-          let stepNode;
-          if (idx === schemaPath.length - 1) {
-            stepNode = nodeB;
-          } else {
-            const pathParts = step.to.split('/');
-            const type = pathParts.length > 1 ? 'collection' : 'category';
-            const name = pathParts.pop();
-            const catName = pathParts.length > 0 ? pathParts[0] : null;
-            
-            stepNode = nodes.find(n => n.data.fullPath === step.to);
-            if (!stepNode) {
-              stepNode = addNodeFromMetadata(type, name, { x: 400 * (idx + 1), y: 150 }, catName);
-              newNodesToAdd.push(stepNode);
-            }
-          }
-          
-          finalPathNodes.add(stepNode.id);
-          
-          // لا ننشئ روابط للعلاقات الهرمية (Hierarchy) إلا إذا أردنا تمثيلها كروابط مرئية
-          if (!step.isHierarchy) {
-            const edgeId = `schema-path-${lastNodeId}-${stepNode.id}-${step.label}`;
-            const newEdge = { 
-              id: edgeId, source: lastNodeId, target: stepNode.id, label: step.label, 
-              type: 'parallel', animated: true, data: { metadata: step.meta, filters: [], offset: 0, depth: 1 } 
-            };
-            newEdgesToAdd.push(newEdge);
-            finalPathEdges.add(edgeId);
-          }
-          
-          lastNodeId = stepNode.id;
-        });
-
-        setEdges(eds => [...eds, ...newEdgesToAdd]);
-        setActivePathElements({ nodes: finalPathNodes, edges: finalPathEdges });
-        toast.success("تم استكمال المسار آلياً من هيكل البيانات", { id: 'path-fetch' });
-      } else {
-        const edgeId = `manual-path-${nodeA.id}-${nodeB.id}`;
-        setEdges(eds => [...eds, {
-          id: edgeId, source: nodeA.id, target: nodeB.id, label: 'رابط يدوي',
-          type: 'parallel', animated: true, data: { isVirtual: true, filters: [], offset: 0, depth: 1 }
-        }]);
-        setActivePathElements({ nodes: new Set([nodeA.id, nodeB.id]), edges: new Set([edgeId]) });
-        toast.warning("لا يوجد مسار معروف؛ تم إنشاء رابط يدوي");
-      }
-    }
-  };
-
-  const addMetadataToShortestPath = (type, name, categoryName = null) => {
-    const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
-    let targetNode = nodes.find(n => n.data.fullPath === fullPath);
-    if (!targetNode) {
-      targetNode = addNodeFromMetadata(type, name, { x: 100, y: 100 }, categoryName);
-      setTimeout(() => addToShortestPath(targetNode), 10);
-    } else {
-      addToShortestPath(targetNode);
-    }
-  };
-
-  const toggleFocus = (nodeId) => setFocusedNodeId(prev => prev === nodeId ? null : nodeId);
   const toggleTarget = (nodeId) => {
     setTargetNodeIds(prev => {
       const next = new Set(prev);
@@ -246,10 +54,21 @@ export const GraphProvider = ({ children }) => {
     });
   };
 
+  const addToShortestPath = (node) => {
+    if (shortestPathSelection.find(n => n.id === node.id)) {
+      toast.warning("العقدة مضافة بالفعل");
+      return;
+    }
+    if (shortestPathSelection.length >= 2) {
+      toast.error("يمكنك اختيار عقدتين فقط لمسار واحد");
+      return;
+    }
+    setShortestPathSelection(prev => [...prev, node]);
+    toast.success("تمت الإضافة لقائمة المسار");
+  };
+
   const removeFromShortestPath = (nodeId) => {
     setShortestPathSelection(prev => prev.filter(n => n.id !== nodeId));
-    setEdges(eds => eds.filter(e => !e.id.startsWith('manual-path-') && !e.id.startsWith('schema-path-')));
-    setActivePathElements({ nodes: new Set(), edges: new Set() });
   };
 
   const applyLayout = useCallback((type) => {
@@ -272,7 +91,14 @@ export const GraphProvider = ({ children }) => {
       id: Date.now().toString(),
       name: name || `نسخة ${new Date().toLocaleString('ar-EG')}`,
       timestamp: new Date().toISOString(),
-      data: { nodes, edges, globalIcons, targetNodeIds: Array.from(targetNodeIds), focusedNodeId }
+      data: { 
+        nodes, 
+        edges, 
+        globalIcons,
+        // حفظ حالات التحليل المتقدمة
+        targetNodeIds: Array.from(targetNodeIds),
+        focusedNodeId
+      }
     };
     const updatedStates = [newState, ...savedStates];
     setSavedStates(updatedStates);
@@ -287,6 +113,7 @@ export const GraphProvider = ({ children }) => {
       setNodes(n || []);
       setEdges(e || []);
       setGlobalIcons(i || {});
+      // استعادة حالات التحليل
       setTargetNodeIds(new Set(t || []));
       setFocusedNodeId(f || null);
       toast.success(`تم استعادة النسخة: ${target.name}`);
@@ -301,7 +128,14 @@ export const GraphProvider = ({ children }) => {
   }, [savedStates]);
 
   const exportGraph = useCallback(() => {
-    const dataStr = JSON.stringify({ nodes, edges, globalIcons, targetNodeIds: Array.from(targetNodeIds), focusedNodeId, exportedAt: new Date().toISOString() }, null, 2);
+    const dataStr = JSON.stringify({ 
+      nodes, 
+      edges, 
+      globalIcons, 
+      targetNodeIds: Array.from(targetNodeIds),
+      focusedNodeId,
+      exportedAt: new Date().toISOString() 
+    }, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -317,6 +151,7 @@ export const GraphProvider = ({ children }) => {
         setNodes(data.nodes);
         setEdges(data.edges);
         setGlobalIcons(data.globalIcons || {});
+        // استعادة الحالات من الملف المصدر
         if (data.targetNodeIds) setTargetNodeIds(new Set(data.targetNodeIds));
         if (data.focusedNodeId) setFocusedNodeId(data.focusedNodeId);
         toast.success("تم استيراد المخطط بنجاح");
@@ -327,7 +162,9 @@ export const GraphProvider = ({ children }) => {
   }, []);
 
   const getParallelEdgeOffset = (source, target, existingEdges) => {
-    const parallelEdges = existingEdges.filter((e) => (e.source === source && e.target === target) || (e.source === target && e.target === source));
+    const parallelEdges = existingEdges.filter(
+      (e) => (e.source === source && e.target === target) || (e.source === target && e.target === source)
+    );
     const count = parallelEdges.length;
     if (count === 0) return 0;
     const step = 40;
@@ -345,11 +182,16 @@ export const GraphProvider = ({ children }) => {
           const targetPath = targetNode.data.fullPath;
           const edgeFromStr = Array.isArray(edgeMeta.fromcol) ? edgeMeta.fromcol.join('/') : edgeMeta.fromcol;
           const edgeToStr = Array.isArray(edgeMeta.tocol) ? edgeMeta.tocol.join('/') : edgeMeta.tocol;
-          if ((edgeFromStr === sourcePath || edgeFromStr.startsWith(sourcePath + '/')) && (edgeToStr === targetPath || edgeToStr.startsWith(targetPath + '/'))) {
+          if ((edgeFromStr === sourcePath || edgeFromStr.startsWith(sourcePath + '/')) && 
+              (edgeToStr === targetPath || edgeToStr.startsWith(targetPath + '/'))) {
             const edgeId = `edge-${sourceNode.id}-${targetNode.id}-${edgeMeta.label}`;
             if (!currentEdges.some(e => e.id === edgeId) && !newEdges.some(e => e.id === edgeId)) {
               const offset = getParallelEdgeOffset(sourceNode.id, targetNode.id, [...currentEdges, ...newEdges]);
-              newEdges.push({ id: edgeId, source: sourceNode.id, target: targetNode.id, label: edgeMeta.label, type: 'parallel', animated: isAnimated, data: { metadata: edgeMeta, filters: [], offset, depth: 1 } });
+              newEdges.push({
+                id: edgeId, source: sourceNode.id, target: targetNode.id,
+                label: edgeMeta.label, type: 'parallel', animated: isAnimated,
+                data: { metadata: edgeMeta, filters: [], offset, depth: 1 }
+              });
             }
           }
         });
@@ -367,10 +209,14 @@ export const GraphProvider = ({ children }) => {
       const edgeMeta = metadata.edges.find(e => {
         const fromStr = Array.isArray(e.fromcol) ? e.fromcol.join('/') : e.fromcol;
         const toStr = Array.isArray(e.tocol) ? e.tocol.join('/') : e.tocol;
-        return (fromStr === sourcePath || fromStr.startsWith(sourcePath + '/')) && (toStr === targetPath || toStr.startsWith(targetPath + '/'));
+        return (fromStr === sourcePath || fromStr.startsWith(sourcePath + '/')) && 
+               (toStr === targetPath || toStr.startsWith(targetPath + '/'));
       });
       const offset = getParallelEdgeOffset(params.source, params.target, eds);
-      return addEdge({ ...params, label: edgeMeta?.label || 'رابط يدوي', animated: isAnimated, type: 'parallel', data: { metadata: edgeMeta || { fromcol: sourcePath.split('/'), tocol: targetPath.split('/'), label: 'رابط يدوي', attributes: [], isManual: true }, filters: [], offset, depth: 1 } }, eds);
+      return addEdge({ 
+        ...params, label: edgeMeta?.label || 'رابط يدوي', animated: isAnimated, type: 'parallel',
+        data: { metadata: edgeMeta || { fromcol: sourcePath.split('/'), tocol: targetPath.split('/'), label: 'رابط يدوي', attributes: [], isManual: true }, filters: [], offset, depth: 1 }
+      }, eds);
     });
   }, [isAnimated, nodes, metadata.edges]);
 
@@ -426,6 +272,38 @@ export const GraphProvider = ({ children }) => {
     if (newEdges.length > 0) setEdges((eds) => [...eds, ...newEdges]);
   };
 
+  const addNodeFromMetadata = (type, name, position, categoryName = null) => {
+    const id = `${type}-${name}-${Date.now()}`;
+    const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
+    let nodeMetadata = null;
+    if (type === 'category') nodeMetadata = metadata.collections.find(c => c.name === name);
+    else {
+      const cat = metadata.collections.find(c => c.name === categoryName);
+      nodeMetadata = cat?.entities.find(e => e.name === name);
+    }
+    const newNode = { id, type: 'customNode', position, data: { label: name, type, fullPath, categoryName, metadata: nodeMetadata, filters: [] } };
+    setNodes((nds) => {
+      const updatedNodes = [...nds, newNode];
+      if (isAutoConnect) setTimeout(() => performAutoConnect(updatedNodes, edges), 0);
+      return updatedNodes;
+    });
+    return newNode;
+  };
+
+  const addMetadataToShortestPath = (type, name, categoryName = null) => {
+    // التحقق مما إذا كان هناك عقدة من نفس النوع موجودة بالفعل على المخطط لاستخدامها
+    const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
+    const existingNode = nodes.find(n => n.data.fullPath === fullPath);
+    
+    if (existingNode) {
+      addToShortestPath(existingNode);
+    } else {
+      // إذا لم تكن موجودة، قم بإنشائها أولاً
+      const newNode = addNodeFromMetadata(type, name, { x: 100, y: 100 }, categoryName);
+      addToShortestPath(newNode);
+    }
+  };
+
   const updateFilters = (id, isNode, filters) => {
     if (isNode) setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, filters } } : n));
     else setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, filters } } : e));
@@ -442,27 +320,16 @@ export const GraphProvider = ({ children }) => {
   const updateEdgeLabel = (id, label) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, label } : e));
   const updateEdgeOffset = (id, offset) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset } } : e));
   const deleteElement = (id, isNode) => {
-    if (isNode) { 
-      setNodes((nds) => nds.filter((n) => n.id !== id)); 
-      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id)); 
-      setShortestPathSelection(prev => prev.filter(n => n.id !== id));
-    }
+    if (isNode) { setNodes((nds) => nds.filter((n) => n.id !== id)); setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id)); }
     else setEdges((eds) => eds.filter((e) => e.id !== id));
   };
-  const clearCanvas = () => { 
-    setNodes([]); 
-    setEdges([]); 
-    setShortestPathSelection([]);
-    setFocusedNodeId(null);
-    setTargetNodeIds(new Set());
-    setActivePathElements({ nodes: new Set(), edges: new Set() });
-  };
+  const clearCanvas = () => { setNodes([]); setEdges([]); };
 
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addMetadataToShortestPath, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons,
       savedStates, saveCurrentState, loadSpecificState, deleteSavedState, exportGraph, importGraph, applyLayout,
-      focusedNodeId, targetNodeIds, shortestPathSelection, activePathElements, toggleFocus, toggleTarget, addToShortestPath, removeFromShortestPath
+      focusedNodeId, targetNodeIds, shortestPathSelection, toggleFocus, toggleTarget, addToShortestPath, removeFromShortestPath
     }}>
       {children}
     </GraphContext.Provider>
