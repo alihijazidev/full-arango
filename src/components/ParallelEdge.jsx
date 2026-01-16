@@ -25,7 +25,10 @@ export const ParallelEdge = ({
   const sourceNode = useMemo(() => nodes.find(n => n.id === source), [nodes, source]);
   const targetNode = useMemo(() => nodes.find(n => n.id === target), [nodes, target]);
 
+  const isPath = data?.isPath;
+
   const gradientStyle = useMemo(() => {
+    if (isPath) return { background: '#10b981', color: 'white', border: 'none' };
     if (!sourceNode || !targetNode) return {};
     const startColor = getHexColor(sourceNode.data.label);
     const endColor = getHexColor(targetNode.data.label);
@@ -34,28 +37,19 @@ export const ParallelEdge = ({
       color: 'white',
       border: 'none'
     };
-  }, [sourceNode, targetNode]);
+  }, [sourceNode, targetNode, isPath]);
 
-  // The offset for the handle and label relative to the straight line
   const offset = data?.offset ?? 0;
-  
   const midX = (sourceX + targetX) / 2;
   const midY = (sourceY + targetY) / 2;
-  
   const dx = targetX - sourceX;
   const dy = targetY - sourceY;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
-  
-  // Normal unit vector
   const nx = -dy / len;
   const ny = dx / len;
-  
-  // Control point for quadratic curve
   const controlOffset = offset * 2;
   const cx = midX + nx * controlOffset;
   const cy = midY + ny * controlOffset;
-
-  // Actual label/handle position
   const labelX = midX + nx * offset;
   const labelY = midY + ny * offset;
 
@@ -64,33 +58,21 @@ export const ParallelEdge = ({
   const onHandleMouseDown = (event) => {
     event.stopPropagation();
     event.preventDefault();
-
     const onMouseMove = (moveEvent) => {
-      const flowPos = screenToFlowPosition({
-        x: moveEvent.clientX,
-        y: moveEvent.clientY,
-      });
-      
+      const flowPos = screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY });
       const vx = flowPos.x - midX;
       const vy = flowPos.y - midY;
-      
-      // Calculate new perpendicular offset
       const newOffset = vx * nx + vy * ny;
-      
-      // Update the edge in the state
       updateEdgeOffset(id, newOffset);
-      
       if (setLocalEdges) {
         setLocalEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset: newOffset } } : e));
       }
     };
-
     const onMouseUp = () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
       document.body.style.cursor = 'default';
     };
-
     document.body.style.cursor = 'grabbing';
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
@@ -102,21 +84,16 @@ export const ParallelEdge = ({
         id={id}
         style={style}
         className={cn(
-          "react-flow__edge-path stroke-2 fill-none transition-all cursor-pointer",
-          selected ? "stroke-primary stroke-[3px]" : "stroke-slate-400",
-          animated && "animate-dash"
+          "react-flow__edge-path fill-none transition-all cursor-pointer",
+          isPath ? "stroke-emerald-500 stroke-[4px] drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" : 
+          selected ? "stroke-primary stroke-[3px]" : "stroke-slate-400 stroke-2",
+          (animated || isPath) && "animate-dash"
         )}
         d={path}
         markerEnd={markerEnd}
       />
       
-      <path
-        d={path}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={20}
-        className="cursor-pointer"
-      />
+      <path d={path} fill="none" stroke="transparent" strokeWidth={20} className="cursor-pointer" />
 
       <EdgeLabelRenderer>
         <div
@@ -131,7 +108,6 @@ export const ParallelEdge = ({
             <div 
               onMouseDown={onHandleMouseDown}
               className="w-6 h-6 bg-white border-2 border-primary rounded-full shadow-lg cursor-grab active:cursor-grabbing flex items-center justify-center hover:scale-110 transition-transform z-[100]"
-              style={{ touchAction: 'none' }}
             >
               <div className="w-2 h-2 bg-primary rounded-full" />
             </div>
@@ -142,7 +118,7 @@ export const ParallelEdge = ({
               style={gradientStyle}
               className={cn(
                 "px-3 py-1 rounded-full border shadow-md text-[10px] font-bold transition-all whitespace-nowrap select-none",
-                selected ? "scale-110 ring-2 ring-white/50" : "opacity-90"
+                isPath ? "scale-110 ring-4 ring-emerald-500/20" : selected ? "scale-110 ring-2 ring-white/50" : "opacity-90"
               )}
             >
               {label}

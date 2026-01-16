@@ -14,8 +14,8 @@ export const CustomNode = memo(({ id, data, selected }) => {
   const colors = getColorStyles(data.label, selected);
 
   const isTarget = targetNodeIds.has(id);
+  const isPath = data?.isPath;
 
-  // منطق التركيز: إذا كان هناك عقدة مفوكس عليها، هل أنا هي أو هل أنا متصل بها؟
   const isDimmed = useMemo(() => {
     if (!focusedNodeId || focusedNodeId === id) return false;
     return !edges.some(e => (e.source === id && e.target === focusedNodeId) || (e.target === id && e.source === focusedNodeId));
@@ -24,22 +24,13 @@ export const CustomNode = memo(({ id, data, selected }) => {
   return (
     <div className={cn(
       "group relative flex flex-col items-center transition-all duration-500",
-      selected ? "scale-110 z-50" : "scale-100 hover:scale-105",
+      selected || isPath ? "scale-110 z-50" : "scale-100 hover:scale-105",
       isDimmed ? "opacity-20 blur-[1px] grayscale pointer-events-none" : "opacity-100",
       focusedNodeId === id && "ring-4 ring-indigo-400 ring-offset-4 rounded-full"
     )}>
       
-      <Handle 
-        type="target" 
-        position={Position.Top} 
-        style={{ top: '33%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }}
-      />
-      
-      <Handle 
-        type="source" 
-        position={Position.Bottom} 
-        style={{ top: '33%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }}
-      />
+      <Handle type="target" position={Position.Top} style={{ top: '33%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} style={{ top: '33%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }} />
 
       {isTarget && (
         <div className="absolute top-[6px] w-12 h-12">
@@ -51,9 +42,15 @@ export const CustomNode = memo(({ id, data, selected }) => {
         </div>
       )}
 
+      {isPath && (
+        <div className="absolute inset-0 -m-2 bg-emerald-500/10 rounded-full blur-xl animate-pulse" />
+      )}
+
       <div className="flex flex-col items-center gap-2 p-2">
         <div className={cn(
           "w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 relative z-10",
+          isPath 
+            ? "bg-emerald-500 text-white ring-4 ring-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.4)]" :
           selected 
             ? cn(colors.bg, colors.text, "ring-4 ring-offset-2 shadow-xl", colors.ring) 
             : cn("bg-white border-2", colors.border, colors.text, "group-hover:scale-110 shadow-sm")
@@ -66,13 +63,13 @@ export const CustomNode = memo(({ id, data, selected }) => {
         <div className="flex flex-col items-center text-center max-w-[140px]">
           <span className={cn(
             "text-[10px] font-bold uppercase tracking-wider mb-0.5 transition-colors",
-            selected ? colors.accent : "text-slate-500"
+            isPath ? "text-emerald-600" : selected ? colors.accent : "text-slate-500"
           )}>
             {isCategory ? 'فئة' : getArabicName(data.label)}
           </span>
           <span className={cn(
             "font-extrabold truncate w-full px-1 transition-all",
-            selected ? "text-slate-900 scale-105" : "text-slate-700",
+            isPath ? "text-emerald-900 scale-105" : selected ? "text-slate-900 scale-105" : "text-slate-700",
             data.instanceId ? "text-[10px] font-mono" : "text-[13px]"
           )}>
             {displayLabel}
