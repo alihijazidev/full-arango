@@ -22,31 +22,47 @@ export const GraphProvider = ({ children }) => {
   const [resultSearchTerm, setResultSearchTerm] = useState('');
   const [backgroundStyle, setBackgroundStyle] = useState('dots');
   const [globalIcons, setGlobalIcons] = useState({});
+  const [savedStates, setSavedStates] = useState([]);
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
+    const saved = localStorage.getItem('arango_saved_states');
+    if (saved) setSavedStates(JSON.parse(saved));
   }, []);
 
-  // --- وظائف الحفظ والاستيراد ---
+  // --- وظائف الحفظ المتعدد ---
   
-  const saveState = useCallback(() => {
-    const state = { nodes, edges, globalIcons };
-    localStorage.setItem('arango_graph_state', JSON.stringify(state));
-    toast.success("تم حفظ حالة المخطط محلياً بنجاح");
-  }, [nodes, edges, globalIcons]);
+  const saveCurrentState = useCallback((name) => {
+    const newState = {
+      id: Date.now().toString(),
+      name: name || `نسخة ${new Date().toLocaleString('ar-EG')}`,
+      timestamp: new Date().toISOString(),
+      data: { nodes, edges, globalIcons }
+    };
+    
+    const updatedStates = [newState, ...savedStates];
+    setSavedStates(updatedStates);
+    localStorage.setItem('arango_saved_states', JSON.stringify(updatedStates));
+    toast.success(`تم حفظ النسخة "${newState.name}" بنجاح`);
+  }, [nodes, edges, globalIcons, savedStates]);
 
-  const loadState = useCallback(() => {
-    const saved = localStorage.getItem('arango_graph_state');
-    if (saved) {
-      const { nodes: savedNodes, edges: savedEdges, globalIcons: savedIcons } = JSON.parse(saved);
-      setNodes(savedNodes || []);
-      setEdges(savedEdges || []);
-      setGlobalIcons(savedIcons || {});
-      toast.success("تم استعادة الحالة المحفوظة");
-    } else {
-      toast.error("لا توجد حالة محفوظة مسبقاً");
+  const loadSpecificState = useCallback((stateId) => {
+    const target = savedStates.find(s => s.id === stateId);
+    if (target) {
+      const { nodes: n, edges: e, globalIcons: i } = target.data;
+      setNodes(n || []);
+      setEdges(e || []);
+      setGlobalIcons(i || {});
+      toast.success(`تم استعادة النسخة: ${target.name}`);
     }
-  }, []);
+  }, [savedStates]);
+
+  const deleteSavedState = useCallback((stateId) => {
+    const updated = savedStates.filter(s => s.id !== stateId);
+    setSavedStates(updated);
+    localStorage.setItem('arango_saved_states', JSON.stringify(updated));
+    toast.info("تم حذف النسخة المحفوظة");
+  }, [savedStates]);
 
   const exportGraph = useCallback(() => {
     const dataStr = JSON.stringify({ nodes, edges, globalIcons, exportedAt: new Date().toISOString() }, null, 2);
@@ -230,7 +246,7 @@ export const GraphProvider = ({ children }) => {
   return (
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons,
-      saveState, loadState, exportGraph, importGraph
+      savedStates, saveCurrentState, loadSpecificState, deleteSavedState, exportGraph, importGraph
     }}>
       {children}
     </GraphContext.Provider>

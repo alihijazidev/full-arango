@@ -4,19 +4,16 @@ import { GraphCanvas } from '../components/GraphCanvas';
 import { DetailsPanel } from '../components/DetailsPanel';
 import { ResultView } from '../components/ResultView';
 import { GraphProvider, useGraph } from '../store/GraphContext';
+import { SavedStatesManager } from '../components/SavedStatesManager';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { 
   Bell as BellIcon, 
   User as UserIcon, 
   PlayCircle, 
-  Save, 
   Settings, 
   Wifi, 
-  Download,
-  Upload,
   FileDown,
-  FileUp,
-  History
+  FileUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +26,6 @@ import {
 const HeaderActions = () => {
   const { 
     executeStructuredQuery, 
-    saveState, 
-    loadState, 
     exportGraph, 
     importGraph 
   } = useGraph();
@@ -51,13 +46,11 @@ const HeaderActions = () => {
       };
       reader.readAsText(file);
     }
-    // إفراغ المدخل للسماح باختيار نفس الملف مرة أخرى
     event.target.value = '';
   };
 
   return (
     <div className="flex items-center gap-3">
-      {/* مدخل ملف مخفي */}
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -66,7 +59,6 @@ const HeaderActions = () => {
         onChange={handleFileChange} 
       />
 
-      {/* مؤشر حالة الاتصال */}
       <div className="hidden md:flex items-center gap-2 ml-4 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
         <div className="relative">
           <Wifi size={14} className="text-emerald-500" />
@@ -77,7 +69,6 @@ const HeaderActions = () => {
 
       <div className="h-6 w-px bg-slate-200 mx-1" />
 
-      {/* أزرار العمليات - الاستيراد والتصدير */}
       <div className="flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -100,22 +91,8 @@ const HeaderActions = () => {
 
       <div className="h-6 w-px bg-slate-200 mx-1" />
 
-      {/* أزرار الحفظ والاستعادة */}
       <div className="flex items-center gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" className="gap-2 h-9 border-slate-200 text-slate-600" onClick={loadState}>
-              <History size={16} />
-              استعادة
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>استعادة آخر حالة محفوظة محلياً</TooltipContent>
-        </Tooltip>
-
-        <Button variant="outline" className="gap-2 h-9 border-slate-200 text-slate-600" onClick={saveState}>
-          <Save size={16} />
-          حفظ المسودة
-        </Button>
+        <SavedStatesManager />
 
         <Button 
           onClick={executeStructuredQuery}
@@ -128,7 +105,6 @@ const HeaderActions = () => {
       
       <div className="h-6 w-px bg-slate-200 mx-1" />
 
-      {/* الإشعارات والحساب */}
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500">
           <Settings size={20} />

@@ -1,0 +1,121 @@
+import React, { useState } from 'react';
+import { useGraph } from '../store/GraphContext';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { ScrollArea } from "./ui/scroll-area";
+import { History, Save, Trash2, Clock, Check } from 'lucide-react';
+import { Badge } from './ui/badge';
+import { cn } from '@/lib/utils';
+
+export const SavedStatesManager = () => {
+  const { savedStates, saveCurrentState, loadSpecificState, deleteSavedState } = useGraph();
+  const [saveName, setSaveName] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleSave = () => {
+    saveCurrentState(saveName);
+    setSaveName('');
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2 h-9 border-slate-200 text-slate-600">
+          <History size={16} />
+          إدارة النسخ
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="text-right flex items-center gap-2">
+            <History className="text-primary" size={20} />
+            إدارة النسخ المحفوظة
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="py-4 space-y-6 text-right">
+          {/* قسم حفظ نسخة جديدة */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">حفظ نسخة جديدة</h3>
+            <div className="flex gap-2">
+              <Input 
+                placeholder="أدخل اسماً للنسخة (مثلاً: مخطط العملاء النهائي)" 
+                className="text-right h-10"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+              />
+              <Button onClick={handleSave} className="gap-2">
+                <Save size={16} />
+                حفظ
+              </Button>
+            </div>
+          </div>
+
+          {/* قائمة النسخ المحفوظة */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">النسخ السابقة ({savedStates.length})</h3>
+            <ScrollArea className="h-[250px] border rounded-lg p-2 bg-slate-50/50">
+              <div className="space-y-2">
+                {savedStates.length === 0 ? (
+                  <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 gap-2">
+                    <History size={32} className="opacity-20" />
+                    <p className="text-xs">لا توجد نسخ محفوظة حالياً</p>
+                  </div>
+                ) : (
+                  savedStates.map((state) => (
+                    <div 
+                      key={state.id}
+                      className="group flex items-center justify-between p-3 bg-white border rounded-md hover:border-primary transition-all shadow-sm"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <span className="font-bold text-sm text-slate-700">{state.name}</span>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                          <Clock size={10} />
+                          {new Date(state.timestamp).toLocaleString('ar-EG')}
+                          <Badge variant="secondary" className="text-[8px] py-0">
+                            {state.data.nodes.length} عقدة
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-rose-500 hover:bg-rose-50"
+                          onClick={() => deleteSavedState(state.id)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="h-8 gap-2 bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => {
+                            loadSpecificState(state.id);
+                            setIsOpen(false);
+                          }}
+                        >
+                          <Check size={14} />
+                          استعادة
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
