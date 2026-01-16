@@ -141,23 +141,23 @@ const IndexContent = () => {
   return (
     <div className="flex flex-col h-screen w-screen bg-white overflow-hidden text-slate-900" dir="rtl">
       <header className="h-16 border-b flex items-center justify-between px-6 bg-white z-20 shrink-0 shadow-sm">
+        <HeaderActions />
+        
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transform -rotate-3">
-              <span className="text-primary-foreground font-black text-xl">أ</span>
-            </div>
-            <div className="flex flex-col">
-              <h1 className="font-bold text-lg tracking-tight leading-none">مخطط أرانجو</h1>
-              <span className="text-[10px] text-slate-400 font-medium mt-1">نظام تحليل البيانات المرتبط</span>
-            </div>
-          </div>
-          
           <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-blue-100 font-mono text-[10px] px-2">
             V 1.0.4
           </Badge>
+          
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col text-left">
+              <h1 className="font-bold text-lg tracking-tight leading-none">مخطط أرانجو</h1>
+              <span className="text-[10px] text-slate-400 font-medium mt-1">نظام تحليل البيانات المرتبط</span>
+            </div>
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transform rotate-3">
+              <span className="text-primary-foreground font-black text-xl">أ</span>
+            </div>
+          </div>
         </div>
-
-        <HeaderActions />
       </header>
 
       <div className="flex flex-1 overflow-hidden relative">
