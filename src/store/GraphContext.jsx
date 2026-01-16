@@ -25,7 +25,6 @@ export const GraphProvider = ({ children }) => {
   const [globalIcons, setGlobalIcons] = useState({});
   const [savedStates, setSavedStates] = useState([]);
 
-  // حالات التحليل المتقدمة
   const [focusedNodeId, setFocusedNodeId] = useState(null);
   const [targetNodeIds, setTargetNodeIds] = useState(new Set());
   const [shortestPathSelection, setShortestPathSelection] = useState([]);
@@ -41,13 +40,12 @@ export const GraphProvider = ({ children }) => {
     setEdges((eds) => eds.map(edge => ({ ...edge, animated: isAnimated })));
   }, [isAnimated]);
 
-  // خوارزمية البحث عن أقصر مسار في المخطط الحالي (BFS)
-  const findPathInGraph = (startId, endId) => {
+  // خوارزمية البحث في المخطط الحالي
+  const findPathInCanvas = (startId, endId, currentEdges) => {
     const adjacency = {};
-    edges.forEach(edge => {
+    currentEdges.forEach(edge => {
       if (!adjacency[edge.source]) adjacency[edge.source] = [];
       adjacency[edge.source].push({ node: edge.target, edge: edge.id });
-      // جعل البحث ثنائي الاتجاه للسهولة البصرية (أو أحادي الاتجاه حسب الرغبة)
       if (!adjacency[edge.target]) adjacency[edge.target] = [];
       adjacency[edge.target].push({ node: edge.source, edge: edge.id });
     });
@@ -71,34 +69,74 @@ export const GraphProvider = ({ children }) => {
         pathNodes.add(startId);
         return { nodes: pathNodes, edges: pathEdges };
       }
-
-      const neighbors = adjacency[current] || [];
-      for (const neighbor of neighbors) {
+      (adjacency[current] || []).forEach(neighbor => {
         if (!visited.has(neighbor.node)) {
           visited.add(neighbor.node);
           predecessors[neighbor.node] = { prevNodeId: current, edgeId: neighbor.edge };
           queue.push(neighbor.node);
         }
-      }
+      });
     }
     return null;
   };
 
-  const toggleFocus = (nodeId) => {
-    setFocusedNodeId(prev => prev === nodeId ? null : nodeId);
-    if (focusedNodeId !== nodeId) toast.info("نمط التركيز نشط");
-  };
-
-  const toggleTarget = (nodeId) => {
-    setTargetNodeIds(prev => {
-      const next = new Set(prev);
-      if (next.has(nodeId)) next.delete(nodeId);
-      else next.add(nodeId);
-      return next;
+  // خوارزمية البحث في الـ Metadata (الهيكل الكلي)
+  const findPathInSchema = (startPath, endPath) => {
+    const schemaAdj = {};
+    metadata.edges.forEach(e => {
+      const from = Array.isArray(e.fromcol) ? e.fromcol.join('/') : e.fromcol;
+      const to = Array.isArray(e.tocol) ? e.tocol.join('/') : e.tocol;
+      if (!schemaAdj[from]) schemaAdj[from] = [];
+      schemaAdj[from].push({ to, label: e.label, meta: e });
+      if (!schemaAdj[to]) schemaAdj[to] = [];
+      schemaAdj[to].push({ to: from, label: e.label, meta: e });
     });
+
+    const queue = [startPath];
+    const visited = new Set([startPath]);
+    const predecessors = {};
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (current === endPath) {
+        const path = [];
+        let step = endPath;
+        while (step !== startPath) {
+          const pred = predecessors[step];
+          path.unshift({ from: pred.prev, to: step, label: pred.label, meta: pred.meta });
+          step = pred.prev;
+        }
+        return path;
+      }
+      (schemaAdj[current] || []).forEach(edge => {
+        if (!visited.has(edge.to)) {
+          visited.add(edge.to);
+          predecessors[edge.to] = { prev: current, label: edge.label, meta: edge.meta };
+          queue.push(edge.to);
+        }
+      });
+    }
+    return null;
   };
 
-  const addToShortestPath = (node) => {
+  const addNodeFromMetadata = (type, name, position, categoryName = null) => {
+    const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
+    const existing = nodes.find(n => n.data.fullPath === fullPath);
+    if (existing) return existing;
+
+    const id = `${type}-${name}-${Date.now()}`;
+    let nodeMetadata = null;
+    if (type === 'category') nodeMetadata = metadata.collections.find(c => c.name === name);
+    else {
+      const cat = metadata.collections.find(c => c.name === categoryName);
+      nodeMetadata = cat?.entities.find(e => e.name === name);
+    }
+    const newNode = { id, type: 'customNode', position, data: { label: name, type, fullPath, categoryName, metadata: nodeMetadata, filters: [] } };
+    setNodes(nds => [...nds, newNode]);
+    return newNode;
+  };
+
+  const addToShortestPath = (node, currentNodes = nodes, currentEdges = edges) => {
     if (shortestPathSelection.find(n => n.id === node.id)) return;
     if (shortestPathSelection.length >= 2) {
       toast.error("يمكنك اختيار عقدتين فقط لمسار واحد");
@@ -111,32 +149,88 @@ export const GraphProvider = ({ children }) => {
 
     if (newSelection.length === 2) {
       const [nodeA, nodeB] = newSelection;
-      const path = findPathInGraph(nodeA.id, nodeB.id);
+      
+      // 1. محاولة البحث في المخطط الحالي أولاً
+      const canvasPath = findPathInCanvas(nodeA.id, nodeB.id, currentEdges);
+      if (canvasPath) {
+        setActivePathElements(canvasPath);
+        toast.info("تم اكتشاف مسار مباشر في التصميم");
+        return;
+      }
 
-      if (path) {
-        setActivePathElements(path);
-        toast.info("تم اكتشاف مسار موجود بين العقدتين");
+      // 2. محاولة البحث في الـ Metadata (الـ Schema)
+      const schemaPath = findPathInSchema(nodeA.data.fullPath, nodeB.data.fullPath);
+      if (schemaPath) {
+        toast.loading("جاري جلب المسار من قاعدة البيانات...", { id: 'path-fetch' });
+        
+        let lastNodeId = nodeA.id;
+        const newEdges = [];
+        const finalPathNodes = new Set([nodeA.id, nodeB.id]);
+        const finalPathEdges = new Set();
+
+        schemaPath.forEach((step, idx) => {
+          // العقدة المستهدفة في هذه الخطوة
+          let stepNode;
+          if (idx === schemaPath.length - 1) {
+            stepNode = nodeB;
+          } else {
+            const [cat, name] = step.to.includes('/') ? step.to.split('/') : [null, step.to];
+            stepNode = addNodeFromMetadata(cat ? 'collection' : 'category', name, { x: 300 * (idx + 1), y: 100 }, cat);
+          }
+          
+          finalPathNodes.add(stepNode.id);
+          const edgeId = `schema-path-${lastNodeId}-${stepNode.id}-${step.label}`;
+          const newEdge = { 
+            id: edgeId, source: lastNodeId, target: stepNode.id, label: step.label, 
+            type: 'parallel', animated: true, data: { metadata: step.meta, filters: [], offset: 0, depth: 1 } 
+          };
+          newEdges.push(newEdge);
+          finalPathEdges.add(edgeId);
+          lastNodeId = stepNode.id;
+        });
+
+        setEdges(eds => [...eds, ...newEdges]);
+        setActivePathElements({ nodes: finalPathNodes, edges: finalPathEdges });
+        toast.success("تم استكمال المسار آلياً من هيكل البيانات", { id: 'path-fetch' });
       } else {
-        // إذا لم يوجد مسار، أضف رابطاً يدوياً
+        // 3. إذا لم يوجد مسار إطلاقاً، أضف رابطاً يدوياً
         const edgeId = `manual-path-${nodeA.id}-${nodeB.id}`;
         setEdges(eds => [...eds, {
-          id: edgeId,
-          source: nodeA.id,
-          target: nodeB.id,
-          label: 'رابط مسار يدوي',
-          type: 'parallel',
-          animated: true,
-          data: { isVirtual: true, filters: [], offset: 0, depth: 1 }
+          id: edgeId, source: nodeA.id, target: nodeB.id, label: 'رابط يدوي (لا يوجد مسار)',
+          type: 'parallel', animated: true, data: { isVirtual: true, filters: [], offset: 0, depth: 1 }
         }]);
         setActivePathElements({ nodes: new Set([nodeA.id, nodeB.id]), edges: new Set([edgeId]) });
-        toast.warning("لا يوجد مسار مباشر؛ تم إنشاء رابط يدوي");
+        toast.warning("لا يوجد مسار معروف؛ تم إنشاء رابط يدوي");
       }
     }
   };
 
+  const addMetadataToShortestPath = (type, name, categoryName = null) => {
+    const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
+    let targetNode = nodes.find(n => n.data.fullPath === fullPath);
+    
+    if (!targetNode) {
+      targetNode = addNodeFromMetadata(type, name, { x: 100, y: 100 }, categoryName);
+      // استخدام setTimeout لضمان تحديث الـ state للـ nodes قبل استدعاء التحليل
+      setTimeout(() => addToShortestPath(targetNode), 10);
+    } else {
+      addToShortestPath(targetNode);
+    }
+  };
+
+  const toggleFocus = (nodeId) => setFocusedNodeId(prev => prev === nodeId ? null : nodeId);
+  const toggleTarget = (nodeId) => {
+    setTargetNodeIds(prev => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return next;
+    });
+  };
+
   const removeFromShortestPath = (nodeId) => {
     setShortestPathSelection(prev => prev.filter(n => n.id !== nodeId));
-    setEdges(eds => eds.filter(e => !e.id.startsWith('manual-path-') || (e.source !== nodeId && e.target !== nodeId)));
+    setEdges(eds => eds.filter(e => !e.id.startsWith('manual-path-') && !e.id.startsWith('schema-path-')));
     setActivePathElements({ nodes: new Set(), edges: new Set() });
   };
 
@@ -312,34 +406,6 @@ export const GraphProvider = ({ children }) => {
       });
     });
     if (newEdges.length > 0) setEdges((eds) => [...eds, ...newEdges]);
-  };
-
-  const addNodeFromMetadata = (type, name, position, categoryName = null) => {
-    const id = `${type}-${name}-${Date.now()}`;
-    const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
-    let nodeMetadata = null;
-    if (type === 'category') nodeMetadata = metadata.collections.find(c => c.name === name);
-    else {
-      const cat = metadata.collections.find(c => c.name === categoryName);
-      nodeMetadata = cat?.entities.find(e => e.name === name);
-    }
-    const newNode = { id, type: 'customNode', position, data: { label: name, type, fullPath, categoryName, metadata: nodeMetadata, filters: [] } };
-    setNodes((nds) => {
-      const updatedNodes = [...nds, newNode];
-      if (isAutoConnect) setTimeout(() => performAutoConnect(updatedNodes, edges), 0);
-      return updatedNodes;
-    });
-    return newNode;
-  };
-
-  const addMetadataToShortestPath = (type, name, categoryName = null) => {
-    const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
-    const existingNode = nodes.find(n => n.data.fullPath === fullPath);
-    if (existingNode) addToShortestPath(existingNode);
-    else {
-      const newNode = addNodeFromMetadata(type, name, { x: 100, y: 100 }, categoryName);
-      addToShortestPath(newNode);
-    }
   };
 
   const updateFilters = (id, isNode, filters) => {
