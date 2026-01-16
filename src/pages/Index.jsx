@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { GraphCanvas } from '../components/GraphCanvas';
 import { DetailsPanel } from '../components/DetailsPanel';
@@ -12,7 +12,11 @@ import {
   Save, 
   Settings, 
   Wifi, 
-  CloudDownload 
+  Download,
+  Upload,
+  FileDown,
+  FileUp,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,10 +27,45 @@ import {
 } from '@/components/ui/tooltip';
 
 const HeaderActions = () => {
-  const { executeStructuredQuery } = useGraph();
+  const { 
+    executeStructuredQuery, 
+    saveState, 
+    loadState, 
+    exportGraph, 
+    importGraph 
+  } = useGraph();
+  
+  const fileInputRef = useRef(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result;
+        if (content) importGraph(content);
+      };
+      reader.readAsText(file);
+    }
+    // إفراغ المدخل للسماح باختيار نفس الملف مرة أخرى
+    event.target.value = '';
+  };
 
   return (
     <div className="flex items-center gap-3">
+      {/* مدخل ملف مخفي */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        className="hidden" 
+        accept=".json" 
+        onChange={handleFileChange} 
+      />
+
       {/* مؤشر حالة الاتصال */}
       <div className="hidden md:flex items-center gap-2 ml-4 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
         <div className="relative">
@@ -38,19 +77,43 @@ const HeaderActions = () => {
 
       <div className="h-6 w-px bg-slate-200 mx-1" />
 
-      {/* أزرار العمليات */}
+      {/* أزرار العمليات - الاستيراد والتصدير */}
+      <div className="flex items-center gap-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 hover:text-blue-600" onClick={handleImportClick}>
+              <FileUp size={18} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>استيراد JSON</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 hover:text-blue-600" onClick={exportGraph}>
+              <FileDown size={18} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>تصدير JSON</TooltipContent>
+        </Tooltip>
+      </div>
+
+      <div className="h-6 w-px bg-slate-200 mx-1" />
+
+      {/* أزرار الحفظ والاستعادة */}
       <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 hover:text-primary">
-              <CloudDownload size={20} />
+            <Button variant="outline" className="gap-2 h-9 border-slate-200 text-slate-600" onClick={loadState}>
+              <History size={16} />
+              استعادة
             </Button>
           </TooltipTrigger>
-          <TooltipContent>تحميل المخطط</TooltipContent>
+          <TooltipContent>استعادة آخر حالة محفوظة محلياً</TooltipContent>
         </Tooltip>
 
-        <Button variant="outline" className="gap-2 h-9 border-slate-200 text-slate-600 hidden sm:flex">
-          <Save size={18} />
+        <Button variant="outline" className="gap-2 h-9 border-slate-200 text-slate-600" onClick={saveState}>
+          <Save size={16} />
           حفظ المسودة
         </Button>
 

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { fetchMetadata } from '../services/mockApi';
 import { addEdge } from 'reactflow';
+import { toast } from "sonner";
 
 const GraphContext = createContext(undefined);
 
@@ -20,13 +21,62 @@ export const GraphProvider = ({ children }) => {
   const [isAutoConnect, setIsAutoConnect] = useState(false);
   const [resultSearchTerm, setResultSearchTerm] = useState('');
   const [backgroundStyle, setBackgroundStyle] = useState('dots');
-
-  // المخزن المركزي للأيقونات المخصصة (الاسم -> بيانات الأيقونة)
   const [globalIcons, setGlobalIcons] = useState({});
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
   }, []);
+
+  // --- وظائف الحفظ والاستيراد ---
+  
+  const saveState = useCallback(() => {
+    const state = { nodes, edges, globalIcons };
+    localStorage.setItem('arango_graph_state', JSON.stringify(state));
+    toast.success("تم حفظ حالة المخطط محلياً بنجاح");
+  }, [nodes, edges, globalIcons]);
+
+  const loadState = useCallback(() => {
+    const saved = localStorage.getItem('arango_graph_state');
+    if (saved) {
+      const { nodes: savedNodes, edges: savedEdges, globalIcons: savedIcons } = JSON.parse(saved);
+      setNodes(savedNodes || []);
+      setEdges(savedEdges || []);
+      setGlobalIcons(savedIcons || {});
+      toast.success("تم استعادة الحالة المحفوظة");
+    } else {
+      toast.error("لا توجد حالة محفوظة مسبقاً");
+    }
+  }, []);
+
+  const exportGraph = useCallback(() => {
+    const dataStr = JSON.stringify({ nodes, edges, globalIcons, exportedAt: new Date().toISOString() }, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const exportFileDefaultName = `graph-export-${new Date().getTime()}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    toast.success("بدأ تصدير المخطط كملف JSON");
+  }, [nodes, edges, globalIcons]);
+
+  const importGraph = useCallback((jsonData) => {
+    try {
+      const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+      if (data.nodes && data.edges) {
+        setNodes(data.nodes);
+        setEdges(data.edges);
+        setGlobalIcons(data.globalIcons || {});
+        toast.success("تم استيراد المخطط بنجاح");
+      } else {
+        throw new Error("تنسيق الملف غير صحيح");
+      }
+    } catch (error) {
+      toast.error("فشل استيراد الملف: تأكد من صحة تنسيق JSON");
+    }
+  }, []);
+
+  // --- منطق الرسم الأساسي ---
 
   const getParallelEdgeOffset = (source, target, existingEdges) => {
     const parallelEdges = existingEdges.filter(
@@ -161,16 +211,11 @@ export const GraphProvider = ({ children }) => {
     else setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, filters } } : e));
   };
 
-  // تعديل: تحديث الأيقونة بشكل عالمي للاسم (Label)
   const updateNodeIcon = (id, iconData) => {
     const node = nodes.find(n => n.id === id);
     if (!node) return;
-    
     const label = node.data.label;
-    setGlobalIcons(prev => ({
-      ...prev,
-      [label]: iconData
-    }));
+    setGlobalIcons(prev => ({ ...prev, [label]: iconData }));
   };
 
   const updateEdgeDepth = (id, depth) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, depth: parseInt(depth) || 1 } } : e));
@@ -184,7 +229,8 @@ export const GraphProvider = ({ children }) => {
 
   return (
     <GraphContext.Provider value={{ 
-      metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons
+      metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons,
+      saveState, loadState, exportGraph, importGraph
     }}>
       {children}
     </GraphContext.Provider>
