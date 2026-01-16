@@ -188,7 +188,7 @@ const GraphInner = ({ onSelectElement }) => {
              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={clearCanvas} title="مسح"><Trash2 size={14} /></Button>
           </div>
         </Panel>
-      </Flow>
+      </ReactFlow>
       
       {menu && (
         <RadialMenu 
