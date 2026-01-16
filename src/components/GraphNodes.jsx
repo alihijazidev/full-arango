@@ -1,3 +1,5 @@
+"use client";
+
 import React, { memo, useMemo } from 'react';
 import { Handle, Position } from 'reactflow';
 import { cn } from '@/lib/utils';
@@ -35,16 +37,19 @@ export const CustomNode = memo(({ id, data, selected }) => {
       isPathNode && "z-[60]"
     )}>
       
+      {/* نقاط التوصيل في الأعلى للربط اليدوي */}
       <Handle 
         type="target" 
         position={Position.Top} 
-        style={{ top: '33%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }}
+        className="w-3 h-3 bg-slate-400 border-2 border-white rounded-full hover:bg-primary hover:scale-150 transition-all opacity-0 group-hover:opacity-100 z-50"
+        style={{ top: '8px' }}
       />
       
       <Handle 
         type="source" 
-        position={Position.Bottom} 
-        style={{ top: '33%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }}
+        position={Position.Top} 
+        className="w-3 h-3 bg-slate-400 border-2 border-white rounded-full hover:bg-primary hover:scale-150 transition-all opacity-0 group-hover:opacity-100 z-50"
+        style={{ top: '8px' }}
       />
 
       {/* تمييز عقدة الهدف */}
