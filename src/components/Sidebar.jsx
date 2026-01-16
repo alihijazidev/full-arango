@@ -13,9 +13,11 @@ import { getArabicName, getSmallIcon, getColorStyles } from '../utils/mapping';
 export const Sidebar = () => {
   const { 
     metadata, nodes, addEdgeManually, globalIcons, 
-    shortestPathSelection, removeFromShortestPath, executeStructuredQuery 
+    shortestPathSelection, removeFromShortestPath, executeStructuredQuery,
+    addMetadataToShortestPath
   } = useGraph();
   const [searchTerm, setSearchTerm] = useState('');
+  const [isPathDraggingOver, setIsPathDraggingOver] = useState(false);
 
   const filteredCategories = useMemo(() => {
     if (!searchTerm) return metadata.collections;
@@ -43,6 +45,20 @@ export const Sidebar = () => {
   const onDragStart = (event, nodeType, nodeName, categoryName = null) => {
     event.dataTransfer.setData('application/reactflow', JSON.stringify({ nodeType, nodeName, categoryName }));
     event.dataTransfer.effectAllowed = 'move';
+  };
+
+  const onPathDrop = (event) => {
+    event.preventDefault();
+    setIsPathDraggingOver(false);
+    const dropData = event.dataTransfer.getData('application/reactflow');
+    if (!dropData) return;
+    const data = JSON.parse(dropData);
+    addMetadataToShortestPath(data.nodeType, data.nodeName, data.categoryName);
+  };
+
+  const onPathDragOver = (event) => {
+    event.preventDefault();
+    setIsPathDraggingOver(true);
   };
 
   return (
@@ -146,7 +162,15 @@ export const Sidebar = () => {
       </div>
 
       {/* الجزء السفلي: أقصر مسار (ثابت ودائم) */}
-      <div className="shrink-0 bg-slate-50 border-t shadow-[0_-4px_12px_rgba(0,0,0,0.03)] z-10">
+      <div 
+        className={cn(
+          "shrink-0 bg-slate-50 border-t shadow-[0_-4px_12px_rgba(0,0,0,0.03)] z-10 transition-all",
+          isPathDraggingOver ? "bg-amber-50 ring-2 ring-inset ring-amber-400" : ""
+        )}
+        onDragOver={onPathDragOver}
+        onDragLeave={() => setIsPathDraggingOver(false)}
+        onDrop={onPathDrop}
+      >
         <div className="p-4 flex items-center justify-between bg-white border-b">
           <h3 className="font-bold text-xs flex items-center gap-2 text-slate-700">
             <MapPinned size={16} className="text-amber-500" />
@@ -162,7 +186,7 @@ export const Sidebar = () => {
             <div className="flex flex-col items-center justify-center text-center p-4 border-2 border-dashed rounded-xl bg-slate-100/50 gap-2">
               <Layers size={24} className="text-slate-300" />
               <p className="text-[10px] text-slate-500 leading-relaxed px-2">
-                اختر عقدتين من المخطط عبر قائمة <b>"أدوات"</b> لبدء تحليل المسار بينهما.
+                قم بسحب فئة أو مجموعة من الأعلى وأفلتها هنا، أو اختر عقدتين من المخطط عبر قائمة <b>"أدوات"</b> لبدء تحليل المسار.
               </p>
             </div>
           ) : (

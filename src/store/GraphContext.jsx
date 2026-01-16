@@ -287,6 +287,21 @@ export const GraphProvider = ({ children }) => {
       if (isAutoConnect) setTimeout(() => performAutoConnect(updatedNodes, edges), 0);
       return updatedNodes;
     });
+    return newNode;
+  };
+
+  const addMetadataToShortestPath = (type, name, categoryName = null) => {
+    // التحقق مما إذا كان هناك عقدة من نفس النوع موجودة بالفعل على المخطط لاستخدامها
+    const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
+    const existingNode = nodes.find(n => n.data.fullPath === fullPath);
+    
+    if (existingNode) {
+      addToShortestPath(existingNode);
+    } else {
+      // إذا لم تكن موجودة، قم بإنشائها أولاً
+      const newNode = addNodeFromMetadata(type, name, { x: 100, y: 100 }, categoryName);
+      addToShortestPath(newNode);
+    }
   };
 
   const updateFilters = (id, isNode, filters) => {
@@ -312,7 +327,7 @@ export const GraphProvider = ({ children }) => {
 
   return (
     <GraphContext.Provider value={{ 
-      metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons,
+      metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addMetadataToShortestPath, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons,
       savedStates, saveCurrentState, loadSpecificState, deleteSavedState, exportGraph, importGraph, applyLayout,
       focusedNodeId, targetNodeIds, shortestPathSelection, toggleFocus, toggleTarget, addToShortestPath, removeFromShortestPath
     }}>
