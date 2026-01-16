@@ -6,7 +6,7 @@ import { getArabicName, getIcon, getColorStyles } from '../utils/mapping';
 import { Target, MapPinned } from 'lucide-react';
 
 export const CustomNode = memo(({ id, data, selected }) => {
-  const { globalIcons, focusedNodeId, edges, targetNodeIds, shortestPathSelection } = useGraph();
+  const { globalIcons, focusedNodeId, edges, targetNodeIds, shortestPathSelection, activePathElementIds } = useGraph();
   const isCategory = data.type === 'category';
   const displayLabel = data.instanceId ? data.instanceId : getArabicName(data.label);
   
@@ -15,9 +15,10 @@ export const CustomNode = memo(({ id, data, selected }) => {
 
   const isTarget = targetNodeIds.has(id);
   
-  // التحقق مما إذا كانت العقدة جزءاً من تحديد أقصر مسار
+  // التحقق مما إذا كانت العقدة جزءاً من تحديد أقصر مسار أو المسار المكتشف
   const pathNodeIndex = shortestPathSelection.findIndex(n => n.id === id);
-  const isPathNode = pathNodeIndex !== -1;
+  const isEndNode = pathNodeIndex !== -1;
+  const isPathNode = activePathElementIds.has(id);
 
   // منطق التركيز
   const isDimmed = useMemo(() => {
@@ -57,13 +58,18 @@ export const CustomNode = memo(({ id, data, selected }) => {
         </div>
       )}
 
-      {/* تمييز عقدة المسار (A/B) */}
+      {/* تمييز عقدة المسار */}
       {isPathNode && (
         <div className="absolute top-[2px] w-16 h-16">
-          <div className="absolute inset-0 border-4 border-amber-400 rounded-full animate-pulse shadow-[0_0_20px_rgba(245,158,11,0.6)]" />
-          <div className="absolute -top-5 -right-2 bg-amber-500 text-white w-7 h-7 rounded-lg shadow-xl z-[70] flex items-center justify-center font-black text-sm border-2 border-white rotate-12">
-            {pathNodeIndex === 0 ? 'A' : 'B'}
-          </div>
+          <div className={cn(
+            "absolute inset-0 border-4 rounded-full animate-pulse",
+            isEndNode ? "border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.6)]" : "border-amber-200 shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+          )} />
+          {isEndNode && (
+            <div className="absolute -top-5 -right-2 bg-amber-500 text-white w-7 h-7 rounded-lg shadow-xl z-[70] flex items-center justify-center font-black text-sm border-2 border-white rotate-12">
+              {pathNodeIndex === 0 ? 'A' : 'B'}
+            </div>
+          )}
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white text-amber-600 p-0.5 rounded-full shadow-md z-[70] border border-amber-200">
             <MapPinned size={10} />
           </div>

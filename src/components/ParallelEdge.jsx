@@ -19,18 +19,14 @@ export const ParallelEdge = ({
   animated,
   data
 }) => {
-  const { updateEdgeOffset, nodes, shortestPathSelection } = useGraph();
+  const { updateEdgeOffset, nodes, activePathElementIds } = useGraph();
   const { screenToFlowPosition, setEdges: setLocalEdges } = useReactFlow();
   
   const sourceNode = useMemo(() => nodes.find(n => n.id === source), [nodes, source]);
   const targetNode = useMemo(() => nodes.find(n => n.id === target), [nodes, target]);
 
-  // التحقق مما إذا كان الرابط يربط بين عقدتين في تحديد أقصر مسار
-  const isPathEdge = useMemo(() => {
-    if (shortestPathSelection.length < 2) return false;
-    const pathNodeIds = shortestPathSelection.map(n => n.id);
-    return pathNodeIds.includes(source) && pathNodeIds.includes(target);
-  }, [shortestPathSelection, source, target]);
+  // التحقق مما إذا كان الرابط جزءاً من المسار المكتشف
+  const isPathEdge = activePathElementIds.has(id);
 
   const gradientStyle = useMemo(() => {
     if (!sourceNode || !targetNode) return {};
@@ -113,7 +109,6 @@ export const ParallelEdge = ({
         markerEnd={isPathEdge ? "url(#arrow-amber)" : markerEnd}
       />
       
-      {/* سهم ذهبي مخصص للمسار */}
       {isPathEdge && (
         <defs>
           <marker id="arrow-amber" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">

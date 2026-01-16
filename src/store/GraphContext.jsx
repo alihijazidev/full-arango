@@ -29,12 +29,71 @@ export const GraphProvider = ({ children }) => {
   const [focusedNodeId, setFocusedNodeId] = useState(null);
   const [targetNodeIds, setTargetNodeIds] = useState(new Set());
   const [shortestPathSelection, setShortestPathSelection] = useState([]);
+  const [activePathElementIds, setActivePathElementIds] = useState(new Set());
 
   useEffect(() => {
     fetchMetadata().then(setMetadata);
     const saved = localStorage.getItem('arango_saved_states');
     if (saved) setSavedStates(JSON.parse(saved));
   }, []);
+
+  // خوارزمية لاكتشاف المسار في المخطط المصمم حالياً
+  const updateActivePath = useCallback((selection, currentEdges) => {
+    if (selection.length < 2) {
+      setActivePathElementIds(new Set());
+      return;
+    }
+
+    const startId = selection[0].id;
+    const endId = selection[1].id;
+    const pathElements = new Set();
+    
+    // استخدام BFS للعثور على أقصر مسار في التصميم الحالي
+    const queue = [[startId]];
+    const visited = new Set([startId]);
+    let foundPath = null;
+
+    while (queue.length > 0) {
+      const path = queue.shift();
+      const node = path[path.length - 1];
+
+      if (node === endId) {
+        foundPath = path;
+        break;
+      }
+
+      // البحث عن الجيران (يدعم الاتجاهين في التصميم للتسهيل)
+      const neighbors = currentEdges
+        .filter(e => e.source === node || e.target === node)
+        .map(e => e.source === node ? e.target : e.source);
+
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push([...path, neighbor]);
+        }
+      }
+    }
+
+    if (foundPath) {
+      foundPath.forEach(id => pathElements.add(id));
+      // إضافة الروابط التي تربط بين عقد المسار
+      for (let i = 0; i < foundPath.length - 1; i++) {
+        const u = foundPath[i];
+        const v = foundPath[i+1];
+        const connectingEdges = currentEdges.filter(e => 
+          (e.source === u && e.target === v) || (e.source === v && e.target === u)
+        );
+        connectingEdges.forEach(e => pathElements.add(e.id));
+      }
+    }
+
+    setActivePathElementIds(pathElements);
+  }, []);
+
+  useEffect(() => {
+    updateActivePath(shortestPathSelection, edges);
+  }, [shortestPathSelection, edges, updateActivePath]);
 
   useEffect(() => {
     setEdges((eds) => eds.map(edge => ({ ...edge, animated: isAnimated })));
@@ -95,7 +154,6 @@ export const GraphProvider = ({ children }) => {
         nodes, 
         edges, 
         globalIcons,
-        // حفظ حالات التحليل المتقدمة
         targetNodeIds: Array.from(targetNodeIds),
         focusedNodeId
       }
@@ -113,7 +171,6 @@ export const GraphProvider = ({ children }) => {
       setNodes(n || []);
       setEdges(e || []);
       setGlobalIcons(i || {});
-      // استعادة حالات التحليل
       setTargetNodeIds(new Set(t || []));
       setFocusedNodeId(f || null);
       toast.success(`تم استعادة النسخة: ${target.name}`);
@@ -151,7 +208,6 @@ export const GraphProvider = ({ children }) => {
         setNodes(data.nodes);
         setEdges(data.edges);
         setGlobalIcons(data.globalIcons || {});
-        // استعادة الحالات من الملف المصدر
         if (data.targetNodeIds) setTargetNodeIds(new Set(data.targetNodeIds));
         if (data.focusedNodeId) setFocusedNodeId(data.focusedNodeId);
         toast.success("تم استيراد المخطط بنجاح");
@@ -291,14 +347,12 @@ export const GraphProvider = ({ children }) => {
   };
 
   const addMetadataToShortestPath = (type, name, categoryName = null) => {
-    // التحقق مما إذا كان هناك عقدة من نفس النوع موجودة بالفعل على المخطط لاستخدامها
     const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
     const existingNode = nodes.find(n => n.data.fullPath === fullPath);
     
     if (existingNode) {
       addToShortestPath(existingNode);
     } else {
-      // إذا لم تكن موجودة، قم بإنشائها أولاً
       const newNode = addNodeFromMetadata(type, name, { x: 100, y: 100 }, categoryName);
       addToShortestPath(newNode);
     }
@@ -329,7 +383,7 @@ export const GraphProvider = ({ children }) => {
     <GraphContext.Provider value={{ 
       metadata, nodes, edges, setNodes, setEdges, onConnect, addNodeFromMetadata, addMetadataToShortestPath, addEdgeManually, updateFilters, updateNodeIcon, updateEdgeOffset, updateEdgeDepth, updateEdgeLabel, deleteElement, clearCanvas, executeStructuredQuery, executeShortestPath, queryResult, shortestPathResult, activeResultType, setActiveResultType, isQueryLoading, setQueryResult, setShortestPathResult, highlightedId, setHighlightedId, selectedResultId, setSelectedResultId, isResultPathMode, setIsResultPathMode, resultPathNodes, setResultPathNodes, isAnimated, setIsAnimated, isAutoConnect, setIsAutoConnect, resultSearchTerm, setResultSearchTerm, backgroundStyle, setBackgroundStyle, globalIcons,
       savedStates, saveCurrentState, loadSpecificState, deleteSavedState, exportGraph, importGraph, applyLayout,
-      focusedNodeId, targetNodeIds, shortestPathSelection, toggleFocus, toggleTarget, addToShortestPath, removeFromShortestPath
+      focusedNodeId, targetNodeIds, shortestPathSelection, activePathElementIds, toggleFocus, toggleTarget, addToShortestPath, removeFromShortestPath
     }}>
       {children}
     </GraphContext.Provider>
