@@ -91,21 +91,31 @@ export const GraphProvider = ({ children }) => {
       id: Date.now().toString(),
       name: name || `نسخة ${new Date().toLocaleString('ar-EG')}`,
       timestamp: new Date().toISOString(),
-      data: { nodes, edges, globalIcons }
+      data: { 
+        nodes, 
+        edges, 
+        globalIcons,
+        // حفظ حالات التحليل المتقدمة
+        targetNodeIds: Array.from(targetNodeIds),
+        focusedNodeId
+      }
     };
     const updatedStates = [newState, ...savedStates];
     setSavedStates(updatedStates);
     localStorage.setItem('arango_saved_states', JSON.stringify(updatedStates));
     toast.success(`تم حفظ النسخة "${newState.name}" بنجاح`);
-  }, [nodes, edges, globalIcons, savedStates]);
+  }, [nodes, edges, globalIcons, savedStates, targetNodeIds, focusedNodeId]);
 
   const loadSpecificState = useCallback((stateId) => {
     const target = savedStates.find(s => s.id === stateId);
     if (target) {
-      const { nodes: n, edges: e, globalIcons: i } = target.data;
+      const { nodes: n, edges: e, globalIcons: i, targetNodeIds: t, focusedNodeId: f } = target.data;
       setNodes(n || []);
       setEdges(e || []);
       setGlobalIcons(i || {});
+      // استعادة حالات التحليل
+      setTargetNodeIds(new Set(t || []));
+      setFocusedNodeId(f || null);
       toast.success(`تم استعادة النسخة: ${target.name}`);
     }
   }, [savedStates]);
@@ -118,14 +128,21 @@ export const GraphProvider = ({ children }) => {
   }, [savedStates]);
 
   const exportGraph = useCallback(() => {
-    const dataStr = JSON.stringify({ nodes, edges, globalIcons, exportedAt: new Date().toISOString() }, null, 2);
+    const dataStr = JSON.stringify({ 
+      nodes, 
+      edges, 
+      globalIcons, 
+      targetNodeIds: Array.from(targetNodeIds),
+      focusedNodeId,
+      exportedAt: new Date().toISOString() 
+    }, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', `graph-${Date.now()}.json`);
     linkElement.click();
     toast.success("بدأ تصدير المخطط");
-  }, [nodes, edges, globalIcons]);
+  }, [nodes, edges, globalIcons, targetNodeIds, focusedNodeId]);
 
   const importGraph = useCallback((jsonData) => {
     try {
@@ -134,6 +151,9 @@ export const GraphProvider = ({ children }) => {
         setNodes(data.nodes);
         setEdges(data.edges);
         setGlobalIcons(data.globalIcons || {});
+        // استعادة الحالات من الملف المصدر
+        if (data.targetNodeIds) setTargetNodeIds(new Set(data.targetNodeIds));
+        if (data.focusedNodeId) setFocusedNodeId(data.focusedNodeId);
         toast.success("تم استيراد المخطط بنجاح");
       }
     } catch (error) {
