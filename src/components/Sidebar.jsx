@@ -218,16 +218,6 @@ export const Sidebar = () => {
               })}
             </div>
           )}
-
-          <Button 
-            className="w-full gap-2 font-bold h-10 shadow-lg shadow-emerald-500/10" 
-            variant={shortestPathSelection.length < 2 ? "secondary" : "default"}
-            disabled={shortestPathSelection.length < 2}
-            onClick={executeStructuredQuery}
-          >
-            <PlayCircle size={16} />
-            تنفيذ تحليل المسار
-          </Button>
         </div>
       </div>
     </div>
