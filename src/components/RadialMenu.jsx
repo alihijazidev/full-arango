@@ -138,7 +138,7 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
                 color={seg.color}
                 hoverColor={seg.hover}
                 onClick={seg.action}
-                onMouseEnter={seg.isTools ? () => setShowAdvanced(true) : undefined}
+                onMouseEnter={seg.isTools ? () => setShowAdvanced(true) : () => setShowAdvanced(false)}
                 disabled={isDisabled}
               >
                 {seg.icon}
@@ -147,7 +147,7 @@ export const RadialMenu = ({ x, y, onDelete, onDetails, onClose, onOpenIconPicke
             );
           })}
 
-          <g className="cursor-pointer group" onClick={onClose}>
+          <g className="cursor-pointer group" onClick={onClose} onMouseEnter={() => setShowAdvanced(false)}>
             <circle cx="100" cy="100" r="46" className="fill-white drop-shadow-sm transition-all duration-300 group-hover:fill-slate-50" />
             <circle cx="100" cy="100" r="40" className="fill-white stroke-slate-100 stroke-[1]" />
             <foreignObject x="80" y="80" width="40" height="40">
