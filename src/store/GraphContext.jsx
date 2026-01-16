@@ -63,12 +63,44 @@ export const GraphProvider = ({ children }) => {
       toast.error("يمكنك اختيار عقدتين فقط لمسار واحد");
       return;
     }
-    setShortestPathSelection(prev => [...prev, node]);
-    toast.success("تمت الإضافة لقائمة المسار");
+
+    const newSelection = [...shortestPathSelection, node];
+    setShortestPathSelection(newSelection);
+    toast.success(`تمت إضافة ${node.data.label} للمسار`);
+
+    // إذا تم اختيار عقدتين، تحقق من وجود رابط
+    if (newSelection.length === 2) {
+      const [nodeA, nodeB] = newSelection;
+      const existingEdge = edges.find(e => 
+        (e.source === nodeA.id && e.target === nodeB.id) || 
+        (e.source === nodeB.id && e.target === nodeA.id)
+      );
+
+      if (!existingEdge) {
+        // إنشاء رابط افتراضي (Empty Edge)
+        const edgeId = `virtual-path-${nodeA.id}-${nodeB.id}`;
+        setEdges(eds => [...eds, {
+          id: edgeId,
+          source: nodeA.id,
+          target: nodeB.id,
+          label: 'مسار مستهدف',
+          type: 'parallel',
+          animated: true,
+          data: { 
+            isVirtual: true,
+            filters: [], 
+            offset: 0, 
+            depth: 1 
+          }
+        }]);
+      }
+    }
   };
 
   const removeFromShortestPath = (nodeId) => {
     setShortestPathSelection(prev => prev.filter(n => n.id !== nodeId));
+    // حذف أي روابط افتراضية مرتبطة بهذه العقدة
+    setEdges(eds => eds.filter(e => !e.id.startsWith('virtual-path-') || (e.source !== nodeId && e.target !== nodeId)));
   };
 
   const applyLayout = useCallback((type) => {
@@ -95,7 +127,6 @@ export const GraphProvider = ({ children }) => {
         nodes, 
         edges, 
         globalIcons,
-        // حفظ حالات التحليل المتقدمة
         targetNodeIds: Array.from(targetNodeIds),
         focusedNodeId
       }
@@ -113,7 +144,6 @@ export const GraphProvider = ({ children }) => {
       setNodes(n || []);
       setEdges(e || []);
       setGlobalIcons(i || {});
-      // استعادة حالات التحليل
       setTargetNodeIds(new Set(t || []));
       setFocusedNodeId(f || null);
       toast.success(`تم استعادة النسخة: ${target.name}`);
@@ -151,7 +181,6 @@ export const GraphProvider = ({ children }) => {
         setNodes(data.nodes);
         setEdges(data.edges);
         setGlobalIcons(data.globalIcons || {});
-        // استعادة الحالات من الملف المصدر
         if (data.targetNodeIds) setTargetNodeIds(new Set(data.targetNodeIds));
         if (data.focusedNodeId) setFocusedNodeId(data.focusedNodeId);
         toast.success("تم استيراد المخطط بنجاح");
@@ -291,14 +320,12 @@ export const GraphProvider = ({ children }) => {
   };
 
   const addMetadataToShortestPath = (type, name, categoryName = null) => {
-    // التحقق مما إذا كان هناك عقدة من نفس النوع موجودة بالفعل على المخطط لاستخدامها
     const fullPath = type === 'collection' ? `${categoryName}/${name}` : name;
     const existingNode = nodes.find(n => n.data.fullPath === fullPath);
     
     if (existingNode) {
       addToShortestPath(existingNode);
     } else {
-      // إذا لم تكن موجودة، قم بإنشائها أولاً
       const newNode = addNodeFromMetadata(type, name, { x: 100, y: 100 }, categoryName);
       addToShortestPath(newNode);
     }
@@ -320,10 +347,20 @@ export const GraphProvider = ({ children }) => {
   const updateEdgeLabel = (id, label) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, label } : e));
   const updateEdgeOffset = (id, offset) => setEdges((eds) => eds.map((e) => e.id === id ? { ...e, data: { ...e.data, offset } } : e));
   const deleteElement = (id, isNode) => {
-    if (isNode) { setNodes((nds) => nds.filter((n) => n.id !== id)); setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id)); }
+    if (isNode) { 
+      setNodes((nds) => nds.filter((n) => n.id !== id)); 
+      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id)); 
+      setShortestPathSelection(prev => prev.filter(n => n.id !== id));
+    }
     else setEdges((eds) => eds.filter((e) => e.id !== id));
   };
-  const clearCanvas = () => { setNodes([]); setEdges([]); };
+  const clearCanvas = () => { 
+    setNodes([]); 
+    setEdges([]); 
+    setShortestPathSelection([]);
+    setFocusedNodeId(null);
+    setTargetNodeIds(new Set());
+  };
 
   return (
     <GraphContext.Provider value={{ 
